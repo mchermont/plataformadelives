@@ -100,9 +100,19 @@ export function QuizPanel({ eventId, userId }: QuizPanelProps) {
         delete next[question.id];
         return next;
       });
-      setFeedback(
-        error.message.includes("Tempo") ? "Tempo esgotado!" : "Não foi possível registrar a resposta.",
-      );
+      if (error.message.includes("Tempo")) {
+        setFeedback("Tempo esgotado! Aguarde a próxima pergunta.");
+      } else if (error.message.includes("inscrição")) {
+        setFeedback(
+          "Só participantes inscritos pontuam no quiz. Você está logado como equipe/admin — para testar, use uma conta de participante.",
+        );
+      } else if (error.message.includes("duplicate") || error.code === "23505") {
+        setFeedback("Você já respondeu esta pergunta.");
+      } else if (error.message.includes("não está aberta")) {
+        setFeedback("Esta pergunta já foi encerrada.");
+      } else {
+        setFeedback(`Não foi possível registrar a resposta (${error.message}).`);
+      }
     }
   }
 
@@ -140,6 +150,11 @@ export function QuizPanel({ eventId, userId }: QuizPanelProps) {
             </span>
           </div>
           <p className="mb-3 font-medium">{open.prompt}</p>
+          {secondsLeft(open) === 0 && myAnswers[open.id] === undefined ? (
+            <p className="rounded-lg bg-neutral-900 px-3 py-2 text-sm text-neutral-400">
+              ⏱ Tempo esgotado — aguarde o resultado.
+            </p>
+          ) : (
           <div className="space-y-2">
             {open.options.map((option, i) => {
               const chosen = myAnswers[open.id] === i;
