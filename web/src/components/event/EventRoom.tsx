@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { LiveEvent } from "@/lib/types";
+import type { LiveEvent, QuizQuestion } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { StreamPlayer } from "@/components/player/StreamPlayer";
 import { ChatPanel } from "./ChatPanel";
 import { QuizPanel } from "./QuizPanel";
 import { PresenceBadge } from "./PresenceBadge";
+import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
 
 interface EventRoomProps {
   initialEvent: LiveEvent;
@@ -22,6 +23,8 @@ type Tab = "chat" | "quiz";
 export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [tab, setTab] = useState<Tab>("chat");
+  const [quizAlert, setQuizAlert] = useState(false);
+  const { floats, send } = useReactions(initialEvent.id);
   const router = useRouter();
 
   // Atualiza status/fonte do vídeo em tempo real (ex.: evento entra no ar)
@@ -51,6 +54,31 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
     }, 60_000);
     return () => clearInterval(heartbeat);
   }, [event.id]);
+
+  // Pergunta aberta ao vivo → traz o participante para a aba Quiz (estilo Kahoot)
+  useEffect(() => {
+    if (!event.quiz_enabled) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`quiz-alert:${event.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "quiz_questions" },
+        (payload) => {
+          const question = payload.new as QuizQuestion;
+          if (question.status === "open") {
+            setTab("quiz");
+            setQuizAlert(true);
+          } else {
+            setQuizAlert(false);
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [event.id, event.quiz_enabled]);
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -100,30 +128,38 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
 
       <main className="flex flex-1 flex-col gap-4 p-4 lg:flex-row md:p-6">
         <div className="flex-1">
-          {isLive ? (
-            <StreamPlayer
-              provider={event.stream_provider}
-              streamRef={event.stream_ref}
-              title={event.title}
-            />
-          ) : (
-            <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-neutral-900 text-neutral-400">
-              <p className="text-lg font-medium">
-                {event.status === "ended"
-                  ? "Esta transmissão foi encerrada."
-                  : "A transmissão ainda não começou."}
-              </p>
-              {event.starts_at && event.status === "scheduled" && (
-                <p className="text-sm">
-                  Início previsto:{" "}
-                  {new Date(event.starts_at).toLocaleString("pt-BR", {
-                    dateStyle: "long",
-                    timeStyle: "short",
-                  })}
+          <div className="relative">
+            <ReactionOverlay floats={floats} />
+            {isLive ? (
+              <StreamPlayer
+                provider={event.stream_provider}
+                streamRef={event.stream_ref}
+                title={event.title}
+              />
+            ) : (
+              <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-neutral-900 text-neutral-400">
+                <p className="text-lg font-medium">
+                  {event.status === "ended"
+                    ? "Esta transmissão foi encerrada."
+                    : "A transmissão ainda não começou."}
                 </p>
-              )}
-            </div>
-          )}
+                {event.starts_at && event.status === "scheduled" && (
+                  <p className="text-sm">
+                    Início previsto:{" "}
+                    {new Date(event.starts_at).toLocaleString("pt-BR", {
+                      dateStyle: "long",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-4">
+            {isLive ? <ReactionBar onSend={send} /> : <span />}
+          </div>
+
           {event.description && (
             <p className="mt-4 max-w-3xl text-sm leading-relaxed text-neutral-400">
               {event.description}
@@ -147,7 +183,10 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             )}
             {event.quiz_enabled && (
               <button
-                onClick={() => setTab("quiz")}
+                onClick={() => {
+                  setTab("quiz");
+                  setQuizAlert(false);
+                }}
                 className={`flex-1 px-4 py-2.5 text-sm font-medium transition ${
                   tab === "quiz"
                     ? "border-b-2 border-[var(--brand)] text-white"
@@ -155,6 +194,9 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 }`}
               >
                 Quiz
+                {quizAlert && tab !== "quiz" && (
+                  <span className="ml-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                )}
               </button>
             )}
           </div>

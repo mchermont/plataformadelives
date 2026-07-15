@@ -80,6 +80,12 @@ export default async function AdminEventsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-3 text-sky-400">
+                      <Link
+                        href={`/admin/eventos/${event.id}/live`}
+                        className="font-semibold hover:underline"
+                      >
+                        🎛 Diretor
+                      </Link>
                       {isAdmin && (
                         <Link
                           href={`/admin/eventos/${event.id}`}
