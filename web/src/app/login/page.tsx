@@ -162,8 +162,12 @@ export default function LoginPage() {
               disabled={busy}
               className="w-full rounded-lg border border-neutral-700 py-2.5 text-sm font-semibold transition hover:bg-neutral-800 disabled:opacity-40"
             >
-              Entrar com código por e-mail
+              Primeiro acesso? Entrar com código
             </button>
+            <p className="text-center text-xs text-neutral-500">
+              Enviamos um código para o seu e-mail. Depois de entrar, você cria
+              uma senha para as próximas vezes.
+            </p>
 
             <div className="flex items-center justify-between text-xs">
               <button

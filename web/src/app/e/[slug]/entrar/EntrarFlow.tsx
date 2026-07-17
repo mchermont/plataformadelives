@@ -332,7 +332,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
                 disabled={busy}
                 className="w-full rounded-lg border border-neutral-700 py-2.5 text-sm font-semibold transition hover:bg-neutral-800 disabled:opacity-40"
               >
-                Entrar com código por e-mail
+                Esqueci a senha — entrar com código
               </button>
 
               {event.google_login_enabled && (
