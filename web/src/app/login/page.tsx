@@ -110,7 +110,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
-        <h1 className="mb-6 text-center text-xl font-bold">Entrar na plataforma</h1>
+        <h1 className="mb-1 text-center text-xl font-bold">Área do organizador</h1>
+        <p className="mb-6 text-center text-sm text-neutral-400">
+          Acesso para a equipe que cria e opera os eventos.
+        </p>
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
@@ -207,6 +210,12 @@ export default function LoginPage() {
           </div>
         )}
       </div>
+
+      <p className="mt-4 w-full max-w-sm rounded-xl border border-neutral-800/60 bg-neutral-900/40 px-4 py-3 text-center text-xs leading-relaxed text-neutral-400">
+        <strong className="text-neutral-300">Participa de um evento?</strong>{" "}
+        Seu acesso é pela página exclusiva do evento — o cadastro acontece lá.
+        Use o link enviado pelo organizador.
+      </p>
     </div>
   );
 }

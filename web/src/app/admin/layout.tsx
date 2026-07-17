@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export default async function AdminLayout({
   children,
@@ -48,6 +49,7 @@ export default async function AdminLayout({
               Moderador
             </span>
           )}
+          <SignOutButton />
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
