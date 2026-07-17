@@ -8,6 +8,75 @@ export type FieldType = "text" | "select" | "checkbox";
 export type PostKind = "message" | "announcement";
 export type QuizStatus = "draft" | "active" | "closed";
 export type QuestionStatus = "pending" | "open" | "closed" | "revealed";
+export type FolderVisibility = "public" | "restricted" | "private";
+export type ClientRole = "admin" | "collaborator";
+export type RegistrationMode = "open" | "allowlist" | "domain";
+
+export interface Agency {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface Client {
+  id: string;
+  agency_id: string | null;
+  name: string;
+  slug: string;
+  folder_visibility: FolderVisibility;
+  brand_color: string;
+  brand_logo_url: string | null;
+  bg_image_url: string | null;
+  bg_image_mobile_url: string | null;
+  created_at: string;
+}
+
+export interface ClientMember {
+  client_id: string;
+  user_id: string;
+  role: ClientRole;
+  created_at: string;
+}
+
+export interface ClientInvite {
+  id: string;
+  client_id: string;
+  email: string;
+  role: ClientRole;
+  invited_by: string | null;
+  created_at: string;
+  accepted_at: string | null;
+}
+
+export interface EventMember {
+  event_id: string;
+  user_id: string;
+  can_stream: boolean;
+  can_chat: boolean;
+  can_quiz: boolean;
+  can_registrations: boolean;
+  can_reports: boolean;
+  created_at: string;
+}
+
+export const CLIENT_ROLE_LABELS: Record<ClientRole, string> = {
+  admin: "Administrador",
+  collaborator: "Colaborador",
+};
+
+export const FOLDER_VISIBILITY_LABELS: Record<FolderVisibility, string> = {
+  public: "Pública",
+  restricted: "Restrita à base do cliente",
+  private: "Privada (só a equipe)",
+};
+
+export const EVENT_CAPABILITIES = [
+  { key: "can_stream", label: "Transmissão", hint: "Configurar fonte e entrar/sair do ar" },
+  { key: "can_chat", label: "Chat", hint: "Moderar, fixar e banir" },
+  { key: "can_quiz", label: "Quiz", hint: "Criar e disparar perguntas" },
+  { key: "can_registrations", label: "Inscrições", hint: "Aprovar, banir, planilha" },
+  { key: "can_reports", label: "Relatórios", hint: "Ver e exportar" },
+] as const;
 
 export interface Profile {
   id: string;
@@ -40,6 +109,18 @@ export interface LiveEvent {
   brand_color: string;
   created_by: string;
   created_at: string;
+  // multi-tenant (migração 0004)
+  client_id: string | null;
+  listed_on_client_page: boolean;
+  accept_client_base: boolean;
+  registration_mode: RegistrationMode;
+  require_approval: boolean;
+  allowlist_fallback_approval: boolean;
+  consent_text: string;
+  bg_image_url: string | null;
+  bg_image_mobile_url: string | null;
+  card_image_url: string | null;
+  sponsor_logos: string[];
 }
 
 export interface EventField {

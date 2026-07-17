@@ -21,7 +21,15 @@ export default async function AdminLayout({
     .single();
 
   const isAdmin = profile?.is_platform_admin ?? false;
-  const isStaff = isAdmin || (profile?.is_moderator ?? false);
+
+  // Também é "equipe" quem pertence a algum cliente (admin ou colaborador)
+  const { count: membershipCount } = await supabase
+    .from("client_members")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
+  const isClientMember = (membershipCount ?? 0) > 0;
+
+  const isStaff = isAdmin || (profile?.is_moderator ?? false) || isClientMember;
   if (!isStaff) redirect("/");
 
   return (
@@ -33,22 +41,22 @@ export default async function AdminLayout({
           </Link>
           <nav className="flex gap-4 text-sm text-neutral-400">
             <Link href="/admin" className="hover:text-white">
-              Eventos
+              Clientes
             </Link>
             {isAdmin && (
               <Link href="/admin/equipe" className="hover:text-white">
-                Equipe
+                Equipe da plataforma
               </Link>
             )}
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-neutral-500">
           <span>{profile?.full_name || user.email}</span>
-          {!isAdmin && (
-            <span className="rounded-full bg-neutral-800 px-2.5 py-0.5 text-xs text-neutral-300">
-              Moderador
+          {isAdmin ? (
+            <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs text-sky-400">
+              Admin
             </span>
-          )}
+          ) : null}
           <SignOutButton />
         </div>
       </header>

@@ -21,6 +21,7 @@ interface EventFormProps {
   event?: LiveEvent;
   fields?: EventField[];
   userId: string;
+  clientId?: string;
 }
 
 interface DraftField {
@@ -35,7 +36,7 @@ const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 const labelClass = "mb-1.5 block text-sm font-medium";
 
-export function EventForm({ event, fields, userId }: EventFormProps) {
+export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -124,7 +125,7 @@ export function EventForm({ event, fields, userId }: EventFormProps) {
     } else {
       const { data, error } = await supabase
         .from("events")
-        .insert({ ...payload, created_by: userId })
+        .insert({ ...payload, created_by: userId, client_id: clientId ?? null })
         .select()
         .single();
       if (error || !data) {
@@ -160,7 +161,12 @@ export function EventForm({ event, fields, userId }: EventFormProps) {
       }
     }
 
-    router.push("/admin");
+    const backTo = clientId
+      ? `/admin/clientes/${clientId}`
+      : event?.client_id
+        ? `/admin/clientes/${event.client_id}`
+        : "/admin";
+    router.push(backTo);
     router.refresh();
   }
 

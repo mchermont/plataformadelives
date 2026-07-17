@@ -1,129 +1,83 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { LiveEvent } from "@/lib/types";
-import { EVENT_STATUS_LABELS, PROVIDER_LABELS } from "@/lib/types";
+import type { Client } from "@/lib/types";
+import { FOLDER_VISIBILITY_LABELS } from "@/lib/types";
+import { NewClientButton } from "@/components/admin/NewClientButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminEventsPage() {
+export default async function AdminHomePage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: events }, { data: profile }] = await Promise.all([
-    supabase.from("events").select("*").order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("is_platform_admin")
-      .eq("id", user?.id ?? "")
-      .single(),
-  ]);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_platform_admin")
+    .eq("id", user?.id ?? "")
+    .single();
   const isAdmin = profile?.is_platform_admin ?? false;
+
+  // RLS já limita: admin geral vê todos; membro vê os clientes dele
+  const { data: clients } = await supabase
+    .from("clients")
+    .select("*")
+    .order("name", { ascending: true });
+  const list = (clients as Client[]) ?? [];
+
+  // Colaborador/admin de um único cliente entra direto nele
+  if (!isAdmin && list.length === 1) {
+    redirect(`/admin/clientes/${list[0].id}`);
+  }
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Eventos</h1>
-        {isAdmin && (
-          <Link
-            href="/admin/eventos/novo"
-            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
-          >
-            + Novo evento
-          </Link>
-        )}
+        <h1 className="text-xl font-bold">Clientes</h1>
+        {isAdmin && <NewClientButton />}
       </div>
 
-      {!events || events.length === 0 ? (
-        <p className="text-neutral-400">Nenhum evento criado ainda.</p>
+      {list.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center">
+          <p className="text-neutral-400">
+            {isAdmin
+              ? "Nenhum cliente ainda. Crie o primeiro para começar."
+              : "Você ainda não faz parte de nenhum cliente."}
+          </p>
+        </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-neutral-800">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-900 text-left text-neutral-400">
-              <tr>
-                <th className="px-4 py-3 font-medium">Evento</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Fonte</th>
-                <th className="px-4 py-3 font-medium">Início</th>
-                <th className="px-4 py-3 font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(events as LiveEvent[]).map((event) => (
-                <tr key={event.id} className="border-t border-neutral-800">
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{event.title}</p>
-                    <p className="text-xs text-neutral-500">/e/{event.slug}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={
-                        event.status === "live"
-                          ? "font-semibold text-red-400"
-                          : "text-neutral-300"
-                      }
-                    >
-                      {EVENT_STATUS_LABELS[event.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-300">
-                    {PROVIDER_LABELS[event.stream_provider]}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-300">
-                    {event.starts_at
-                      ? new Date(event.starts_at).toLocaleString("pt-BR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-3 text-sky-400">
-                      <Link
-                        href={`/admin/eventos/${event.id}/live`}
-                        className="font-semibold hover:underline"
-                      >
-                        🎛 Diretor
-                      </Link>
-                      {isAdmin && (
-                        <Link
-                          href={`/admin/eventos/${event.id}`}
-                          className="hover:underline"
-                        >
-                          Editar
-                        </Link>
-                      )}
-                      <Link
-                        href={`/admin/eventos/${event.id}/inscricoes`}
-                        className="hover:underline"
-                      >
-                        Inscrições
-                      </Link>
-                      <Link
-                        href={`/admin/eventos/${event.id}/quiz`}
-                        className="hover:underline"
-                      >
-                        Quiz
-                      </Link>
-                      <Link
-                        href={`/admin/eventos/${event.id}/relatorio`}
-                        className="hover:underline"
-                      >
-                        Relatório
-                      </Link>
-                      <Link
-                        href={`/e/${event.slug}`}
-                        className="text-neutral-400 hover:underline"
-                      >
-                        Ver
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((client) => (
+            <Link
+              key={client.id}
+              href={`/admin/clientes/${client.id}`}
+              className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-5 transition hover:border-neutral-600"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                {client.brand_logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={client.brand_logo_url}
+                    alt=""
+                    className="h-8 w-8 rounded object-contain"
+                  />
+                ) : (
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-white"
+                    style={{ background: client.brand_color }}
+                  >
+                    {client.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <h2 className="font-semibold">{client.name}</h2>
+              </div>
+              <p className="text-xs text-neutral-500">
+                /{client.slug} · {FOLDER_VISIBILITY_LABELS[client.folder_visibility]}
+              </p>
+            </Link>
+          ))}
         </div>
       )}
     </div>
