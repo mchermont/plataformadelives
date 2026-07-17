@@ -2,7 +2,6 @@
 
 export type EventStatus = "draft" | "scheduled" | "live" | "ended";
 export type StreamProvider = "youtube" | "vimeo" | "dacast" | "hls";
-export type AccessMode = "open" | "approval" | "domain";
 export type RegistrationStatus = "pending" | "approved" | "rejected" | "banned";
 export type FieldType = "text" | "select" | "checkbox";
 export type PostKind = "message" | "announcement";
@@ -99,7 +98,6 @@ export interface LiveEvent {
   status: EventStatus;
   stream_provider: StreamProvider;
   stream_ref: string;
-  access_mode: AccessMode;
   allowed_domains: string[];
   google_login_enabled: boolean;
   capacity: number;
@@ -133,12 +131,20 @@ export interface EventField {
   position: number;
 }
 
+export interface EventAllowlistEntry {
+  event_id: string;
+  email: string;
+  added_by: string | null;
+  created_at: string;
+}
+
 export interface Registration {
   id: string;
   event_id: string;
   user_id: string;
   status: RegistrationStatus;
   answers: Record<string, string>;
+  consent_accepted_at: string | null;
   created_at: string;
 }
 
@@ -206,9 +212,9 @@ export const PROVIDER_LABELS: Record<StreamProvider, string> = {
   hls: "Servidor próprio (HLS)",
 };
 
-export const ACCESS_MODE_LABELS: Record<AccessMode, string> = {
+export const REGISTRATION_MODE_LABELS: Record<RegistrationMode, string> = {
   open: "Cadastro simples",
-  approval: "Cadastro com aprovação",
+  allowlist: "Lista de convidados (planilha)",
   domain: "Restrito a domínios de e-mail",
 };
 

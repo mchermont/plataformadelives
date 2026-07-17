@@ -9,7 +9,7 @@ import type {
   Profile,
   Registration,
 } from "@/lib/types";
-import { ACCESS_MODE_LABELS } from "@/lib/types";
+import { REGISTRATION_MODE_LABELS } from "@/lib/types";
 
 interface EntrarFlowProps {
   event: LiveEvent;
@@ -45,6 +45,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
   const [answers, setAnswers] = useState<Record<string, string>>(
     registration?.answers ?? {},
   );
+  const [consent, setConsent] = useState(Boolean(registration?.consent_accepted_at));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +79,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
   }, [step, registration, supabase, router, event.slug]);
 
   const domainHint =
-    event.access_mode === "domain" && event.allowed_domains.length > 0
+    event.registration_mode === "domain" && event.allowed_domains.length > 0
       ? `Apenas e-mails ${event.allowed_domains.map((d) => "@" + d).join(", ")}`
       : null;
 
@@ -195,12 +196,18 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
       setBusy(false);
       return;
     }
+    if (event.consent_text && !consent) {
+      setError("É necessário aceitar o termo de consentimento para continuar.");
+      setBusy(false);
+      return;
+    }
 
     await supabase.from("profiles").update({ full_name: fullName.trim() }).eq("id", user?.id ?? "");
 
     const { data, error } = await supabase.rpc("register_for_event", {
       p_event_id: event.id,
       p_answers: answers,
+      p_consent: consent,
     });
 
     if (error) {
@@ -242,7 +249,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
             />
           )}
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--brand,#38bdf8)]">
-            {ACCESS_MODE_LABELS[event.access_mode]}
+            {REGISTRATION_MODE_LABELS[event.registration_mode]}
           </p>
           <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
           {event.starts_at && (
@@ -442,14 +449,26 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
                 </div>
               ))}
 
+              {event.consent_text && (
+                <label className="flex items-start gap-2 text-sm text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-sky-500"
+                  />
+                  {event.consent_text}
+                </label>
+              )}
+
               <button
                 onClick={register}
-                disabled={busy}
+                disabled={busy || (Boolean(event.consent_text) && !consent)}
                 className="w-full rounded-lg bg-[var(--brand,#0284c7)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
               >
                 {busy
                   ? "Enviando…"
-                  : event.access_mode === "approval"
+                  : event.require_approval
                     ? "Enviar inscrição para aprovação"
                     : "Entrar no evento"}
               </button>

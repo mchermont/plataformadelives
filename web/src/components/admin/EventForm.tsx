@@ -4,25 +4,36 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type {
-  AccessMode,
+  EventAllowlistEntry,
   EventField,
   EventStatus,
   FieldType,
   LiveEvent,
+  RegistrationMode,
   StreamProvider,
 } from "@/lib/types";
 import {
-  ACCESS_MODE_LABELS,
   EVENT_STATUS_LABELS,
   PROVIDER_LABELS,
+  REGISTRATION_MODE_LABELS,
 } from "@/lib/types";
 
 interface EventFormProps {
   event?: LiveEvent;
   fields?: EventField[];
+  allowlist?: EventAllowlistEntry[];
   userId: string;
   clientId?: string;
 }
+
+type ImageKind = "logo" | "bg" | "bgMobile" | "card" | "sponsor";
+
+const IMAGE_FIELD: Record<Exclude<ImageKind, "sponsor">, "brand_logo_url" | "bg_image_url" | "bg_image_mobile_url" | "card_image_url"> = {
+  logo: "brand_logo_url",
+  bg: "bg_image_url",
+  bgMobile: "bg_image_mobile_url",
+  card: "card_image_url",
+};
 
 interface DraftField {
   id?: string;
@@ -36,7 +47,7 @@ const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 const labelClass = "mb-1.5 block text-sm font-medium";
 
-export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
+export function EventForm({ event, fields, allowlist, userId, clientId }: EventFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -48,17 +59,33 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
     status: (event?.status ?? "draft") as EventStatus,
     stream_provider: (event?.stream_provider ?? "youtube") as StreamProvider,
     stream_ref: event?.stream_ref ?? "",
-    access_mode: (event?.access_mode ?? "open") as AccessMode,
+    registration_mode: (event?.registration_mode ?? "open") as RegistrationMode,
     allowed_domains: event?.allowed_domains.join(", ") ?? "",
+    require_approval: event?.require_approval ?? false,
+    allowlist_fallback_approval: event?.allowlist_fallback_approval ?? false,
+    consent_text: event?.consent_text ?? "",
     google_login_enabled: event?.google_login_enabled ?? true,
     capacity: event?.capacity ?? 1000,
     chat_enabled: event?.chat_enabled ?? true,
     quiz_enabled: event?.quiz_enabled ?? true,
     brand_color: event?.brand_color ?? "#0284c7",
     brand_logo_url: event?.brand_logo_url ?? "",
-    cover_url: event?.cover_url ?? "",
+    bg_image_url: event?.bg_image_url ?? "",
+    bg_image_mobile_url: event?.bg_image_mobile_url ?? "",
+    card_image_url: event?.card_image_url ?? "",
+    sponsor_logos: event?.sponsor_logos ?? ([] as string[]),
+    listed_on_client_page: event?.listed_on_client_page ?? true,
+    accept_client_base: event?.accept_client_base ?? false,
   });
-  const [uploading, setUploading] = useState<"logo" | "capa" | null>(null);
+  const [uploading, setUploading] = useState<ImageKind | null>(null);
+
+  const belongsToClient = Boolean(clientId ?? event?.client_id);
+
+  const [allowlistEmails, setAllowlistEmails] = useState<string[]>(
+    (allowlist ?? []).map((a) => a.email),
+  );
+  const [newEmailsText, setNewEmailsText] = useState("");
+  const [allowlistBusy, setAllowlistBusy] = useState(false);
 
   const [draftFields, setDraftFields] = useState<DraftField[]>(
     (fields ?? []).map((f) => ({
@@ -99,18 +126,30 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
       status: form.status,
       stream_provider: form.stream_provider,
       stream_ref: form.stream_ref.trim(),
-      access_mode: form.access_mode,
+      registration_mode: form.registration_mode,
       allowed_domains: form.allowed_domains
         .split(",")
         .map((d) => d.trim().toLowerCase().replace(/^@/, ""))
         .filter(Boolean),
+      require_approval: form.require_approval,
+      allowlist_fallback_approval: form.allowlist_fallback_approval,
+      consent_text: form.consent_text.trim(),
       google_login_enabled: form.google_login_enabled,
       capacity: form.capacity,
       chat_enabled: form.chat_enabled,
       quiz_enabled: form.quiz_enabled,
       brand_color: form.brand_color,
       brand_logo_url: form.brand_logo_url || null,
-      cover_url: form.cover_url || null,
+      bg_image_url: form.bg_image_url || null,
+      bg_image_mobile_url: form.bg_image_mobile_url || null,
+      card_image_url: form.card_image_url || null,
+      sponsor_logos: form.sponsor_logos,
+      ...(belongsToClient
+        ? {
+            listed_on_client_page: form.listed_on_client_page,
+            accept_client_base: form.accept_client_base,
+          }
+        : {}),
     };
 
     let eventId = event?.id;
@@ -170,7 +209,7 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
     router.refresh();
   }
 
-  async function uploadImage(file: File, kind: "logo" | "capa") {
+  async function uploadImage(file: File, kind: ImageKind) {
     setUploading(kind);
     setError(null);
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
@@ -180,9 +219,55 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
       setError("Falha no upload da imagem. Tente novamente.");
     } else {
       const url = supabase.storage.from("branding").getPublicUrl(path).data.publicUrl;
-      set(kind === "logo" ? "brand_logo_url" : "cover_url", url);
+      if (kind === "sponsor") {
+        setForm((f) => ({ ...f, sponsor_logos: [...f.sponsor_logos, url] }));
+      } else {
+        set(IMAGE_FIELD[kind], url);
+      }
     }
     setUploading(null);
+  }
+
+  function removeSponsorLogo(url: string) {
+    setForm((f) => ({ ...f, sponsor_logos: f.sponsor_logos.filter((u) => u !== url) }));
+  }
+
+  async function addAllowlistEmails() {
+    if (!event?.id) return;
+    const emails = Array.from(
+      new Set(
+        newEmailsText
+          .split(/[\n,;]/)
+          .map((e) => e.trim().toLowerCase())
+          .filter((e) => e.includes("@") && !allowlistEmails.includes(e)),
+      ),
+    );
+    if (emails.length === 0) return;
+    setAllowlistBusy(true);
+    const { error } = await supabase
+      .from("event_allowlist")
+      .upsert(emails.map((email) => ({ event_id: event.id, email })));
+    if (!error) {
+      setAllowlistEmails((prev) => [...prev, ...emails]);
+      setNewEmailsText("");
+    } else {
+      setError("Não foi possível adicionar os e-mails.");
+    }
+    setAllowlistBusy(false);
+  }
+
+  async function removeAllowlistEmail(email: string) {
+    if (!event?.id) return;
+    setAllowlistBusy(true);
+    const { error } = await supabase
+      .from("event_allowlist")
+      .delete()
+      .eq("event_id", event.id)
+      .eq("email", email);
+    if (!error) {
+      setAllowlistEmails((prev) => prev.filter((e) => e !== email));
+    }
+    setAllowlistBusy(false);
   }
 
   function errorMessage(message: string): string {
@@ -293,20 +378,20 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
           Controle de acesso
         </h2>
         <div>
-          <label className={labelClass}>Modo</label>
+          <label className={labelClass}>Modo de inscrição</label>
           <select
-            value={form.access_mode}
-            onChange={(e) => set("access_mode", e.target.value as AccessMode)}
+            value={form.registration_mode}
+            onChange={(e) => set("registration_mode", e.target.value as RegistrationMode)}
             className={inputClass}
           >
-            {Object.entries(ACCESS_MODE_LABELS).map(([value, label]) => (
+            {Object.entries(REGISTRATION_MODE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
             ))}
           </select>
         </div>
-        {form.access_mode === "domain" && (
+        {form.registration_mode === "domain" && (
           <div>
             <label className={labelClass}>Domínios permitidos (separados por vírgula)</label>
             <input
@@ -317,6 +402,73 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
             />
           </div>
         )}
+        {form.registration_mode === "allowlist" && (
+          <div className="space-y-3 rounded-lg border border-neutral-800 p-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.allowlist_fallback_approval}
+                onChange={(e) => set("allowlist_fallback_approval", e.target.checked)}
+                className="h-4 w-4 accent-sky-500"
+              />
+              Quem não estiver na lista pode se inscrever mesmo assim, como pendente de aprovação
+            </label>
+            {!event?.id ? (
+              <p className="text-xs text-neutral-500">
+                Salve o evento para gerenciar a lista de e-mails convidados.
+              </p>
+            ) : (
+              <>
+                <label className={labelClass}>Adicionar e-mails (um por linha, ou separados por vírgula)</label>
+                <textarea
+                  value={newEmailsText}
+                  onChange={(e) => setNewEmailsText(e.target.value)}
+                  rows={3}
+                  placeholder={"fulano@empresa.com\nciclana@empresa.com"}
+                  className={inputClass}
+                />
+                <button
+                  onClick={addAllowlistEmails}
+                  disabled={allowlistBusy || !newEmailsText.trim()}
+                  className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm font-semibold transition hover:bg-neutral-800 disabled:opacity-40"
+                >
+                  Adicionar à lista
+                </button>
+                <p className="text-xs text-neutral-500">
+                  {allowlistEmails.length} e-mail(s) na lista.
+                </p>
+                {allowlistEmails.length > 0 && (
+                  <ul className="max-h-40 space-y-1 overflow-y-auto text-sm">
+                    {allowlistEmails.map((email) => (
+                      <li
+                        key={email}
+                        className="flex items-center justify-between gap-2 rounded bg-neutral-900 px-2 py-1"
+                      >
+                        <span className="truncate">{email}</span>
+                        <button
+                          onClick={() => removeAllowlistEmail(email)}
+                          disabled={allowlistBusy}
+                          className="shrink-0 text-xs text-red-400 hover:underline disabled:opacity-40"
+                        >
+                          Remover
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.require_approval}
+            onChange={(e) => set("require_approval", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Toda inscrição precisa de aprovação manual do organizador
+        </label>
         <div className="flex flex-wrap gap-6 text-sm">
           <label className="flex items-center gap-2">
             <input
@@ -356,7 +508,46 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
             className={inputClass}
           />
         </div>
+        <div>
+          <label className={labelClass}>Texto de consentimento (LGPD)</label>
+          <textarea
+            value={form.consent_text}
+            onChange={(e) => set("consent_text", e.target.value)}
+            rows={2}
+            placeholder="Ex.: Aceito receber comunicações sobre este evento e concordo com o tratamento dos meus dados conforme a política de privacidade."
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-neutral-500">
+            Se preenchido, o participante precisa marcar aceite antes de se inscrever. Deixe em branco para não exigir consentimento.
+          </p>
+        </div>
       </section>
+
+      {belongsToClient && (
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
+            Vínculo com o cliente
+          </h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.listed_on_client_page}
+              onChange={(e) => set("listed_on_client_page", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Listar este evento na página do cliente
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.accept_client_base}
+              onChange={(e) => set("accept_client_base", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Aceitar participantes já aprovados em outros eventos deste cliente
+          </label>
+        </section>
+      )}
 
       <section className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
@@ -407,12 +598,12 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
             )}
           </div>
           <div>
-            <label className={labelClass}>Capa (página de cadastro)</label>
-            {form.cover_url && (
+            <label className={labelClass}>Fundo (desktop, 1920×1080)</label>
+            {form.bg_image_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={form.cover_url}
-                alt="Capa"
+                src={form.bg_image_url}
+                alt="Fundo"
                 className="mb-2 h-16 w-full rounded object-cover"
               />
             )}
@@ -422,14 +613,93 @@ export function EventForm({ event, fields, userId, clientId }: EventFormProps) {
               disabled={uploading !== null}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) uploadImage(file, "capa");
+                if (file) uploadImage(file, "bg");
               }}
               className="block w-full text-xs text-neutral-400 file:mr-2 file:rounded-lg file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-neutral-200 hover:file:bg-neutral-700"
             />
-            {uploading === "capa" && (
+            {uploading === "bg" && <p className="mt-1 text-xs text-neutral-500">Enviando…</p>}
+          </div>
+          <div>
+            <label className={labelClass}>Fundo mobile (1080×1920, opcional)</label>
+            {form.bg_image_mobile_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={form.bg_image_mobile_url}
+                alt="Fundo mobile"
+                className="mb-2 h-16 w-full rounded object-cover"
+              />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadImage(file, "bgMobile");
+              }}
+              className="block w-full text-xs text-neutral-400 file:mr-2 file:rounded-lg file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-neutral-200 hover:file:bg-neutral-700"
+            />
+            {uploading === "bgMobile" && (
               <p className="mt-1 text-xs text-neutral-500">Enviando…</p>
             )}
           </div>
+          <div>
+            <label className={labelClass}>Card (900×560, opcional)</label>
+            {form.card_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={form.card_image_url}
+                alt="Card"
+                className="mb-2 h-16 w-full rounded object-cover"
+              />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={uploading !== null}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadImage(file, "card");
+              }}
+              className="block w-full text-xs text-neutral-400 file:mr-2 file:rounded-lg file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-neutral-200 hover:file:bg-neutral-700"
+            />
+            {uploading === "card" && <p className="mt-1 text-xs text-neutral-500">Enviando…</p>}
+          </div>
+        </div>
+        <div>
+          <label className={labelClass}>Logos de apoiadores (400×200 cada, opcional)</label>
+          {form.sponsor_logos.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {form.sponsor_logos.map((url) => (
+                <div key={url} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt="Apoiador"
+                    className="h-10 rounded bg-neutral-900 object-contain p-1"
+                  />
+                  <button
+                    onClick={() => removeSponsorLogo(url)}
+                    className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full bg-red-500 text-[10px] leading-4 text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            disabled={uploading !== null}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadImage(file, "sponsor");
+              e.target.value = "";
+            }}
+            className="block w-full text-xs text-neutral-400 file:mr-2 file:rounded-lg file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-neutral-200 hover:file:bg-neutral-700"
+          />
+          {uploading === "sponsor" && <p className="mt-1 text-xs text-neutral-500">Enviando…</p>}
         </div>
       </section>
 
