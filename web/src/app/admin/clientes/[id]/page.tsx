@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Client, LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
-import { ClientTeam } from "@/components/admin/ClientTeam";
+import { OrgTeam } from "@/components/admin/OrgTeam";
 
 export const dynamic = "force-dynamic";
 
@@ -148,7 +148,14 @@ export default async function ClientDetailPage({
         )}
       </section>
 
-      {isClientAdmin && <ClientTeam clientId={id} currentUserId={user!.id} />}
+      {isClientAdmin && (
+        <OrgTeam
+          kind="client"
+          orgId={id}
+          currentUserId={user!.id}
+          title="Equipe do cliente"
+        />
+      )}
     </div>
   );
 }

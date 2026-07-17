@@ -4,76 +4,47 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const RESERVED = [
-  "admin", "login", "logout", "auth", "api", "e", "c", "static",
-  "assets", "sair", "entrar", "cadastro", "senha", "eventos",
-];
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}
-
-export function NewClientButton({ agencyId }: { agencyId?: string }) {
+export function NewAgencyButton() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const effectiveSlug = slug.trim() || slugify(name);
-
   async function create() {
     setError(null);
     if (!name.trim()) {
-      setError("Informe o nome do cliente.");
-      return;
-    }
-    if (effectiveSlug.length < 2) {
-      setError("O endereço (slug) precisa ter ao menos 2 caracteres.");
-      return;
-    }
-    if (RESERVED.includes(effectiveSlug)) {
-      setError("Esse endereço é reservado pelo sistema. Escolha outro.");
+      setError("Informe o nome da agência/produtora.");
       return;
     }
     setBusy(true);
 
-    const { data: client, error: cErr } = await supabase
-      .from("clients")
-      .insert({ name: name.trim(), slug: effectiveSlug, agency_id: agencyId ?? null })
+    const { data: agency, error: aErr } = await supabase
+      .from("agencies")
+      .insert({ name: name.trim() })
       .select()
       .single();
 
-    if (cErr || !client) {
-      setError(
-        cErr?.message.includes("duplicate") || cErr?.message.includes("unique")
-          ? "Já existe um cliente com esse endereço."
-          : "Não foi possível criar o cliente.",
-      );
+    if (aErr || !agency) {
+      setError("Não foi possível criar a agência.");
       setBusy(false);
       return;
     }
 
-    // Convida o admin do cliente (opcional)
     const email = adminEmail.trim().toLowerCase();
     if (email.includes("@")) {
-      await supabase
-        .from("client_invites")
-        .insert({ client_id: client.id, email, role: "admin" });
+      await supabase.rpc("invite_to_agency", {
+        p_agency_id: agency.id,
+        p_email: email,
+        p_role: "admin",
+      });
     }
 
     setBusy(false);
     setOpen(false);
-    router.push(`/admin/clientes/${client.id}`);
+    router.push(`/admin/agencias/${agency.id}`);
     router.refresh();
   }
 
@@ -83,7 +54,7 @@ export function NewClientButton({ agencyId }: { agencyId?: string }) {
         onClick={() => setOpen(true)}
         className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
       >
-        + Novo cliente
+        + Nova agência
       </button>
     );
   }
@@ -94,7 +65,7 @@ export function NewClientButton({ agencyId }: { agencyId?: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-6">
-        <h2 className="mb-4 text-lg font-bold">Novo cliente</h2>
+        <h2 className="mb-4 text-lg font-bold">Nova agência / produtora</h2>
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
@@ -108,42 +79,25 @@ export function NewClientButton({ agencyId }: { agencyId?: string }) {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex.: Shell"
+              placeholder="Ex.: Agência XYZ"
               className={inputClass}
               autoFocus
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              Endereço da pasta
-            </label>
-            <div className="flex items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3">
-              <span className="text-sm text-neutral-500">/</span>
-              <input
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder={slugify(name) || "shell"}
-                className="flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-neutral-600"
-              />
-            </div>
-            <p className="mt-1 text-xs text-neutral-500">
-              A página do cliente ficará em lives.propanofilmes.com.br/{effectiveSlug || "…"}
-            </p>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium">
-              E-mail do responsável (admin do cliente)
+              E-mail do responsável (admin da agência)
             </label>
             <input
               type="email"
               value={adminEmail}
               onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="responsavel@cliente.com (opcional)"
+              placeholder="responsavel@agencia.com (opcional)"
               className={inputClass}
             />
             <p className="mt-1 text-xs text-neutral-500">
-              Ele recebe acesso automático quando entrar na plataforma. Pode
-              ficar em branco e ser convidado depois.
+              Ele gerencia os clientes e a equipe da agência. Recebe acesso
+              automático ao entrar na plataforma.
             </p>
           </div>
         </div>
@@ -160,7 +114,7 @@ export function NewClientButton({ agencyId }: { agencyId?: string }) {
             disabled={busy || !name.trim()}
             className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-40"
           >
-            {busy ? "Criando…" : "Criar cliente"}
+            {busy ? "Criando…" : "Criar agência"}
           </button>
         </div>
       </div>

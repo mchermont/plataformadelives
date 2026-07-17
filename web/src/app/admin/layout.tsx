@@ -22,14 +22,22 @@ export default async function AdminLayout({
 
   const isAdmin = profile?.is_platform_admin ?? false;
 
-  // Também é "equipe" quem pertence a algum cliente (admin ou colaborador)
-  const { count: membershipCount } = await supabase
-    .from("client_members")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id);
-  const isClientMember = (membershipCount ?? 0) > 0;
+  // Também é "equipe" quem pertence a algum cliente ou agência
+  const [{ count: clientCount }, { count: agencyCount }] = await Promise.all([
+    supabase
+      .from("client_members")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id),
+    supabase
+      .from("agency_members")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id),
+  ]);
+  const isClientMember = (clientCount ?? 0) > 0;
+  const isAgencyMember = (agencyCount ?? 0) > 0;
 
-  const isStaff = isAdmin || (profile?.is_moderator ?? false) || isClientMember;
+  const isStaff =
+    isAdmin || (profile?.is_moderator ?? false) || isClientMember || isAgencyMember;
   if (!isStaff) redirect("/");
 
   return (
@@ -43,6 +51,11 @@ export default async function AdminLayout({
             <Link href="/admin" className="hover:text-white">
               Clientes
             </Link>
+            {(isAdmin || isAgencyMember) && (
+              <Link href="/admin/agencias" className="hover:text-white">
+                Agências
+              </Link>
+            )}
             {isAdmin && (
               <Link href="/admin/equipe" className="hover:text-white">
                 Equipe da plataforma

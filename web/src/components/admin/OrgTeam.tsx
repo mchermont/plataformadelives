@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { ClientInvite, ClientRole } from "@/lib/types";
+import type { ClientRole } from "@/lib/types";
 import { CLIENT_ROLE_LABELS } from "@/lib/types";
 
 interface MemberRow {
@@ -11,16 +11,39 @@ interface MemberRow {
   profiles: { full_name: string; email: string } | null;
 }
 
-export function ClientTeam({
-  clientId,
+interface InviteRow {
+  id: string;
+  email: string;
+  role: ClientRole;
+}
+
+type OrgKind = "client" | "agency";
+
+/**
+ * Gestão de equipe estilo Google Drive, reutilizada por Cliente e Agência.
+ * Convida por e-mail (RPC resolve os dois casos), muda papel e remove.
+ */
+export function OrgTeam({
+  kind,
+  orgId,
   currentUserId,
+  title = "Equipe",
+  description,
 }: {
-  clientId: string;
+  kind: OrgKind;
+  orgId: string;
   currentUserId: string;
+  title?: string;
+  description?: string;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const idColumn = `${kind}_id`;
+  const membersTable = `${kind}_members`;
+  const invitesTable = `${kind}_invites`;
+  const inviteRpc = `invite_to_${kind}`;
+
   const [members, setMembers] = useState<MemberRow[]>([]);
-  const [invites, setInvites] = useState<ClientInvite[]>([]);
+  const [invites, setInvites] = useState<InviteRow[]>([]);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<ClientRole>("collaborator");
   const [busy, setBusy] = useState(false);
@@ -29,18 +52,18 @@ export function ClientTeam({
   const load = useCallback(async () => {
     const [{ data: m }, { data: inv }] = await Promise.all([
       supabase
-        .from("client_members")
+        .from(membersTable)
         .select("user_id, role, profiles(full_name, email)")
-        .eq("client_id", clientId),
+        .eq(idColumn, orgId),
       supabase
-        .from("client_invites")
-        .select("*")
-        .eq("client_id", clientId)
+        .from(invitesTable)
+        .select("id, email, role")
+        .eq(idColumn, orgId)
         .is("accepted_at", null),
     ]);
     setMembers((m as unknown as MemberRow[]) ?? []);
-    setInvites((inv as ClientInvite[]) ?? []);
-  }, [supabase, clientId]);
+    setInvites((inv as InviteRow[]) ?? []);
+  }, [supabase, membersTable, invitesTable, idColumn, orgId]);
 
   useEffect(() => {
     load();
@@ -54,40 +77,16 @@ export function ClientTeam({
     }
     setBusy(true);
     setError(null);
-
-    // Já é membro?
-    const existing = members.find((m) => m.profiles?.email?.toLowerCase() === clean);
-    if (existing) {
-      setError("Essa pessoa já faz parte da equipe.");
+    const { error: rpcErr } = await supabase.rpc(inviteRpc, {
+      [`p_${kind}_id`]: orgId,
+      p_email: clean,
+      p_role: role,
+    });
+    if (rpcErr) {
+      setError("Não foi possível convidar. Tente novamente.");
       setBusy(false);
       return;
     }
-
-    // Se a pessoa já tem conta, vira membro na hora; senão, fica convite pendente
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", clean)
-      .maybeSingle();
-
-    if (prof) {
-      await supabase
-        .from("client_members")
-        .insert({ client_id: clientId, user_id: prof.id, role });
-    } else {
-      const { error: invErr } = await supabase
-        .from("client_invites")
-        .upsert(
-          { client_id: clientId, email: clean, role, invited_by: currentUserId },
-          { onConflict: "client_id,email" },
-        );
-      if (invErr) {
-        setError("Não foi possível convidar. Tente novamente.");
-        setBusy(false);
-        return;
-      }
-    }
-
     setEmail("");
     setRole("collaborator");
     await load();
@@ -96,24 +95,24 @@ export function ClientTeam({
 
   async function changeRole(userId: string, newRole: ClientRole) {
     await supabase
-      .from("client_members")
+      .from(membersTable)
       .update({ role: newRole })
-      .eq("client_id", clientId)
+      .eq(idColumn, orgId)
       .eq("user_id", userId);
     await load();
   }
 
   async function removeMember(userId: string) {
     await supabase
-      .from("client_members")
+      .from(membersTable)
       .delete()
-      .eq("client_id", clientId)
+      .eq(idColumn, orgId)
       .eq("user_id", userId);
     await load();
   }
 
   async function cancelInvite(inviteId: string) {
-    await supabase.from("client_invites").delete().eq("id", inviteId);
+    await supabase.from(invitesTable).delete().eq("id", inviteId);
     await load();
   }
 
@@ -123,11 +122,11 @@ export function ClientTeam({
   return (
     <section>
       <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-        Equipe do cliente
+        {title}
       </h2>
       <p className="mb-4 text-xs text-neutral-500">
-        Administradores gerenciam eventos e a equipe. Colaboradores recebem
-        funções específicas por evento (chat, quiz, inscrições…).
+        {description ??
+          "Administradores gerenciam eventos e a equipe. Colaboradores recebem funções específicas por evento (chat, quiz, inscrições…)."}
       </p>
 
       {error && (
