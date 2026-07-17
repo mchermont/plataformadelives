@@ -1,21 +1,46 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-type Step = "email" | "codigo";
+type Step = "credenciais" | "codigo";
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("credenciais");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
-  async function sendEmail() {
+  async function signInWithPassword() {
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) {
+      setError(
+        "E-mail ou senha incorretos. Se preferir, entre com um código por e-mail.",
+      );
+      setBusy(false);
+      return;
+    }
+    router.push("/admin");
+    router.refresh();
+  }
+
+  async function sendCode() {
+    if (!email.includes("@")) {
+      setError("Informe seu e-mail primeiro.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const { error } = await supabase.auth.signInWithOtp({
@@ -29,6 +54,7 @@ export default function LoginPage() {
       setError("Não foi possível enviar o e-mail. Aguarde um minuto e tente de novo.");
     } else {
       setStep("codigo");
+      setInfo(null);
     }
     setBusy(false);
   }
@@ -50,6 +76,30 @@ export default function LoginPage() {
     setBusy(false);
   }
 
+  async function forgotPassword() {
+    if (!email.includes("@")) {
+      setError("Informe seu e-mail primeiro.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      { redirectTo: `${window.location.origin}/auth/callback?next=/senha/nova` },
+    );
+    if (error) {
+      setError("Não foi possível enviar o e-mail de redefinição.");
+    } else {
+      setInfo(
+        "Enviamos um e-mail para redefinir sua senha. Clique no link dele e escolha a nova senha.",
+      );
+    }
+    setBusy(false);
+  }
+
+  const inputClass =
+    "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
@@ -60,24 +110,63 @@ export default function LoginPage() {
             {error}
           </p>
         )}
+        {info && (
+          <p className="mb-4 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
+            {info}
+          </p>
+        )}
 
-        {step === "email" ? (
+        {step === "credenciais" ? (
           <div className="space-y-4">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendEmail()}
               placeholder="seu@email.com"
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500"
+              className={inputClass}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && signInWithPassword()}
+              placeholder="Sua senha"
+              className={inputClass}
             />
             <button
-              onClick={sendEmail}
-              disabled={busy || !email.includes("@")}
+              onClick={signInWithPassword}
+              disabled={busy || !email.includes("@") || password.length === 0}
               className="w-full rounded-lg bg-sky-600 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-40"
             >
-              {busy ? "Enviando…" : "Receber e-mail de acesso"}
+              {busy ? "Entrando…" : "Entrar"}
             </button>
+
+            <div className="flex items-center gap-3 text-xs text-neutral-600">
+              <div className="h-px flex-1 bg-neutral-800" />
+              ou
+              <div className="h-px flex-1 bg-neutral-800" />
+            </div>
+
+            <button
+              onClick={sendCode}
+              disabled={busy}
+              className="w-full rounded-lg border border-neutral-700 py-2.5 text-sm font-semibold transition hover:bg-neutral-800 disabled:opacity-40"
+            >
+              Entrar com código por e-mail
+            </button>
+
+            <div className="flex items-center justify-between text-xs">
+              <button
+                onClick={forgotPassword}
+                disabled={busy}
+                className="text-neutral-400 hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+              <Link href="/" className="text-neutral-500 hover:underline">
+                Voltar
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -103,10 +192,10 @@ export default function LoginPage() {
               {busy ? "Verificando…" : "Confirmar código"}
             </button>
             <button
-              onClick={() => setStep("email")}
+              onClick={() => setStep("credenciais")}
               className="w-full text-center text-xs text-neutral-500 hover:underline"
             >
-              Usar outro e-mail
+              Voltar para e-mail e senha
             </button>
           </div>
         )}

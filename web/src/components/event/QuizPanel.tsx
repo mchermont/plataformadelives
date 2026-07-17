@@ -155,26 +155,27 @@ export function QuizPanel({ eventId, userId }: QuizPanelProps) {
               ⏱ Tempo esgotado — aguarde o resultado.
             </p>
           ) : (
-          <div className="space-y-2">
-            {open.options.map((option, i) => {
-              const chosen = myAnswers[open.id] === i;
-              const answered = myAnswers[open.id] !== undefined;
-              return (
-                <button
-                  key={i}
-                  onClick={() => answer(open, i)}
-                  disabled={answered || secondsLeft(open) === 0}
-                  className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
-                    chosen
-                      ? "border-[var(--brand,#0284c7)] bg-[var(--brand,#0284c7)]/20 font-semibold"
-                      : "border-neutral-700 bg-neutral-900 hover:border-neutral-500 disabled:opacity-50"
-                  }`}
-                >
-                  {option}
-                </button>
-              );
-            })}
-          </div>
+            <div className="space-y-2">
+              {open.options.map((option, i) => {
+                const chosen = myAnswers[open.id] === i;
+                const answered = myAnswers[open.id] !== undefined;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => answer(open, i)}
+                    disabled={answered || secondsLeft(open) === 0}
+                    className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
+                      chosen
+                        ? "border-[var(--brand,#0284c7)] bg-[var(--brand,#0284c7)]/20 font-semibold"
+                        : "border-neutral-700 bg-neutral-900 hover:border-neutral-500 disabled:opacity-50"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {myAnswers[open.id] !== undefined && (
             <p className="mt-3 text-xs text-neutral-400">
               Resposta registrada! Aguarde o resultado.
