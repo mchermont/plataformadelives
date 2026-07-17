@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -17,6 +17,15 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("erro") === "link-expirado") {
+      setError(
+        "O link do e-mail expirou ou já foi usado. Use o código do e-mail, ou peça um novo.",
+      );
+    }
+  }, []);
 
   async function signInWithPassword() {
     setBusy(true);
@@ -89,12 +98,10 @@ export default function LoginPage() {
     );
     if (error) {
       setError("Não foi possível enviar o e-mail de redefinição.");
-    } else {
-      setInfo(
-        "Enviamos um e-mail para redefinir sua senha. Clique no link dele e escolha a nova senha.",
-      );
+      setBusy(false);
+      return;
     }
-    setBusy(false);
+    router.push(`/senha/nova?email=${encodeURIComponent(email.trim().toLowerCase())}`);
   }
 
   const inputClass =

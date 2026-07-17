@@ -1,33 +1,65 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+const inputClass =
+  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
 export default function NovaSenhaPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save() {
+  useEffect(() => {
+    // Se veio pelo link do e-mail, já há sessão e basta definir a senha.
+    supabase.auth.getUser().then(({ data }) => setHasSession(!!data.user));
+    const params = new URLSearchParams(window.location.search);
+    const prefill = params.get("email");
+    if (prefill) setEmail(prefill);
+  }, [supabase]);
+
+  function validatePassword(): boolean {
     if (password.length < 8) {
       setError("A senha precisa ter pelo menos 8 caracteres.");
-      return;
+      return false;
     }
     if (password !== confirm) {
       setError("As senhas não conferem.");
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function save() {
+    if (!validatePassword()) return;
     setBusy(true);
     setError(null);
+
+    // Sem sessão: valida primeiro o código de recuperação enviado por e-mail
+    if (!hasSession) {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: code.trim(),
+        type: "recovery",
+      });
+      if (error) {
+        setError("Código inválido ou expirado. Peça um novo em 'Esqueci minha senha'.");
+        setBusy(false);
+        return;
+      }
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
-      setError(
-        "Não foi possível salvar. O link pode ter expirado — peça um novo em 'Esqueci minha senha'.",
-      );
+      setError("Não foi possível salvar a senha. Tente novamente.");
       setBusy(false);
       return;
     }
@@ -35,15 +67,14 @@ export default function NovaSenhaPage() {
     router.refresh();
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
-
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
         <h1 className="mb-2 text-center text-xl font-bold">Definir nova senha</h1>
         <p className="mb-6 text-center text-sm text-neutral-400">
-          Escolha a senha que você usará para entrar na plataforma.
+          {hasSession
+            ? "Escolha a senha que você usará para entrar na plataforma."
+            : "Digite o código que enviamos por e-mail e escolha a nova senha."}
         </p>
 
         {error && (
@@ -53,6 +84,25 @@ export default function NovaSenhaPage() {
         )}
 
         <div className="space-y-4">
+          {hasSession === false && (
+            <>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className={inputClass}
+              />
+              <input
+                inputMode="numeric"
+                maxLength={10}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="Código do e-mail"
+                className={`${inputClass} text-center font-mono tracking-[0.3em]`}
+              />
+            </>
+          )}
           <input
             type="password"
             value={password}
@@ -70,7 +120,13 @@ export default function NovaSenhaPage() {
           />
           <button
             onClick={save}
-            disabled={busy || password.length === 0 || confirm.length === 0}
+            disabled={
+              busy ||
+              hasSession === null ||
+              password.length === 0 ||
+              confirm.length === 0 ||
+              (hasSession === false && (code.length < 6 || !email.includes("@")))
+            }
             className="w-full rounded-lg bg-sky-600 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-40"
           >
             {busy ? "Salvando…" : "Salvar senha e entrar"}
