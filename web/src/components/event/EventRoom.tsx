@@ -70,10 +70,10 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
 
   return (
     <div
-      className="flex min-h-dvh flex-col"
+      className="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden"
       style={{ "--brand": event.brand_color } as React.CSSProperties}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 px-4 py-3 md:px-6">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 px-4 py-2 md:px-6">
         <div className="flex items-center gap-3">
           {event.brand_logo_url && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -106,9 +106,13 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col gap-4 p-4 lg:flex-row md:p-6">
-        <div className="flex-1">
-          <div className="relative">
+      <main className="flex flex-1 flex-col gap-3 p-3 md:p-4 lg:min-h-0 lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
+          {/* largura limitada pela altura disponível: o vídeo nunca empurra a página */}
+          <div
+            className="relative mx-auto w-full"
+            style={{ maxWidth: "min(100%, calc((100dvh - 14rem) * 16 / 9))" }}
+          >
             <ReactionOverlay floats={floats} />
             <ActivityOverlay state={activities} />
             {isLive ? (
@@ -137,18 +141,18 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             )}
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-4">
+          <div className="mt-2 flex items-center justify-between gap-4">
             {isLive ? <ReactionBar onSend={send} /> : <span />}
           </div>
 
           {event.description && (
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-neutral-400">
+            <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-relaxed text-neutral-400">
               {event.description}
             </p>
           )}
         </div>
 
-        <aside className="flex h-[60dvh] w-full flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:h-auto lg:max-h-[calc(100dvh-7rem)] lg:w-96">
+        <aside className="flex h-[60dvh] w-full flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:h-auto lg:min-h-0 lg:w-96">
           <div className="flex border-b border-neutral-800">
             {event.chat_enabled && (
               <button

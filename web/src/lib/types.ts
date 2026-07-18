@@ -170,6 +170,8 @@ export interface Post {
   pinned: boolean;
   deleted_at: string | null;
   created_at: string;
+  /** mensagem citada (reply), migração 0012 */
+  reply_to_id: string | null;
 }
 
 export interface Quiz {
