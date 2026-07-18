@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [next, setNext] = useState("/admin");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,6 +26,9 @@ export default function LoginPage() {
         "O link do e-mail expirou ou já foi usado. Use o código do e-mail, ou peça um novo.",
       );
     }
+    // Destino pós-login (ex.: página restrita de um cliente); só caminhos internos
+    const n = params.get("next");
+    if (n && n.startsWith("/") && !n.startsWith("//")) setNext(n);
   }, []);
 
   async function signInWithPassword() {
@@ -41,7 +45,7 @@ export default function LoginPage() {
       setBusy(false);
       return;
     }
-    router.push("/admin");
+    router.push(next);
     router.refresh();
   }
 
@@ -56,7 +60,7 @@ export default function LoginPage() {
       email: email.trim().toLowerCase(),
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${next}`,
       },
     });
     if (error) {
@@ -79,7 +83,7 @@ export default function LoginPage() {
     if (error) {
       setError("Código inválido ou expirado.");
     } else {
-      router.push("/admin");
+      router.push(next);
       router.refresh();
     }
     setBusy(false);

@@ -1,33 +1,39 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { EventField, LiveEvent, Profile, Registration } from "@/lib/types";
+import type {
+  EventField,
+  LiveEvent,
+  Profile,
+  PublicClient,
+  Registration,
+} from "@/lib/types";
 import { EntrarFlow } from "@/components/event/EntrarFlow";
 
 export const dynamic = "force-dynamic";
 
-// Rota legada (/e/slug/entrar): eventos com cliente redirecionam para a URL
-// canônica /cliente/evento/entrar; eventos sem cliente continuam aqui.
-export default async function EntrarPage({
+// Cadastro do evento na URL canônica /cliente/evento/entrar
+export default async function ClientEventEntrarPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ clientSlug: string; eventSlug: string }>;
 }) {
-  const { slug } = await params;
+  const { clientSlug, eventSlug } = await params;
   const supabase = await createClient();
+
+  const { data: client } = await supabase
+    .rpc("get_public_client", { p_slug: clientSlug })
+    .maybeSingle<PublicClient>();
+  if (!client) notFound();
 
   const { data: event } = await supabase
     .from("events")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", eventSlug)
+    .eq("client_id", client.id)
     .single<LiveEvent>();
   if (!event) notFound();
 
-  if (event.client_id) {
-    const { data: clientSlug } = await supabase.rpc("get_client_slug", {
-      p_client_id: event.client_id,
-    });
-    if (clientSlug) redirect(`/${clientSlug}/${event.slug}/entrar`);
-  }
+  const basePath = `/${clientSlug}/${eventSlug}`;
 
   const { data: fields } = await supabase
     .from("event_fields")
@@ -56,7 +62,7 @@ export default async function EntrarPage({
     profile = prof;
 
     if (reg?.status === "approved" || prof?.is_platform_admin) {
-      redirect(`/e/${slug}`);
+      redirect(basePath);
     }
   }
 
@@ -67,6 +73,7 @@ export default async function EntrarPage({
       user={user ? { id: user.id, email: user.email ?? "" } : null}
       profile={profile}
       registration={registration}
+      basePath={basePath}
     />
   );
 }

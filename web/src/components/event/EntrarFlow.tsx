@@ -17,6 +17,8 @@ interface EntrarFlowProps {
   user: { id: string; email: string } | null;
   profile: Profile | null;
   registration: Registration | null;
+  /** URL da sala (ex.: /cliente/evento). Padrão: /e/slug (legado). */
+  basePath?: string;
 }
 
 type Step = "credenciais" | "codigo" | "cadastro" | "aguardando" | "bloqueado";
@@ -24,9 +26,18 @@ type Step = "credenciais" | "codigo" | "cadastro" | "aguardando" | "bloqueado";
 const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
-export function EntrarFlow({ event, fields, user, profile, registration }: EntrarFlowProps) {
+export function EntrarFlow({
+  event,
+  fields,
+  user,
+  profile,
+  registration,
+  basePath,
+}: EntrarFlowProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const roomPath = basePath ?? `/e/${event.slug}`;
+  const entrarPath = `${roomPath}/entrar`;
 
   const initialStep: Step = !user
     ? "credenciais"
@@ -65,7 +76,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
         (payload) => {
           const updated = payload.new as Registration;
           if (updated.status === "approved") {
-            router.push(`/e/${event.slug}`);
+            router.push(roomPath);
             router.refresh();
           } else if (updated.status === "rejected" || updated.status === "banned") {
             setStep("bloqueado");
@@ -76,7 +87,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [step, registration, supabase, router, event.slug]);
+  }, [step, registration, supabase, router, roomPath]);
 
   const domainHint =
     event.registration_mode === "domain" && event.allowed_domains.length > 0
@@ -115,7 +126,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
       email: cleanEmail(),
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/e/${event.slug}/entrar`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${entrarPath}`,
       },
     });
     if (error) {
@@ -142,7 +153,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
       email: cleanEmail(),
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/e/${event.slug}/entrar`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${entrarPath}`,
       },
     });
     if (error) {
@@ -175,7 +186,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/e/${event.slug}/entrar`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${entrarPath}`,
       },
     });
   }
@@ -223,7 +234,7 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
     } else {
       const reg = data as Registration;
       if (reg.status === "approved") {
-        router.push(`/e/${event.slug}`);
+        router.push(roomPath);
         router.refresh();
       } else {
         router.refresh();
@@ -233,11 +244,41 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
     setBusy(false);
   }
 
+  const hasBg = Boolean(event.bg_image_url || event.bg_image_mobile_url);
+
   return (
     <div
-      className="flex min-h-dvh flex-col items-center justify-center px-4 py-12"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12"
       style={{ "--brand": event.brand_color } as React.CSSProperties}
     >
+      {hasBg && (
+        <>
+          {event.bg_image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.bg_image_url}
+              alt=""
+              aria-hidden
+              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover ${
+                event.bg_image_mobile_url ? "hidden sm:block" : ""
+              }`}
+            />
+          )}
+          {event.bg_image_mobile_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.bg_image_mobile_url}
+              alt=""
+              aria-hidden
+              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover ${
+                event.bg_image_url ? "sm:hidden" : ""
+              }`}
+            />
+          )}
+          {/* escurece o fundo para o formulário continuar legível */}
+          <div aria-hidden className="absolute inset-0 -z-10 bg-black/55" />
+        </>
+      )}
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           {event.brand_logo_url && (
@@ -262,7 +303,11 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
           )}
         </div>
 
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
+        <div
+          className={`rounded-2xl border border-neutral-800 p-6 ${
+            hasBg ? "bg-neutral-950/80 backdrop-blur-sm" : "bg-neutral-900/60"
+          }`}
+        >
           {error && (
             <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
               {error}
@@ -496,6 +541,25 @@ export function EntrarFlow({ event, fields, user, profile, registration }: Entra
             </div>
           )}
         </div>
+
+        {event.sponsor_logos.length > 0 && (
+          <div className="mt-8">
+            <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
+              Apoio
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+              {event.sponsor_logos.map((url) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={url}
+                  src={url}
+                  alt=""
+                  className="h-8 max-w-28 object-contain opacity-80"
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -30,6 +30,18 @@ export interface Client {
   created_at: string;
 }
 
+/** Resultado do RPC get_public_client (resolve slug mesmo com pasta privada) */
+export interface PublicClient {
+  id: string;
+  name: string;
+  slug: string;
+  brand_color: string;
+  brand_logo_url: string | null;
+  bg_image_url: string | null;
+  bg_image_mobile_url: string | null;
+  can_view_folder: boolean;
+}
+
 export interface ClientMember {
   client_id: string;
   user_id: string;

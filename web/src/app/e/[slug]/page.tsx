@@ -20,6 +20,14 @@ export default async function EventPage({
     .single<LiveEvent>();
   if (!event) notFound();
 
+  // Rota legada: com cliente, a URL canônica é /cliente/evento
+  if (event.client_id) {
+    const { data: clientSlug } = await supabase.rpc("get_client_slug", {
+      p_client_id: event.client_id,
+    });
+    if (clientSlug) redirect(`/${clientSlug}/${event.slug}`);
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
