@@ -20,6 +20,56 @@ const TYPE_ICONS: Record<ActivityType, string> = {
   open_text: "💬",
   ordering: "🔀",
 };
+
+/** Tipos criáveis na barra (o Ranking geral é um controle dentro do quiz). */
+const CREATABLE_TYPES: ActivityType[] = [
+  "word_cloud",
+  "poll",
+  "quiz",
+  "scale",
+  "open_text",
+  "ordering",
+];
+
+/** Textos do popup explicativo de cada tipo. */
+const TYPE_HELP: Record<ActivityType, string[]> = {
+  word_cloud: [
+    "Os participantes enviam até 3 palavras (máx. 30 caracteres cada). As mais repetidas crescem na nuvem, em tempo real e sem identificar ninguém.",
+    "Operação: ▶ Abrir libera os envios · ■ Fechar encerra · Limpar apaga tudo e volta a atividade para a fila.",
+    "Palavrões são barrados automaticamente (blocklist). Se marcar \"aprovar antes de exibir\", cada palavra passa pela fila de moderação antes de aparecer.",
+    "O CSV identifica quem enviou o quê — só a tela pública é anônima.",
+  ],
+  poll: [
+    "Votação de múltipla escolha SEM certo ou errado — para opinião/termômetro (para competição com pontos, use o Quiz).",
+    "Cada participante vota 1 vez. O resultado são barras de % que crescem ao vivo.",
+    "Você escolhe se o participante vê o resultado em tempo real ou só quando você clicar em \"Exibir resultado\" (evita voto enviesado).",
+  ],
+  quiz: [
+    "Competição com gabarito e pontuação: cada acerto vale 1000 pontos. O gabarito fica escondido até você revelar.",
+    "Funciona em RODADAS: adicione perguntas (elas entram na fila) → ▶ Abrir abre todas as pendentes de uma vez → participantes respondem → ■ Fechar. Depois adicione mais perguntas e abra de novo.",
+    "✓ Exibir resultado revela o gabarito das perguntas fechadas: distribuição por alternativa, \"X de Y acertaram\" e o ranking do quiz.",
+    "No encerramento, use o botão 🏆 Ranking geral para exibir o placar somado de todos os quizzes da live e anunciar o campeão.",
+  ],
+  quiz_ranking: [
+    "Placar somado de TODOS os quizzes da live (top 10, com pontos e acertos; empate desempata por acertos).",
+    "Só contam perguntas fechadas/reveladas — rodada aberta não entra.",
+    "Abra no encerramento para anunciar o campeão no telão e na sala. Se abrir no meio do evento, mostra o parcial (bom para esquentar a disputa).",
+  ],
+  scale: [
+    "Os participantes avaliam afirmações numa régua de 1 a 5 (ou 1 a 10), com sliders. Uma resposta por pessoa, cobrindo todas as afirmações.",
+    "O resultado mostra a média de cada afirmação num marcador sobre a régua — bom para NPS, autoavaliação e \"concordo/discordo\".",
+    "Dica: dê nomes às pontas (ex.: 1 = discordo · 5 = concordo) para o público entender a régua.",
+  ],
+  open_text: [
+    "Pergunta aberta: cada participante envia até 3 respostas de 200 caracteres, exibidas como cartões anônimos.",
+    "Na prévia do diretor, cada resposta tem um botão ⭐ Destacar: a escolhida vira uma citação grande no telão — ideal para o apresentador comentar ao vivo.",
+    "Palavrões são barrados automaticamente; com \"aprovar antes de exibir\", tudo passa pela fila de moderação antes de aparecer.",
+  ],
+  ordering: [
+    "Você lista itens e cada participante os ordena com as setas ↑↓ (funciona bem no celular), enviando uma vez.",
+    "O resultado é o ranking por posição média: o item com menor média fica no topo — bom para priorização e preferências.",
+  ],
+};
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
 
 const inputClass =
@@ -52,6 +102,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
   const [queue, setQueue] = useState<ResponseRow[]>([]);
   const [quizQuestions, setQuizQuestions] = useState<Record<string, QuizQuestion[]>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [help, setHelp] = useState<ActivityType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // formulário de nova pergunta (quiz expandido)
@@ -306,6 +357,40 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     await load();
   }
 
+  // Ranking geral: atividade singleton controlada de dentro do quiz
+  const rankingActivity = activities.find((a) => a.type === "quiz_ranking") ?? null;
+
+  async function toggleRanking() {
+    setError(null);
+    let act = rankingActivity;
+    if (!act) {
+      const { data, error: err } = await supabase
+        .from("activities")
+        .insert({
+          event_id: eventId,
+          type: "quiz_ranking",
+          title: "Ranking geral",
+          config: {},
+          results_visible: "live",
+          highlight: true,
+          position: 999,
+        })
+        .select()
+        .single();
+      if (err || !data) {
+        setError(`Não foi possível preparar o ranking (${err?.message}).`);
+        return;
+      }
+      act = data as Activity;
+    }
+    const { error: err } = await supabase.rpc("activity_control", {
+      p_activity_id: act.id,
+      p_action: act.status === "open" ? "close" : "open",
+    });
+    if (err) setError(err.message);
+    await load();
+  }
+
   async function setSpotlight(activity: Activity, responseId: string | null) {
     const config = { ...activity.config };
     if (responseId) config.spotlight = responseId;
@@ -444,8 +529,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
 
       {showForm && (
         <div className="space-y-3 rounded-xl border border-neutral-800 p-4">
-          <div className="flex gap-2">
-            {(Object.keys(ACTIVITY_TYPE_LABELS) as ActivityType[]).map((t) => (
+          <div className="flex flex-wrap gap-2">
+            {CREATABLE_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}
@@ -459,6 +544,15 @@ export function ActivityManager({ eventId }: { eventId: string }) {
               </button>
             ))}
           </div>
+          <p className="text-xs text-neutral-500">
+            {TYPE_HELP[type][0]}{" "}
+            <button
+              onClick={() => setHelp(type)}
+              className="text-sky-400 underline-offset-2 hover:underline"
+            >
+              saiba mais
+            </button>
+          </p>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -623,7 +717,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       )}
 
       <div className="space-y-3">
-        {activities.map((a) => {
+        {activities.filter((a) => a.type !== "quiz_ranking").map((a) => {
           const r = results[a.id];
           const isExpanded = expanded === a.id;
           const qs = quizQuestions[a.id] ?? [];
@@ -639,6 +733,14 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                 <div className="min-w-0">
                   <p className="font-medium">
                     {TYPE_ICONS[a.type]} {a.title}
+                    <button
+                      onClick={() => setHelp(a.type)}
+                      aria-label={`Como funciona: ${ACTIVITY_TYPE_LABELS[a.type]}`}
+                      title="Como funciona esta atividade"
+                      className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-neutral-700 text-xs text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                    >
+                      ?
+                    </button>
                   </p>
                   <p className="mt-1 text-xs text-neutral-500">
                     {ACTIVITY_TYPE_LABELS[a.type]}
@@ -853,6 +955,51 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                       <ActivityResultsView activity={a} results={r ?? null} />
                     </div>
                   )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-800 p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        🏆 Ranking geral da live
+                        <button
+                          onClick={() => setHelp("quiz_ranking")}
+                          aria-label="Como funciona o ranking geral"
+                          title="Como funciona"
+                          className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-neutral-700 text-xs text-neutral-400 hover:bg-neutral-800 hover:text-white"
+                        >
+                          ?
+                        </button>
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        Placar somado de todos os quizzes — abra no encerramento
+                        para anunciar o campeão no telão e na sala.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {rankingActivity?.status === "open" ? (
+                        <button
+                          onClick={toggleRanking}
+                          className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500"
+                        >
+                          ■ Fechar ranking
+                        </button>
+                      ) : (
+                        <button
+                          onClick={toggleRanking}
+                          className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
+                        >
+                          🏆 Exibir no telão
+                        </button>
+                      )}
+                      {rankingActivity && (
+                        <button
+                          onClick={() => exportCsv(rankingActivity)}
+                          className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
+                        >
+                          ⬇ CSV
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
               {isExpanded && a.type !== "quiz" && (
@@ -900,6 +1047,38 @@ export function ActivityManager({ eventId }: { eventId: string }) {
         (fundos: <code>?bg=transparent</code>, <code>?bg=green</code>,{" "}
         <code>?bg=dark</code> ou <code>?bg=art</code>).
       </p>
+
+      {help && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setHelp(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-950 p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <h3 className="font-semibold">
+                {TYPE_ICONS[help]} {ACTIVITY_TYPE_LABELS[help]}
+              </h3>
+              <button
+                onClick={() => setHelp(null)}
+                aria-label="Fechar"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2.5 text-sm leading-relaxed text-neutral-300">
+              {TYPE_HELP[help].map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
