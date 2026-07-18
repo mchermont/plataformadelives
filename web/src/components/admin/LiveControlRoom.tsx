@@ -7,7 +7,6 @@ import type { EventStatus, LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { ChatPanel } from "@/components/event/ChatPanel";
 import { PresenceBadge } from "@/components/event/PresenceBadge";
-import { QuizManager } from "./QuizManager";
 import { ActivityManager } from "./ActivityManager";
 
 interface LiveControlRoomProps {
@@ -120,19 +119,11 @@ export function LiveControlRoom({
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-        <section className="space-y-10">
-          <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-              Atividades interativas
-            </h2>
-            <ActivityManager eventId={event.id} />
-          </div>
-          <div>
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-              Quiz ao vivo
-            </h2>
-            <QuizManager eventId={event.id} isAdmin={isAdmin} />
-          </div>
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+            Atividades interativas · quiz, enquete, nuvem
+          </h2>
+          <ActivityManager eventId={event.id} />
         </section>
 
         <section className="flex flex-col">

@@ -7,8 +7,16 @@ import type {
   ActivityResponse,
   ActivityResults,
   ActivityType,
+  QuizQuestion,
 } from "@/lib/types";
 import { ACTIVITY_STATUS_LABELS, ACTIVITY_TYPE_LABELS } from "@/lib/types";
+
+const TYPE_ICONS: Record<ActivityType, string> = {
+  word_cloud: "☁️",
+  poll: "📊",
+  quiz: "🎯",
+  quiz_ranking: "🏆",
+};
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
 
 const inputClass =
@@ -39,8 +47,15 @@ export function ActivityManager({ eventId }: { eventId: string }) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [results, setResults] = useState<Record<string, ActivityResults>>({});
   const [queue, setQueue] = useState<ResponseRow[]>([]);
+  const [quizQuestions, setQuizQuestions] = useState<Record<string, QuizQuestion[]>>({});
   const [expanded, setExpanded] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // formulário de nova pergunta (quiz expandido)
+  const [qPrompt, setQPrompt] = useState("");
+  const [qOptions, setQOptions] = useState(["", "", "", ""]);
+  const [qCorrect, setQCorrect] = useState(0);
+  const [qBusy, setQBusy] = useState(false);
 
   // formulário de nova atividade
   const [showForm, setShowForm] = useState(false);
@@ -73,6 +88,25 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       }),
     );
     setResults(Object.fromEntries(entries.filter(([, r]) => r)));
+
+    // perguntas dos quizzes (inclui pendentes — o diretor vê a fila do lote)
+    const quizActs = list.filter((a) => a.type === "quiz" && a.quiz_id);
+    if (quizActs.length > 0) {
+      const { data: qs } = await supabase
+        .from("quiz_questions")
+        .select("*")
+        .in("quiz_id", quizActs.map((a) => a.quiz_id as string))
+        .order("position", { ascending: true });
+      const byActivity: Record<string, QuizQuestion[]> = {};
+      for (const a of quizActs) {
+        byActivity[a.id] = ((qs as QuizQuestion[]) ?? []).filter(
+          (q) => q.quiz_id === a.quiz_id,
+        );
+      }
+      setQuizQuestions(byActivity);
+    } else {
+      setQuizQuestions({});
+    }
 
     // fila de moderação (respostas pendentes de aprovação)
     const moderated = list.filter((a) => a.require_moderation);
@@ -121,25 +155,102 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     }
     setBusy(true);
     setError(null);
-    const { error: err } = await supabase.from("activities").insert({
-      event_id: eventId,
-      type,
-      title: title.trim(),
-      config: type === "poll" ? { options } : { max_entries: 3 },
-      results_visible: liveResults ? "live" : "after_publish",
-      highlight,
-      require_moderation: type === "word_cloud" ? moderation : false,
-      position: activities.length,
-    });
+
+    // quiz vive na tabela quizzes (perguntas/gabarito/pontuação)
+    let quizId: string | null = null;
+    if (type === "quiz") {
+      const { data: quiz, error: quizErr } = await supabase
+        .from("quizzes")
+        .insert({ event_id: eventId, title: title.trim() })
+        .select()
+        .single();
+      if (quizErr || !quiz) {
+        setError(`Não foi possível criar o quiz (${quizErr?.message}).`);
+        setBusy(false);
+        return;
+      }
+      quizId = quiz.id;
+    }
+
+    const { data: created, error: err } = await supabase
+      .from("activities")
+      .insert({
+        event_id: eventId,
+        type,
+        title: title.trim(),
+        quiz_id: quizId,
+        config:
+          type === "poll" ? { options } : type === "word_cloud" ? { max_entries: 3 } : {},
+        // quiz revela gabarito só no "Exibir resultado"; ranking geral é sempre ao vivo
+        results_visible:
+          type === "quiz" ? "after_publish" : type === "quiz_ranking" ? "live" : liveResults ? "live" : "after_publish",
+        highlight,
+        require_moderation: type === "word_cloud" ? moderation : false,
+        position: activities.length,
+      })
+      .select()
+      .single();
     if (err) {
+      if (quizId) await supabase.from("quizzes").delete().eq("id", quizId);
       setError(`Não foi possível criar a atividade (${err.message}).`);
     } else {
       setTitle("");
       setOptionsText("");
       setShowForm(false);
+      if (created && type === "quiz") setExpanded(created.id); // já abre p/ adicionar perguntas
       await load();
     }
     setBusy(false);
+  }
+
+  async function addQuestion(activity: Activity) {
+    if (!activity.quiz_id) return;
+    const cleanOptions = qOptions.map((o) => o.trim()).filter(Boolean);
+    if (!qPrompt.trim() || cleanOptions.length < 2) {
+      setError("Escreva a pergunta e pelo menos 2 alternativas.");
+      return;
+    }
+    if (qCorrect >= cleanOptions.length) {
+      setError("A alternativa correta precisa estar preenchida.");
+      return;
+    }
+    setQBusy(true);
+    setError(null);
+    const existing = quizQuestions[activity.id] ?? [];
+    const { data: question, error: qErr } = await supabase
+      .from("quiz_questions")
+      .insert({
+        quiz_id: activity.quiz_id,
+        prompt: qPrompt.trim(),
+        options: cleanOptions,
+        time_limit_sec: 0, // sem cronômetro: a pergunta fecha com o lote
+        position: existing.length,
+      })
+      .select()
+      .single();
+    if (qErr || !question) {
+      setError("Não foi possível criar a pergunta.");
+      setQBusy(false);
+      return;
+    }
+    const { error: kErr } = await supabase
+      .from("quiz_keys")
+      .insert({ question_id: question.id, correct_index: qCorrect });
+    if (kErr) {
+      await supabase.from("quiz_questions").delete().eq("id", question.id);
+      setError("Não foi possível salvar o gabarito. Tente de novo.");
+    } else {
+      setQPrompt("");
+      setQOptions(["", "", "", ""]);
+      setQCorrect(0);
+      await load();
+    }
+    setQBusy(false);
+  }
+
+  async function removeQuestion(id: string) {
+    await supabase.from("quiz_questions").delete().eq("id", id);
+    await load();
   }
 
   async function control(id: string, action: Action) {
@@ -152,9 +263,14 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     await load();
   }
 
-  async function removeActivity(id: string) {
+  async function removeActivity(activity: Activity) {
     if (!confirm("Excluir esta atividade e todas as respostas?")) return;
-    await supabase.from("activities").delete().eq("id", id);
+    if (activity.type === "quiz" && activity.quiz_id) {
+      // apagar o quiz cascateia perguntas, respostas e a própria atividade
+      await supabase.from("quizzes").delete().eq("id", activity.quiz_id);
+    } else {
+      await supabase.from("activities").delete().eq("id", activity.id);
+    }
     await load();
   }
 
@@ -171,6 +287,59 @@ export function ActivityManager({ eventId }: { eventId: string }) {
   }
 
   async function exportCsv(activity: Activity) {
+    if (activity.type === "quiz" && activity.quiz_id) {
+      const questions = quizQuestions[activity.id] ?? [];
+      const { data } = await supabase
+        .from("quiz_answers")
+        .select("*, profiles(full_name, email)")
+        .in("question_id", questions.map((q) => q.id))
+        .order("answered_at", { ascending: true });
+      type AnswerRow = {
+        question_id: string;
+        selected_index: number;
+        answered_at: string;
+        profiles: { full_name: string; email: string } | null;
+      };
+      const byId = Object.fromEntries(questions.map((q) => [q.id, q]));
+      downloadCsv(`quiz-${activity.id.slice(0, 8)}.csv`, [
+        ["Nome", "E-mail", "Pergunta", "Resposta", "Correta", "Respondida em"],
+        ...((data as AnswerRow[]) ?? []).map((a) => {
+          const q = byId[a.question_id];
+          return [
+            a.profiles?.full_name ?? "",
+            a.profiles?.email ?? "",
+            q?.prompt ?? "",
+            q?.options[a.selected_index] ?? String(a.selected_index),
+            q?.revealed_correct_index == null
+              ? "—"
+              : a.selected_index === q.revealed_correct_index
+                ? "Sim"
+                : "Não",
+            new Date(a.answered_at).toLocaleString("pt-BR"),
+          ];
+        }),
+      ]);
+      return;
+    }
+    if (activity.type === "quiz_ranking") {
+      const { data } = await supabase
+        .from("quiz_leaderboard")
+        .select("*")
+        .eq("event_id", eventId)
+        .order("score", { ascending: false });
+      downloadCsv(`ranking-geral-${eventId.slice(0, 8)}.csv`, [
+        ["Posição", "Nome", "Acertos", "Pontuação"],
+        ...((data as { full_name: string; correct_count: number; score: number }[]) ?? []).map(
+          (row, i) => [
+            String(i + 1),
+            row.full_name,
+            String(row.correct_count),
+            String(row.score),
+          ],
+        ),
+      ]);
+      return;
+    }
     const { data } = await supabase
       .from("activity_responses")
       .select("*, profiles(full_name, email)")
@@ -227,8 +396,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                     : "border-neutral-700 text-neutral-400 hover:text-white"
                 }`}
               >
-                {t === "word_cloud" ? "☁️ " : "📊 "}
-                {ACTIVITY_TYPE_LABELS[t]}
+                {TYPE_ICONS[t]} {ACTIVITY_TYPE_LABELS[t]}
               </button>
             ))}
           </div>
@@ -238,7 +406,11 @@ export function ActivityManager({ eventId }: { eventId: string }) {
             placeholder={
               type === "word_cloud"
                 ? "Ex.: Em uma palavra, o que você espera do evento?"
-                : "Pergunta da enquete"
+                : type === "poll"
+                  ? "Pergunta da enquete"
+                  : type === "quiz"
+                    ? "Nome do quiz (as perguntas você adiciona depois)"
+                    : "Título do telão (ex.: Grande campeão da live)"
             }
             className={inputClass}
           />
@@ -261,15 +433,17 @@ export function ActivityManager({ eventId }: { eventId: string }) {
               />
               Destaque (overlay sobre o vídeo)
             </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={liveResults}
-                onChange={(e) => setLiveResults(e.target.checked)}
-                className="h-4 w-4 accent-sky-500"
-              />
-              Resultado em tempo real p/ participantes
-            </label>
+            {(type === "word_cloud" || type === "poll") && (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={liveResults}
+                  onChange={(e) => setLiveResults(e.target.checked)}
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Resultado em tempo real p/ participantes
+              </label>
+            )}
             {type === "word_cloud" && (
               <label className="flex items-center gap-2">
                 <input
@@ -337,6 +511,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
         {activities.map((a) => {
           const r = results[a.id];
           const isExpanded = expanded === a.id;
+          const qs = quizQuestions[a.id] ?? [];
+          const pendingCount = qs.filter((q) => q.status === "pending").length;
           return (
             <div
               key={a.id}
@@ -347,16 +523,26 @@ export function ActivityManager({ eventId }: { eventId: string }) {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium">
-                    {a.type === "word_cloud" ? "☁️" : "📊"} {a.title}
+                    {TYPE_ICONS[a.type]} {a.title}
                   </p>
                   <p className="mt-1 text-xs text-neutral-500">
                     {ACTIVITY_TYPE_LABELS[a.type]}
+                    {a.type === "quiz" &&
+                      ` · ${qs.length} pergunta${qs.length === 1 ? "" : "s"}${
+                        pendingCount > 0 ? ` (${pendingCount} na fila)` : ""
+                      }`}
                     {a.highlight && " · destaque"}
                     {a.require_moderation && " · moderada"}
                     {a.results_visible === "after_publish" &&
                       " · resultado só ao exibir"}
-                    {" — "}
-                    {r?.total ?? 0} resposta{(r?.total ?? 0) === 1 ? "" : "s"}
+                    {a.type !== "quiz_ranking" && (
+                      <>
+                        {" — "}
+                        {r?.total ?? 0}{" "}
+                        {a.type === "quiz" ? "participante" : "resposta"}
+                        {(r?.total ?? 0) === 1 ? "" : "s"}
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -375,9 +561,18 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   {a.status !== "open" && (
                     <button
                       onClick={() => control(a.id, "open")}
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500"
+                      disabled={a.type === "quiz" && pendingCount === 0}
+                      title={
+                        a.type === "quiz" && pendingCount === 0
+                          ? "Adicione perguntas novas antes de abrir outra rodada"
+                          : undefined
+                      }
+                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
                     >
                       ▶ Abrir
+                      {a.type === "quiz" && pendingCount > 0
+                        ? ` ${pendingCount} pergunta${pendingCount === 1 ? "" : "s"}`
+                        : ""}
                     </button>
                   )}
                   {a.status === "open" && (
@@ -417,7 +612,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                     onClick={() => setExpanded(isExpanded ? null : a.id)}
                     className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
                   >
-                    {isExpanded ? "Esconder" : "Prévia"}
+                    {isExpanded ? "Esconder" : a.type === "quiz" ? "Perguntas" : "Prévia"}
                   </button>
                   <button
                     onClick={() => exportCsv(a)}
@@ -427,7 +622,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   </button>
                   {a.status === "pending" && (
                     <button
-                      onClick={() => removeActivity(a.id)}
+                      onClick={() => removeActivity(a)}
                       className="rounded-lg border border-red-900 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950"
                     >
                       Excluir
@@ -435,7 +630,117 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   )}
                 </div>
               </div>
-              {isExpanded && (
+              {isExpanded && a.type === "quiz" && (
+                <div className="mt-4 space-y-4">
+                  <div className="space-y-2">
+                    {qs.length === 0 && (
+                      <p className="text-sm text-neutral-500">
+                        Nenhuma pergunta ainda — adicione abaixo. Você pode
+                        lançar em rodadas: abra com algumas perguntas, feche,
+                        adicione mais e abra de novo.
+                      </p>
+                    )}
+                    {qs.map((q, i) => (
+                      <div
+                        key={q.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-800 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">
+                            {i + 1}. {q.prompt}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {q.options.join(" · ")}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              q.status === "open"
+                                ? "bg-emerald-500/15 text-emerald-400"
+                                : q.status === "revealed"
+                                  ? "bg-sky-500/15 text-sky-400"
+                                  : q.status === "closed"
+                                    ? "bg-neutral-800 text-neutral-300"
+                                    : "bg-neutral-800 text-neutral-500"
+                            }`}
+                          >
+                            {q.status === "pending"
+                              ? "Na fila"
+                              : q.status === "open"
+                                ? "Aberta"
+                                : q.status === "closed"
+                                  ? "Fechada"
+                                  : "Revelada"}
+                          </span>
+                          {q.status === "pending" && (
+                            <button
+                              onClick={() => removeQuestion(q.id)}
+                              className="text-xs text-red-400 underline-offset-2 hover:underline"
+                            >
+                              excluir
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="max-w-xl space-y-3 rounded-lg border border-neutral-800 p-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                      Nova pergunta (entra na fila da próxima rodada)
+                    </h4>
+                    <input
+                      value={qPrompt}
+                      onChange={(e) => setQPrompt(e.target.value)}
+                      placeholder="Enunciado da pergunta"
+                      className={inputClass}
+                    />
+                    {qOptions.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name={`correta-${a.id}`}
+                          checked={qCorrect === i}
+                          onChange={() => setQCorrect(i)}
+                          title="Marcar como correta"
+                          className="h-4 w-4 accent-emerald-500"
+                        />
+                        <input
+                          value={opt}
+                          onChange={(e) =>
+                            setQOptions((os) =>
+                              os.map((o, j) => (j === i ? e.target.value : o)),
+                            )
+                          }
+                          placeholder={`Alternativa ${String.fromCharCode(65 + i)}${i < 2 ? " *" : " (opcional)"}`}
+                          className={inputClass}
+                        />
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs text-neutral-500">
+                        A bolinha marca a correta. O gabarito só aparece quando
+                        você exibir o resultado.
+                      </p>
+                      <button
+                        onClick={() => addQuestion(a)}
+                        disabled={qBusy}
+                        className="shrink-0 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500 disabled:opacity-40"
+                      >
+                        {qBusy ? "Salvando…" : "Adicionar"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {a.status !== "pending" && (
+                    <div className="rounded-lg bg-neutral-950 p-4">
+                      <ActivityResultsView activity={a} results={r ?? null} />
+                    </div>
+                  )}
+                </div>
+              )}
+              {isExpanded && a.type !== "quiz" && (
                 <div className="mt-4 rounded-lg bg-neutral-950 p-4">
                   <ActivityResultsView activity={a} results={r ?? null} />
                 </div>

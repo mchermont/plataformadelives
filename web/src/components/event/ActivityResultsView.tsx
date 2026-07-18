@@ -1,6 +1,6 @@
 "use client";
 
-import type { Activity, ActivityResults } from "@/lib/types";
+import type { Activity, ActivityResults, RankingRow } from "@/lib/types";
 
 interface ActivityResultsViewProps {
   activity: Pick<Activity, "type" | "config">;
@@ -69,6 +69,88 @@ export function ActivityResultsView({
     );
   }
 
+  if (activity.type === "quiz") {
+    const questions = results.questions ?? [];
+    const ranking = results.ranking ?? [];
+    return (
+      <div className={screen ? "space-y-8" : "space-y-4"}>
+        {questions.map((q) => (
+          <div key={q.id}>
+            <p
+              className={`mb-2 font-medium ${screen ? "text-3xl" : "text-sm"}`}
+            >
+              {q.prompt}
+              {q.correct_count !== null && (
+                <span
+                  className={`ml-2 font-normal text-emerald-400 ${
+                    screen ? "text-2xl" : "text-xs"
+                  }`}
+                >
+                  {q.correct_count} de {q.total} acertaram
+                </span>
+              )}
+            </p>
+            <div className={screen ? "space-y-3" : "space-y-2"}>
+              {q.options.map((option, i) => {
+                const count = q.counts[i] ?? 0;
+                const pct = q.total > 0 ? Math.round((count / q.total) * 100) : 0;
+                const isCorrect = q.correct_index === i;
+                return (
+                  <div key={i}>
+                    <div
+                      className={`mb-0.5 flex items-baseline justify-between gap-4 ${
+                        screen ? "text-xl" : "text-xs"
+                      } ${isCorrect ? "font-semibold text-emerald-400" : ""}`}
+                    >
+                      <span>
+                        {isCorrect && "✓ "}
+                        {option}
+                      </span>
+                      <span className="shrink-0 font-mono tabular-nums text-neutral-400">
+                        {pct}% · {count}
+                      </span>
+                    </div>
+                    <div
+                      className={`overflow-hidden rounded-full bg-neutral-800 ${
+                        screen ? "h-4" : "h-2"
+                      }`}
+                    >
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          isCorrect
+                            ? "bg-emerald-500"
+                            : q.correct_index !== null
+                              ? "bg-neutral-600"
+                              : "bg-[var(--brand,#38bdf8)]"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {ranking.length > 0 && <RankingList rows={ranking} screen={screen} />}
+        <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
+          {results.total} participante{results.total === 1 ? "" : "s"}
+        </p>
+      </div>
+    );
+  }
+
+  if (activity.type === "quiz_ranking") {
+    return (
+      <div className={screen ? "space-y-6" : "space-y-3"}>
+        <RankingList rows={results.ranking ?? []} screen={screen} podium />
+        <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
+          {results.total} participante{results.total === 1 ? "" : "s"} pontuaram
+        </p>
+      </div>
+    );
+  }
+
   // poll: barras com % ao vivo
   const options = activity.config.options ?? [];
   const counts = results.counts ?? [];
@@ -107,6 +189,73 @@ export function ActivityResultsView({
       >
         {results.total} voto{results.total === 1 ? "" : "s"}
       </p>
+    </div>
+  );
+}
+
+const MEDALS = ["🥇", "🥈", "🥉"];
+
+/** Lista de classificação (do quiz ou geral da live). */
+function RankingList({
+  rows,
+  screen,
+  podium = false,
+}: {
+  rows: RankingRow[];
+  screen: boolean;
+  podium?: boolean;
+}) {
+  if (rows.length === 0) {
+    return (
+      <p className={screen ? "text-center text-2xl text-neutral-400" : "text-sm text-neutral-500"}>
+        Ninguém pontuou ainda.
+      </p>
+    );
+  }
+  return (
+    <div>
+      {!podium && (
+        <h4
+          className={`mb-2 font-semibold uppercase tracking-wide text-neutral-400 ${
+            screen ? "text-xl" : "text-xs"
+          }`}
+        >
+          Ranking
+        </h4>
+      )}
+      <ol className={screen ? "space-y-3" : "space-y-1.5"}>
+        {rows.map((row, i) => (
+          <li
+            key={`${row.name}-${i}`}
+            className={`flex items-center justify-between gap-4 ${
+              screen
+                ? podium && i === 0
+                  ? "text-4xl font-bold"
+                  : "text-2xl"
+                : `text-sm ${i === 0 ? "font-semibold" : ""}`
+            }`}
+          >
+            <span className="min-w-0 truncate">
+              <span
+                className={`mr-2 inline-block text-right font-mono text-neutral-500 ${
+                  screen ? "w-10" : "w-6"
+                }`}
+              >
+                {podium && i < 3 ? MEDALS[i] : `${i + 1}.`}
+              </span>
+              {row.name || "Participante"}
+            </span>
+            <span className="shrink-0 font-mono tabular-nums">
+              {row.score}
+              <span
+                className={`ml-2 text-neutral-500 ${screen ? "text-lg" : "text-xs"}`}
+              >
+                {row.correct} acerto{row.correct === 1 ? "" : "s"}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

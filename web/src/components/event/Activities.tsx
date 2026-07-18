@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Activity, ActivityResponse, ActivityResults } from "@/lib/types";
+import type {
+  Activity,
+  ActivityResponse,
+  ActivityResults,
+  QuizQuestion,
+} from "@/lib/types";
+import { ACTIVITY_TYPE_LABELS } from "@/lib/types";
 import { ActivityResultsView } from "./ActivityResultsView";
 
 /**
@@ -14,6 +20,8 @@ export function useActivities(eventId: string, userId: string) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [myResponses, setMyResponses] = useState<ActivityResponse[]>([]);
   const [results, setResults] = useState<Record<string, ActivityResults>>({});
+  const [quizQuestions, setQuizQuestions] = useState<Record<string, QuizQuestion[]>>({});
+  const [myQuizAnswers, setMyQuizAnswers] = useState<Record<string, number>>({});
   const [alert, setAlert] = useState(false);
 
   const load = useCallback(async () => {
@@ -26,8 +34,36 @@ export function useActivities(eventId: string, userId: string) {
         .order("opened_at", { ascending: false }),
       supabase.from("activity_responses").select("*").eq("user_id", userId),
     ]);
-    setActivities((acts as Activity[]) ?? []);
+    const list = (acts as Activity[]) ?? [];
+    setActivities(list);
     setMyResponses((mine as ActivityResponse[]) ?? []);
+
+    // perguntas dos quizzes lançados + minhas respostas (p/ marcar o que já respondi)
+    const quizActs = list.filter((a) => a.type === "quiz" && a.quiz_id);
+    if (quizActs.length > 0) {
+      const [{ data: qs }, { data: answers }] = await Promise.all([
+        supabase
+          .from("quiz_questions")
+          .select("*")
+          .in("quiz_id", quizActs.map((a) => a.quiz_id as string))
+          .neq("status", "pending")
+          .order("position", { ascending: true }),
+        supabase.from("quiz_answers").select("*").eq("user_id", userId),
+      ]);
+      const byActivity: Record<string, QuizQuestion[]> = {};
+      for (const a of quizActs) {
+        byActivity[a.id] = ((qs as QuizQuestion[]) ?? []).filter(
+          (q) => q.quiz_id === a.quiz_id,
+        );
+      }
+      setQuizQuestions(byActivity);
+      const map: Record<string, number> = {};
+      for (const ans of answers ?? []) map[ans.question_id] = ans.selected_index;
+      setMyQuizAnswers(map);
+    } else {
+      setQuizQuestions({});
+      setMyQuizAnswers({});
+    }
   }, [supabase, eventId, userId]);
 
   // Resultados agregados das atividades cujo resultado o participante pode ver
@@ -84,6 +120,8 @@ export function useActivities(eventId: string, userId: string) {
     open,
     myResponses,
     results,
+    quizQuestions,
+    myQuizAnswers,
     alert,
     clearAlert: () => setAlert(false),
     refresh: () => {
@@ -114,6 +152,34 @@ function ActivityCard({
   const canSeeResults =
     activity.results_visible === "live" || activity.results_published;
   const results = state.results[activity.id] ?? null;
+  const questions = state.quizQuestions[activity.id] ?? [];
+
+  async function answerQuiz(question: QuizQuestion, index: number) {
+    if (state.myQuizAnswers[question.id] !== undefined) return;
+    setBusy(true);
+    setFeedback(null);
+    const { error } = await supabase.rpc("answer_question", {
+      p_question_id: question.id,
+      p_selected: index,
+    });
+    if (error) {
+      const msg = error.message;
+      if (msg.includes("inscrição")) {
+        setFeedback(
+          "Só participantes inscritos pontuam no quiz. Você está logado como equipe/admin — para testar, use uma conta de participante.",
+        );
+      } else if (msg.includes("duplicate") || error.code === "23505") {
+        setFeedback("Você já respondeu esta pergunta.");
+      } else if (msg.includes("não está aberta")) {
+        setFeedback("Esta pergunta já foi encerrada.");
+      } else {
+        setFeedback(`Não foi possível registrar (${msg}).`);
+      }
+    } else {
+      state.refresh();
+    }
+    setBusy(false);
+  }
 
   async function submit(payload: { word?: string; option_index?: number }) {
     setBusy(true);
@@ -149,7 +215,7 @@ function ActivityCard({
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wide text-sky-400">
-          {activity.type === "word_cloud" ? "Nuvem de palavras" : "Enquete"}
+          {ACTIVITY_TYPE_LABELS[activity.type]}
           {isOpen ? " · ao vivo" : ""}
         </span>
         {!isOpen && (
@@ -160,7 +226,74 @@ function ActivityCard({
 
       {feedback && <p className="mb-2 text-xs text-amber-400">{feedback}</p>}
 
-      {activity.type === "word_cloud" ? (
+      {activity.type === "quiz" ? (
+        <div className="mb-3 space-y-4">
+          {questions.map((q) => {
+            const mineIdx = state.myQuizAnswers[q.id];
+            const answered = mineIdx !== undefined;
+            const revealed = q.status === "revealed" && q.revealed_correct_index !== null;
+            return (
+              <div key={q.id}>
+                <p className="mb-2 text-sm font-medium">{q.prompt}</p>
+                {revealed ? (
+                  <div className="space-y-1 text-sm">
+                    <p className="text-emerald-400">
+                      ✓ Correta: {q.options[q.revealed_correct_index!]}
+                    </p>
+                    {answered && (
+                      <p
+                        className={
+                          mineIdx === q.revealed_correct_index
+                            ? "text-emerald-400"
+                            : "text-red-400"
+                        }
+                      >
+                        {mineIdx === q.revealed_correct_index
+                          ? "Você acertou!"
+                          : `Você respondeu: ${q.options[mineIdx]}`}
+                      </p>
+                    )}
+                  </div>
+                ) : q.status === "open" ? (
+                  <div className="space-y-2">
+                    {q.options.map((option, i) => {
+                      const chosen = mineIdx === i;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => answerQuiz(q, i)}
+                          disabled={busy || answered}
+                          className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
+                            chosen
+                              ? "border-[var(--brand,#0284c7)] bg-[var(--brand,#0284c7)]/20 font-semibold"
+                              : "border-neutral-700 bg-neutral-900 hover:border-neutral-500 disabled:opacity-50"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                    {answered && (
+                      <p className="text-xs text-neutral-400">
+                        Resposta registrada! Aguarde o resultado.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-neutral-500">
+                    {answered ? "Você respondeu. " : ""}Aguardando resultado…
+                  </p>
+                )}
+              </div>
+            );
+          })}
+          {questions.length === 0 && (
+            <p className="text-xs text-neutral-500">
+              As perguntas aparecem quando o apresentador abrir a rodada.
+            </p>
+          )}
+        </div>
+      ) : activity.type === "quiz_ranking" ? null : activity.type === "word_cloud" ? (
         <>
           {isOpen && mine.length < maxEntries && (
             <form

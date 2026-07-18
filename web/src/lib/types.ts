@@ -203,7 +203,7 @@ export interface QuizAnswer {
 
 // ===== Atividades interativas (migração 0009, Fase E) =====
 
-export type ActivityType = "word_cloud" | "poll";
+export type ActivityType = "word_cloud" | "poll" | "quiz" | "quiz_ranking";
 export type ActivityStatus = "pending" | "open" | "closed";
 export type ActivityResultsVisible = "live" | "after_publish";
 
@@ -228,6 +228,8 @@ export interface Activity {
   position: number;
   opened_at: string | null;
   created_at: string;
+  /** vínculo com a tabela quizzes (type = 'quiz'), migração 0010 */
+  quiz_id: string | null;
 }
 
 export interface ActivityResponse {
@@ -239,12 +241,32 @@ export interface ActivityResponse {
   created_at: string;
 }
 
-/** Resultado agregado (anônimo) do RPC get_activity_results */
+/** Pergunta de quiz dentro do resultado agregado (gabarito só após revelar) */
+export interface QuizQuestionResults {
+  id: string;
+  prompt: string;
+  options: string[];
+  status: QuestionStatus;
+  correct_index: number | null;
+  total: number;
+  counts: number[];
+  correct_count: number | null;
+}
+
+export interface RankingRow {
+  name: string;
+  score: number;
+  correct: number;
+}
+
+/** Resultado agregado do RPC get_activity_results */
 export interface ActivityResults {
   type: ActivityType;
   total: number;
   words?: { word: string; count: number }[];
   counts?: number[];
+  questions?: QuizQuestionResults[];
+  ranking?: RankingRow[];
 }
 
 /** Estado público do telão (RPC get_screen_state) */
@@ -262,6 +284,8 @@ export interface ScreenState {
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   word_cloud: "Nuvem de palavras",
   poll: "Enquete",
+  quiz: "Quiz",
+  quiz_ranking: "Ranking geral",
 };
 
 export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = {

@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import type { LiveEvent, QuizQuestion } from "@/lib/types";
+import type { LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { StreamPlayer } from "@/components/player/StreamPlayer";
 import { ChatPanel } from "./ChatPanel";
-import { QuizPanel } from "./QuizPanel";
 import { PresenceBadge } from "./PresenceBadge";
 import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
 import { ActivityOverlay, InteractionPanel, useActivities } from "./Activities";
@@ -19,12 +18,11 @@ interface EventRoomProps {
   isAdmin: boolean;
 }
 
-type Tab = "chat" | "quiz" | "interacao";
+type Tab = "chat" | "interacao";
 
 export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [tab, setTab] = useState<Tab>("chat");
-  const [quizAlert, setQuizAlert] = useState(false);
   const { floats, send } = useReactions(initialEvent.id);
   const activities = useActivities(initialEvent.id, userId);
   const router = useRouter();
@@ -61,31 +59,6 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
     }, 60_000);
     return () => clearInterval(heartbeat);
   }, [event.id]);
-
-  // Pergunta aberta ao vivo → traz o participante para a aba Quiz (estilo Kahoot)
-  useEffect(() => {
-    if (!event.quiz_enabled) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`quiz-alert:${event.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "quiz_questions" },
-        (payload) => {
-          const question = payload.new as QuizQuestion;
-          if (question.status === "open") {
-            setTab("quiz");
-            setQuizAlert(true);
-          } else {
-            setQuizAlert(false);
-          }
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [event.id, event.quiz_enabled]);
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -189,24 +162,6 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 Chat
               </button>
             )}
-            {event.quiz_enabled && (
-              <button
-                onClick={() => {
-                  setTab("quiz");
-                  setQuizAlert(false);
-                }}
-                className={`flex-1 px-4 py-2.5 text-sm font-medium transition ${
-                  tab === "quiz"
-                    ? "border-b-2 border-[var(--brand)] text-white"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Quiz
-                {quizAlert && tab !== "quiz" && (
-                  <span className="ml-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                )}
-              </button>
-            )}
             {activities.activities.length > 0 && (
               <button
                 onClick={() => {
@@ -227,12 +182,10 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             )}
           </div>
           <div className="min-h-0 flex-1">
-            {tab === "interacao" ? (
-              <InteractionPanel state={activities} />
-            ) : tab === "chat" && event.chat_enabled ? (
+            {tab === "chat" && event.chat_enabled ? (
               <ChatPanel eventId={event.id} userId={userId} isAdmin={isAdmin} />
             ) : (
-              <QuizPanel eventId={event.id} userId={userId} />
+              <InteractionPanel state={activities} />
             )}
           </div>
         </aside>

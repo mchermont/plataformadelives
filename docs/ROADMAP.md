@@ -49,6 +49,20 @@ respostas em tempo real → exibir resultado → exportar), sobre a qual cada ti
       o quiz competitivo com gabarito e placar já existe)
 - [x] Export CSV por atividade (padrão pt-BR dos relatórios, identificado)
 
+**E.1b — Quiz unificado nas atividades ✅ (18/07/2026, migração 0010):**
+o quiz saiu da aba própria e virou tipo de atividade (`activities.quiz_id` →
+tabela `quizzes`, que segue dona de perguntas/gabarito/pontuação). Lançamento
+em **rodadas**: "Abrir" abre todas as perguntas pendentes do quiz de uma vez
+(ex.: 3 → fecha → adiciona 2 → abre → fecha → mais 3), "Exibir resultado"
+revela gabarito + distribuição + "X de Y acertaram" + ranking do quiz (só
+perguntas reveladas). Novo tipo **Ranking geral** (`quiz_ranking`): placar
+somado de todos os quizzes da live, para abrir no encerramento (telão/sala).
+Perguntas de quiz-atividade não têm cronômetro (fecham com a rodada; acerto
+vale 1000 fixo, sem bônus de velocidade). Aba "Quiz" da sala e bloco "Quiz ao
+vivo" do Diretor removidos (QuizPanel/QuizManager deletados; /admin/eventos/
+[id]/quiz redireciona p/ /live). Quizzes antigos migrados automaticamente
+para atividades.
+
 ### E.2 — Demais tipos
 - [ ] **Escalas** (slider 1–N por afirmação; média + distribuição)
 - [ ] **Respostas abertas** (balões/cartões; diretor destaca no telão;
