@@ -9,7 +9,7 @@ import type {
   QuizQuestion,
 } from "@/lib/types";
 import { ACTIVITY_TYPE_LABELS } from "@/lib/types";
-import { ActivityResultsView } from "./ActivityResultsView";
+import { ActivityResultsView, RankingList } from "./ActivityResultsView";
 
 /**
  * Estado das atividades interativas do participante.
@@ -178,6 +178,8 @@ function ActivityCard({
 
   // Paginação do quiz: uma pergunta por vez, navegação manual
   const [page, setPage] = useState(0);
+  // Paginação das escalas: uma afirmação por página
+  const [scalePage, setScalePage] = useState(0);
   const pageIndex = Math.min(page, Math.max(0, questions.length - 1));
   const openIds = questions
     .filter((q) => q.status === "open")
@@ -370,36 +372,68 @@ function ActivityCard({
                   {activity.config.max_label || "máximo"}
                 </p>
               )}
-              {statements.map((s, i) => (
-                <div key={i}>
-                  <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-                    <span>{s}</span>
-                    <span className="font-mono tabular-nums text-[var(--brand,#38bdf8)]">
-                      {ratings[i]}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={scaleMax}
-                    step={1}
-                    value={ratings[i]}
-                    onChange={(e) =>
-                      setRatings((cur) =>
-                        cur.map((v, j) => (j === i ? Number(e.target.value) : v)),
-                      )
-                    }
-                    className="w-full accent-[var(--brand,#0284c7)]"
-                  />
-                </div>
-              ))}
-              <button
-                onClick={() => submit({ ratings })}
-                disabled={busy}
-                className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-              >
-                Enviar avaliação
-              </button>
+              {statements.length > 1 && (
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  Afirmação {Math.min(scalePage, statements.length - 1) + 1} de{" "}
+                  {statements.length}
+                </p>
+              )}
+              {(() => {
+                const i = Math.min(scalePage, statements.length - 1);
+                const isLast = i === statements.length - 1;
+                return (
+                  <>
+                    <div>
+                      <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                        <span>{statements[i]}</span>
+                        <span className="font-mono tabular-nums text-[var(--brand,#38bdf8)]">
+                          {ratings[i]}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={1}
+                        max={scaleMax}
+                        step={1}
+                        value={ratings[i]}
+                        onChange={(e) =>
+                          setRatings((cur) =>
+                            cur.map((v, j) =>
+                              j === i ? Number(e.target.value) : v,
+                            ),
+                          )
+                        }
+                        className="w-full accent-[var(--brand,#0284c7)]"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => setScalePage(i - 1)}
+                        disabled={i === 0}
+                        className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
+                      >
+                        ← Anterior
+                      </button>
+                      {isLast ? (
+                        <button
+                          onClick={() => submit({ ratings })}
+                          disabled={busy}
+                          className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+                        >
+                          Enviar avaliação
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setScalePage(i + 1)}
+                          className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-1.5 text-sm font-semibold text-white"
+                        >
+                          Próxima →
+                        </button>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </>
           ) : mine.length > 0 ? (
             <p className="text-xs text-neutral-400">Avaliação registrada!</p>
@@ -547,7 +581,14 @@ function ActivityCard({
       )}
 
       {canSeeResults ? (
-        <ActivityResultsView activity={activity} results={results} />
+        activity.type === "quiz" ? (
+          // por pergunta o resultado já está nas páginas acima; aqui só o ranking
+          (results?.ranking?.length ?? 0) > 0 && (
+            <RankingList rows={results?.ranking ?? []} screen={false} />
+          )
+        ) : (
+          <ActivityResultsView activity={activity} results={results} />
+        )
       ) : (
         <p className="text-xs text-neutral-500">
           O resultado aparece quando o apresentador exibir.
@@ -557,20 +598,59 @@ function ActivityCard({
   );
 }
 
-/** Aba "Interação" da sala. */
+/** Aba "Interação" da sala: uma atividade por vez, com paginação. */
 export function InteractionPanel({ state }: { state: ActivitiesState }) {
-  if (state.activities.length === 0) {
+  const [page, setPage] = useState(0);
+  const acts = state.activities;
+  const openId = state.open?.id;
+
+  // Atividade aberta ao vivo → vira a página atual
+  useEffect(() => {
+    if (!openId) return;
+    const i = acts.findIndex((a) => a.id === openId);
+    if (i >= 0) setPage(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
+
+  if (acts.length === 0) {
     return (
       <p className="p-6 text-center text-sm text-neutral-500">
         Nenhuma atividade no momento. Fique de olho!
       </p>
     );
   }
+
+  const idx = Math.min(page, acts.length - 1);
+  const current = acts[idx];
+
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4">
-      {state.activities.map((a) => (
-        <ActivityCard key={a.id} activity={a} state={state} />
-      ))}
+    <div className="flex h-full flex-col p-4">
+      {acts.length > 1 && (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <button
+            onClick={() => setPage(idx - 1)}
+            disabled={idx === 0}
+            aria-label="Atividade anterior"
+            className="rounded-lg border border-neutral-700 px-2.5 py-1 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
+          >
+            ←
+          </button>
+          <span className="text-xs text-neutral-500">
+            Atividade {idx + 1} de {acts.length}
+          </span>
+          <button
+            onClick={() => setPage(idx + 1)}
+            disabled={idx >= acts.length - 1}
+            aria-label="Próxima atividade"
+            className="rounded-lg border border-neutral-700 px-2.5 py-1 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
+          >
+            →
+          </button>
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ActivityCard key={current.id} activity={current} state={state} />
+      </div>
     </div>
   );
 }

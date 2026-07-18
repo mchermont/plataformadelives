@@ -41,7 +41,8 @@ export function ActivityResultsView({
   }
 
   if (activity.type === "word_cloud") {
-    const words = results.words ?? [];
+    // no painel a nuvem é compacta (o telão mostra a versão completa)
+    const words = (results.words ?? []).slice(0, screen ? 80 : 30);
     const max = Math.max(...words.map((w) => w.count), 1);
     const minSize = screen ? 1.4 : 0.8;
     const maxSize = screen ? 5 : 1.9;
@@ -198,9 +199,12 @@ export function ActivityResultsView({
   if (activity.type === "open_text") {
     const entries = results.entries ?? [];
     const spotlight = results.spotlight ?? null;
-    const rest = spotlight
+    const all = spotlight
       ? entries.filter((e) => e.id !== spotlight.id)
       : entries;
+    // painel mostra as mais recentes; o restante fica no telão/CSV
+    const rest = screen ? all : all.slice(0, 8);
+    const hidden = all.length - rest.length;
     return (
       <div className={screen ? "space-y-8" : "space-y-3"}>
         {spotlight && (
@@ -228,6 +232,7 @@ export function ActivityResultsView({
         </div>
         <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
           {results.total} resposta{results.total === 1 ? "" : "s"}
+          {hidden > 0 && ` · mostrando as ${rest.length} mais recentes`}
         </p>
       </div>
     );
@@ -333,7 +338,7 @@ export function ActivityResultsView({
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 /** Lista de classificação (do quiz ou geral da live). */
-function RankingList({
+export function RankingList({
   rows,
   screen,
   podium = false,
