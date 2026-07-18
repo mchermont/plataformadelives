@@ -176,6 +176,23 @@ function ActivityCard({
   const results = state.results[activity.id] ?? null;
   const questions = state.quizQuestions[activity.id] ?? [];
 
+  // Paginação do quiz: uma pergunta por vez, navegação manual
+  const [page, setPage] = useState(0);
+  const pageIndex = Math.min(page, Math.max(0, questions.length - 1));
+  const openIds = questions
+    .filter((q) => q.status === "open")
+    .map((q) => q.id)
+    .join(",");
+  // Nova rodada aberta → pula para a primeira pergunta ainda não respondida
+  useEffect(() => {
+    if (!openIds) return;
+    const idx = questions.findIndex(
+      (q) => q.status === "open" && state.myQuizAnswers[q.id] === undefined,
+    );
+    if (idx >= 0) setPage(idx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openIds]);
+
   async function answerQuiz(question: QuizQuestion, index: number) {
     if (state.myQuizAnswers[question.id] !== undefined) return;
     setBusy(true);
@@ -251,13 +268,17 @@ function ActivityCard({
       {feedback && <p className="mb-2 text-xs text-amber-400">{feedback}</p>}
 
       {activity.type === "quiz" ? (
-        <div className="mb-3 space-y-4">
-          {questions.map((q) => {
+        <div className="mb-3 space-y-3">
+          {questions.length > 0 && (() => {
+            const q = questions[pageIndex];
             const mineIdx = state.myQuizAnswers[q.id];
             const answered = mineIdx !== undefined;
             const revealed = q.status === "revealed" && q.revealed_correct_index !== null;
             return (
               <div key={q.id}>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  Pergunta {pageIndex + 1} de {questions.length}
+                </p>
                 <p className="mb-2 text-sm font-medium">{q.prompt}</p>
                 {revealed ? (
                   <div className="space-y-1 text-sm">
@@ -308,9 +329,31 @@ function ActivityCard({
                     {answered ? "Você respondeu. " : ""}Aguardando resultado…
                   </p>
                 )}
+                {questions.length > 1 && (
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setPage(pageIndex - 1)}
+                      disabled={pageIndex === 0}
+                      className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
+                    >
+                      ← Anterior
+                    </button>
+                    <button
+                      onClick={() => setPage(pageIndex + 1)}
+                      disabled={pageIndex >= questions.length - 1}
+                      className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition disabled:opacity-30 ${
+                        answered && pageIndex < questions.length - 1
+                          ? "bg-[var(--brand,#0284c7)] text-white"
+                          : "border border-neutral-700 text-neutral-300 hover:bg-neutral-800"
+                      }`}
+                    >
+                      Próxima →
+                    </button>
+                  </div>
+                )}
               </div>
             );
-          })}
+          })()}
           {questions.length === 0 && (
             <p className="text-xs text-neutral-500">
               As perguntas aparecem quando o apresentador abrir a rodada.
