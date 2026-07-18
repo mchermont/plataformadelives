@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Client, LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { OrgTeam } from "@/components/admin/OrgTeam";
+import { ClientForm } from "@/components/admin/ClientForm";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,8 @@ export default async function ClientDetailPage({
           </div>
         )}
       </section>
+
+      {isClientAdmin && <ClientForm client={client} />}
 
       {isClientAdmin && (
         <OrgTeam
