@@ -35,16 +35,19 @@ respostas em tempo real → exibir resultado → exportar), sobre a qual cada ti
 - **Permissão**: reusa a caixa "Quiz" (rótulo vira "Quiz e interações")
 - Nuvem de palavras: até 3 envios por pessoa
 
-### E.1 — Infra + primeiros tipos
-- [ ] Tabelas `activities` + `activity_responses` (config/payload JSON),
+### E.1 — Infra + primeiros tipos ✅ (18/07/2026, migração 0009)
+- [x] Tabelas `activities` + `activity_responses` (config/payload JSON),
       RLS via `has_event_role('quiz')`, Realtime
-- [ ] Bloco "Atividades" no painel Diretor (fila, abrir/fechar/exibir/limpar)
-- [ ] Aba "Interação" na sala + overlay para atividades em destaque
-- [ ] Rota telão `/admin/eventos/[id]/telao` (fullscreen, fundo configurável)
-- [ ] **Nuvem de palavras** (termos crescem por frequência, blocklist)
-- [ ] **Enquete de múltipla escolha** (barras % ao vivo; sem certo/errado —
+- [x] Bloco "Atividades" no painel Diretor (fila, abrir/fechar/exibir/limpar)
+- [x] Aba "Interação" na sala + overlay para atividades em destaque
+- [x] Rota telão `/telao/[eventId]` (fullscreen, `?bg=transparent|green|dark|art`)
+      — fora de /admin porque o browser source do OBS não tem sessão; a URL
+      com o UUID do evento funciona como token e só expõe agregados anônimos
+- [x] **Nuvem de palavras** (termos crescem por frequência, blocklist,
+      moderação prévia opcional, até 3 envios/pessoa)
+- [x] **Enquete de múltipla escolha** (barras % ao vivo; sem certo/errado —
       o quiz competitivo com gabarito e placar já existe)
-- [ ] Export CSV por atividade (padrão pt-BR dos relatórios)
+- [x] Export CSV por atividade (padrão pt-BR dos relatórios, identificado)
 
 ### E.2 — Demais tipos
 - [ ] **Escalas** (slider 1–N por afirmação; média + distribuição)

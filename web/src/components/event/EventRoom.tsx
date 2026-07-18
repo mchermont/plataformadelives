@@ -10,6 +10,7 @@ import { ChatPanel } from "./ChatPanel";
 import { QuizPanel } from "./QuizPanel";
 import { PresenceBadge } from "./PresenceBadge";
 import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
+import { ActivityOverlay, InteractionPanel, useActivities } from "./Activities";
 
 interface EventRoomProps {
   initialEvent: LiveEvent;
@@ -18,14 +19,20 @@ interface EventRoomProps {
   isAdmin: boolean;
 }
 
-type Tab = "chat" | "quiz";
+type Tab = "chat" | "quiz" | "interacao";
 
 export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [tab, setTab] = useState<Tab>("chat");
   const [quizAlert, setQuizAlert] = useState(false);
   const { floats, send } = useReactions(initialEvent.id);
+  const activities = useActivities(initialEvent.id, userId);
   const router = useRouter();
+
+  // Atividade abriu ao vivo → traz o participante para a aba Interação
+  useEffect(() => {
+    if (activities.alert) setTab("interacao");
+  }, [activities.alert]);
 
   // Atualiza status/fonte do vídeo em tempo real (ex.: evento entra no ar)
   useEffect(() => {
@@ -130,6 +137,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
         <div className="flex-1">
           <div className="relative">
             <ReactionOverlay floats={floats} />
+            <ActivityOverlay state={activities} />
             {isLive ? (
               <StreamPlayer
                 provider={event.stream_provider}
@@ -199,9 +207,29 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 )}
               </button>
             )}
+            {activities.activities.length > 0 && (
+              <button
+                onClick={() => {
+                  setTab("interacao");
+                  activities.clearAlert();
+                }}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === "interacao"
+                    ? "border-b-2 border-[var(--brand)] text-white"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                Interação
+                {activities.alert && tab !== "interacao" && (
+                  <span className="ml-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                )}
+              </button>
+            )}
           </div>
           <div className="min-h-0 flex-1">
-            {tab === "chat" && event.chat_enabled ? (
+            {tab === "interacao" ? (
+              <InteractionPanel state={activities} />
+            ) : tab === "chat" && event.chat_enabled ? (
               <ChatPanel eventId={event.id} userId={userId} isAdmin={isAdmin} />
             ) : (
               <QuizPanel eventId={event.id} userId={userId} />

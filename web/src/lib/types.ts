@@ -84,7 +84,7 @@ export const FOLDER_VISIBILITY_LABELS: Record<FolderVisibility, string> = {
 export const EVENT_CAPABILITIES = [
   { key: "can_stream", label: "Transmissão", hint: "Configurar fonte e entrar/sair do ar" },
   { key: "can_chat", label: "Chat", hint: "Moderar, fixar e banir" },
-  { key: "can_quiz", label: "Quiz", hint: "Criar e disparar perguntas" },
+  { key: "can_quiz", label: "Quiz e interações", hint: "Perguntas, enquetes e nuvem de palavras" },
   { key: "can_registrations", label: "Inscrições", hint: "Aprovar, banir, planilha" },
   { key: "can_reports", label: "Relatórios", hint: "Ver e exportar" },
 ] as const;
@@ -200,6 +200,75 @@ export interface QuizAnswer {
   selected_index: number;
   answered_at: string;
 }
+
+// ===== Atividades interativas (migração 0009, Fase E) =====
+
+export type ActivityType = "word_cloud" | "poll";
+export type ActivityStatus = "pending" | "open" | "closed";
+export type ActivityResultsVisible = "live" | "after_publish";
+
+export interface ActivityConfig {
+  /** poll: alternativas de voto */
+  options?: string[];
+  /** word_cloud: envios por pessoa (padrão 3) */
+  max_entries?: number;
+}
+
+export interface Activity {
+  id: string;
+  event_id: string;
+  type: ActivityType;
+  title: string;
+  config: ActivityConfig;
+  status: ActivityStatus;
+  results_visible: ActivityResultsVisible;
+  results_published: boolean;
+  highlight: boolean;
+  require_moderation: boolean;
+  position: number;
+  opened_at: string | null;
+  created_at: string;
+}
+
+export interface ActivityResponse {
+  id: string;
+  activity_id: string;
+  user_id: string;
+  payload: { word?: string; option_index?: number };
+  approved: boolean;
+  created_at: string;
+}
+
+/** Resultado agregado (anônimo) do RPC get_activity_results */
+export interface ActivityResults {
+  type: ActivityType;
+  total: number;
+  words?: { word: string; count: number }[];
+  counts?: number[];
+}
+
+/** Estado público do telão (RPC get_screen_state) */
+export interface ScreenState {
+  event: {
+    title: string;
+    brand_color: string;
+    brand_logo_url: string | null;
+    bg_image_url: string | null;
+  };
+  activity: Pick<Activity, "id" | "type" | "title" | "status" | "config"> | null;
+  results: ActivityResults | null;
+}
+
+export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
+  word_cloud: "Nuvem de palavras",
+  poll: "Enquete",
+};
+
+export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = {
+  pending: "Aguardando",
+  open: "Aberta",
+  closed: "Fechada",
+};
 
 export interface Attendance {
   event_id: string;
