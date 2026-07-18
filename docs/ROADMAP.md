@@ -16,28 +16,45 @@ agências/clientes num painel multi-tenant.
 respostas em tempo real → exibir resultado → exportar), sobre a qual cada tipo
 é só uma variação de configuração + visualização.
 
-- [ ] Infra: tabela `activities` (evento, tipo, config JSON, status
-      rascunho/aberta/fechada/exibindo) + `activity_responses`; Realtime;
-      controle no painel Diretor; RLS via `has_event_role('quiz')`*
-- [ ] **Nuvem de palavras** — participantes enviam palavras/frases curtas;
-      termos mais citados crescem em destaque; ideal para brainstorming
-- [ ] **Enquete de múltipla escolha** — votação simples sem certo/errado
-      (o quiz competitivo com gabarito e placar já existe)
-- [ ] **Escalas** — avaliar concordância/confiança/satisfação em escala
-      deslizante (ex.: 1 a 10); resultado como média/distribuição
-- [ ] **Respostas abertas** — comentários e ideias mais longos, exibidos ao
-      apresentador em lista/balões (com filtro do que vai à tela pública)
-- [ ] **Ranking (ordering)** — participantes ordenam itens por preferência;
-      resultado agregado
-- [ ] **Matrix (2 eixos)** — classificação de itens em dois eixos (fase E.2,
-      depois dos tipos acima)
-- [ ] **Exportação** — resultados por atividade em CSV/Excel (padrão pt-BR já
-      usado nos relatórios); PDF avaliar depois
-- [ ] Tela de resultado ao vivo na sala do participante (auto-destaque como no
-      quiz) e/ou tela cheia para projeção
+**Decisões de design (18/07/2026, discutidas com o Marcelo):**
 
-*Avaliar se atividades merecem capacidade própria (`can_activities`) ou se
-ficam sob a caixa Quiz.
+- Modelo "slide ativo": **uma atividade aberta por vez**, controlada pelo
+  Diretor (abrir → fechar votação → exibir resultado → limpar/reabrir),
+  com contador de respostas ao vivo e cronômetro opcional
+- **Resultado para o participante configurável por atividade**: em tempo real
+  na sala OU somente quando o diretor exibir (evita viés de voto)
+- **Anonimato**: tela pública sempre anônima; export CSV identificado
+  (quem respondeu o quê) para o relatório do cliente
+- **UI da sala**: aba "Interação" com badge + auto-destaque (padrão do quiz);
+  atividades marcadas como "destaque" abrem em **overlay sobre o vídeo**
+- **Telão OBS**: rota de tela cheia com resultado ao vivo e fundo
+  transparente/verde/artes — para compor dentro da transmissão via OBS/vMix
+  (ou projetar em evento híbrido)
+- **Moderação de texto livre**: blocklist automática sempre ativa + fila de
+  aprovação prévia opcional por atividade
+- **Permissão**: reusa a caixa "Quiz" (rótulo vira "Quiz e interações")
+- Nuvem de palavras: até 3 envios por pessoa
+
+### E.1 — Infra + primeiros tipos
+- [ ] Tabelas `activities` + `activity_responses` (config/payload JSON),
+      RLS via `has_event_role('quiz')`, Realtime
+- [ ] Bloco "Atividades" no painel Diretor (fila, abrir/fechar/exibir/limpar)
+- [ ] Aba "Interação" na sala + overlay para atividades em destaque
+- [ ] Rota telão `/admin/eventos/[id]/telao` (fullscreen, fundo configurável)
+- [ ] **Nuvem de palavras** (termos crescem por frequência, blocklist)
+- [ ] **Enquete de múltipla escolha** (barras % ao vivo; sem certo/errado —
+      o quiz competitivo com gabarito e placar já existe)
+- [ ] Export CSV por atividade (padrão pt-BR dos relatórios)
+
+### E.2 — Demais tipos
+- [ ] **Escalas** (slider 1–N por afirmação; média + distribuição)
+- [ ] **Respostas abertas** (balões/cartões; diretor destaca no telão;
+      fila de moderação prévia)
+- [ ] **Ranking (ordering)** (ordenar itens; resultado por posição média)
+
+### E.3 — Avançado
+- [ ] **Matrix 2×2** (itens posicionados em dois eixos; média ponderada)
+- [ ] Refinamentos do telão (temas, chroma key, animações de entrada)
 
 ## Fase F — Q&A com upvote
 
