@@ -3,10 +3,14 @@
 -- por evento (relatórios/presença/respostas) e libera upload de
 -- artes no bucket branding para equipes de cliente/agência.
 -- (posts, registrations e quiz já usam has_event_role desde a 0004)
+-- Drops com IF EXISTS: o banco tem variações de nome de política
+-- da época em que as migrações eram aplicadas pelo painel.
 -- ============================================================
 
 -- Presença: função 'reports' enxerga (para o relatório do evento)
-drop policy "attendance_select_own_or_staff" on event_attendance;
+drop policy if exists "attendance_select_own_or_staff" on event_attendance;
+drop policy if exists "attendance_select_own_or_admin" on event_attendance;
+drop policy if exists "attendance_select" on event_attendance;
 create policy "attendance_select" on event_attendance for select
   using (
     user_id = auth.uid()
@@ -15,7 +19,9 @@ create policy "attendance_select" on event_attendance for select
   );
 
 -- Respostas do quiz: operadores de quiz e de relatórios enxergam
-drop policy "quiz_answers_select_own_or_staff" on quiz_answers;
+drop policy if exists "quiz_answers_select_own_or_staff" on quiz_answers;
+drop policy if exists "quiz_answers_select_own_or_admin" on quiz_answers;
+drop policy if exists "quiz_answers_select" on quiz_answers;
 create policy "quiz_answers_select" on quiz_answers for select
   using (
     user_id = auth.uid()
@@ -39,12 +45,14 @@ as $$
     or exists (select 1 from agency_members where user_id = auth.uid());
 $$;
 
-drop policy "branding_admin_insert" on storage.objects;
+drop policy if exists "branding_admin_insert" on storage.objects;
+drop policy if exists "branding_org_insert" on storage.objects;
 create policy "branding_org_insert" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'branding' and is_org_staff());
 
-drop policy "branding_admin_update" on storage.objects;
+drop policy if exists "branding_admin_update" on storage.objects;
+drop policy if exists "branding_org_update" on storage.objects;
 create policy "branding_org_update" on storage.objects
   for update to authenticated
   using (bucket_id = 'branding' and is_org_staff());
