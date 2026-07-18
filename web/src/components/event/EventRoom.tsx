@@ -107,12 +107,15 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
       </header>
 
       <main className="flex flex-1 flex-col gap-3 p-3 md:p-4 lg:min-h-0 lg:flex-row">
-        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
-          {/* largura limitada pela altura disponível: o vídeo nunca empurra a página */}
+        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:justify-center">
+          {/* player + reações no mesmo contêiner: largura limitada pela altura
+              disponível, então o vídeo nunca empurra a página e a barra fica
+              alinhada com ele */}
           <div
-            className="relative mx-auto w-full"
-            style={{ maxWidth: "min(100%, calc((100dvh - 14rem) * 16 / 9))" }}
+            className="mx-auto w-full"
+            style={{ maxWidth: "min(100%, calc((100dvh - 12rem) * 16 / 9))" }}
           >
+          <div className="relative">
             <ReactionOverlay floats={floats} />
             <ActivityOverlay state={activities} />
             {isLive ? (
@@ -141,15 +144,12 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             )}
           </div>
 
-          <div className="mt-2 flex items-center justify-between gap-4">
-            {isLive ? <ReactionBar onSend={send} /> : <span />}
-          </div>
-
-          {event.description && (
-            <p className="mt-2 line-clamp-2 max-w-3xl text-sm leading-relaxed text-neutral-400">
-              {event.description}
-            </p>
+          {isLive && (
+            <div className="mt-2 flex items-center">
+              <ReactionBar onSend={send} />
+            </div>
           )}
+          </div>
         </div>
 
         <aside className="flex h-[60dvh] w-full flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:h-auto lg:min-h-0 lg:w-96">
