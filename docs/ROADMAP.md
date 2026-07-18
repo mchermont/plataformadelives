@@ -63,11 +63,14 @@ vivo" do Diretor removidos (QuizPanel/QuizManager deletados; /admin/eventos/
 [id]/quiz redireciona p/ /live). Quizzes antigos migrados automaticamente
 para atividades.
 
-### E.2 — Demais tipos
-- [ ] **Escalas** (slider 1–N por afirmação; média + distribuição)
-- [ ] **Respostas abertas** (balões/cartões; diretor destaca no telão;
-      fila de moderação prévia)
-- [ ] **Ranking (ordering)** (ordenar itens; resultado por posição média)
+### E.2 — Demais tipos ✅ (18/07/2026, migração 0011)
+- [x] **Escalas** (slider 1–5 ou 1–10 por afirmação, rótulos das pontas;
+      resultado = média em régua com marcador + distribuição no agregado)
+- [x] **Respostas abertas** (cartões; até 3 envios de 200 caracteres;
+      blocklist sempre; fila de moderação prévia opcional; diretor destaca
+      resposta no telão via ⭐ na prévia — `config.spotlight`)
+- [x] **Ranking (ordering)** (participante ordena com setas ↑↓; resultado
+      por posição média, menor média = topo)
 
 ### E.3 — Avançado
 - [ ] **Matrix 2×2** (itens posicionados em dois eixos; média ponderada)

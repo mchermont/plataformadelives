@@ -16,6 +16,9 @@ const TYPE_ICONS: Record<ActivityType, string> = {
   poll: "📊",
   quiz: "🎯",
   quiz_ranking: "🏆",
+  scale: "🎚️",
+  open_text: "💬",
+  ordering: "🔀",
 };
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
 
@@ -62,6 +65,10 @@ export function ActivityManager({ eventId }: { eventId: string }) {
   const [type, setType] = useState<ActivityType>("word_cloud");
   const [title, setTitle] = useState("");
   const [optionsText, setOptionsText] = useState("");
+  const [statementsText, setStatementsText] = useState("");
+  const [scaleMax, setScaleMax] = useState(5);
+  const [minLabel, setMinLabel] = useState("");
+  const [maxLabel, setMaxLabel] = useState("");
   const [highlight, setHighlight] = useState(true);
   const [liveResults, setLiveResults] = useState(true);
   const [moderation, setModeration] = useState(false);
@@ -145,12 +152,20 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       .split("\n")
       .map((o) => o.trim())
       .filter(Boolean);
+    const statements = statementsText
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (!title.trim()) {
       setError("Escreva a pergunta/título da atividade.");
       return;
     }
-    if (type === "poll" && options.length < 2) {
-      setError("A enquete precisa de pelo menos 2 opções (uma por linha).");
+    if ((type === "poll" || type === "ordering") && options.length < 2) {
+      setError("Informe pelo menos 2 opções/itens (um por linha).");
+      return;
+    }
+    if (type === "scale" && statements.length === 0) {
+      setError("Informe pelo menos 1 afirmação para avaliar (uma por linha).");
       return;
     }
     setBusy(true);
@@ -180,12 +195,26 @@ export function ActivityManager({ eventId }: { eventId: string }) {
         title: title.trim(),
         quiz_id: quizId,
         config:
-          type === "poll" ? { options } : type === "word_cloud" ? { max_entries: 3 } : {},
+          type === "poll" || type === "ordering"
+            ? { options }
+            : type === "word_cloud"
+              ? { max_entries: 3 }
+              : type === "open_text"
+                ? { max_entries: 3 }
+                : type === "scale"
+                  ? {
+                      statements,
+                      scale_max: scaleMax,
+                      ...(minLabel.trim() ? { min_label: minLabel.trim() } : {}),
+                      ...(maxLabel.trim() ? { max_label: maxLabel.trim() } : {}),
+                    }
+                  : {},
         // quiz revela gabarito só no "Exibir resultado"; ranking geral é sempre ao vivo
         results_visible:
           type === "quiz" ? "after_publish" : type === "quiz_ranking" ? "live" : liveResults ? "live" : "after_publish",
         highlight,
-        require_moderation: type === "word_cloud" ? moderation : false,
+        require_moderation:
+          type === "word_cloud" || type === "open_text" ? moderation : false,
         position: activities.length,
       })
       .select()
@@ -196,6 +225,9 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     } else {
       setTitle("");
       setOptionsText("");
+      setStatementsText("");
+      setMinLabel("");
+      setMaxLabel("");
       setShowForm(false);
       if (created && type === "quiz") setExpanded(created.id); // já abre p/ adicionar perguntas
       await load();
@@ -274,6 +306,14 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     await load();
   }
 
+  async function setSpotlight(activity: Activity, responseId: string | null) {
+    const config = { ...activity.config };
+    if (responseId) config.spotlight = responseId;
+    else delete config.spotlight;
+    await supabase.from("activities").update({ config }).eq("id", activity.id);
+    await load();
+  }
+
   async function moderate(response: ResponseRow, approve: boolean) {
     if (approve) {
       await supabase
@@ -347,14 +387,33 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       .order("created_at", { ascending: true });
     const rows = (data as ResponseRow[]) ?? [];
     const options = activity.config.options ?? [];
+    const statements = activity.config.statements ?? [];
+    const answerText = (row: ResponseRow): string => {
+      switch (activity.type) {
+        case "word_cloud":
+          return row.payload.word ?? "";
+        case "poll":
+          return options[row.payload.option_index ?? -1] ?? "";
+        case "open_text":
+          return row.payload.text ?? "";
+        case "scale":
+          return statements
+            .map((s, i) => `${s}: ${row.payload.ratings?.[i] ?? ""}`)
+            .join(" | ");
+        case "ordering":
+          return (row.payload.order ?? [])
+            .map((optIdx, pos) => `${pos + 1}º ${options[optIdx] ?? optIdx}`)
+            .join(" | ");
+        default:
+          return "";
+      }
+    };
     downloadCsv(`atividade-${activity.type}-${activity.id.slice(0, 8)}.csv`, [
       ["Nome", "E-mail", "Resposta", "Aprovada", "Enviada em"],
       ...rows.map((r) => [
         r.profiles?.full_name ?? "",
         r.profiles?.email ?? "",
-        activity.type === "word_cloud"
-          ? (r.payload.word ?? "")
-          : (options[r.payload.option_index ?? -1] ?? ""),
+        answerText(r),
         r.approved ? "Sim" : "Não",
         new Date(r.created_at).toLocaleString("pt-BR"),
       ]),
@@ -410,18 +469,74 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   ? "Pergunta da enquete"
                   : type === "quiz"
                     ? "Nome do quiz (as perguntas você adiciona depois)"
-                    : "Título do telão (ex.: Grande campeão da live)"
+                    : type === "quiz_ranking"
+                      ? "Título do telão (ex.: Grande campeão da live)"
+                      : type === "scale"
+                        ? "Título (ex.: Avalie as afirmações abaixo)"
+                        : type === "open_text"
+                          ? "Pergunta aberta (ex.: Qual sua maior dúvida?)"
+                          : "Título (ex.: Ordene por prioridade)"
             }
             className={inputClass}
           />
-          {type === "poll" && (
+          {(type === "poll" || type === "ordering") && (
             <textarea
               value={optionsText}
               onChange={(e) => setOptionsText(e.target.value)}
               rows={4}
-              placeholder={"Uma opção por linha\nOpção A\nOpção B"}
+              placeholder={
+                type === "poll"
+                  ? "Uma opção por linha\nOpção A\nOpção B"
+                  : "Um item por linha (os participantes ordenam)\nItem A\nItem B\nItem C"
+              }
               className={inputClass}
             />
+          )}
+          {type === "scale" && (
+            <>
+              <textarea
+                value={statementsText}
+                onChange={(e) => setStatementsText(e.target.value)}
+                rows={4}
+                placeholder={"Uma afirmação por linha\nO conteúdo foi relevante\nO palestrante foi claro"}
+                className={inputClass}
+              />
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="mb-1 block text-xs text-neutral-400">Escala</label>
+                  <select
+                    value={scaleMax}
+                    onChange={(e) => setScaleMax(Number(e.target.value))}
+                    className={inputClass}
+                  >
+                    <option value={5}>1 a 5</option>
+                    <option value={10}>1 a 10</option>
+                  </select>
+                </div>
+                <div className="min-w-36 flex-1">
+                  <label className="mb-1 block text-xs text-neutral-400">
+                    Rótulo do 1 (opcional)
+                  </label>
+                  <input
+                    value={minLabel}
+                    onChange={(e) => setMinLabel(e.target.value)}
+                    placeholder="ex.: discordo"
+                    className={inputClass}
+                  />
+                </div>
+                <div className="min-w-36 flex-1">
+                  <label className="mb-1 block text-xs text-neutral-400">
+                    Rótulo do {scaleMax} (opcional)
+                  </label>
+                  <input
+                    value={maxLabel}
+                    onChange={(e) => setMaxLabel(e.target.value)}
+                    placeholder="ex.: concordo"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </>
           )}
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
             <label className="flex items-center gap-2">
@@ -433,7 +548,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
               />
               Destaque (overlay sobre o vídeo)
             </label>
-            {(type === "word_cloud" || type === "poll") && (
+            {type !== "quiz" && type !== "quiz_ranking" && (
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -444,7 +559,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                 Resultado em tempo real p/ participantes
               </label>
             )}
-            {type === "word_cloud" && (
+            {(type === "word_cloud" || type === "open_text") && (
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -452,7 +567,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   onChange={(e) => setModeration(e.target.checked)}
                   className="h-4 w-4 accent-sky-500"
                 />
-                Aprovar palavras antes de exibir
+                Aprovar {type === "word_cloud" ? "palavras" : "respostas"} antes de exibir
               </label>
             )}
           </div>
@@ -474,8 +589,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
           <ul className="space-y-2">
             {queue.map((r) => (
               <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
-                <span>
-                  <strong>{r.payload.word}</strong>
+                <span className="min-w-0">
+                  <strong>{r.payload.word ?? r.payload.text}</strong>
                   <span className="ml-2 text-xs text-neutral-500">
                     {r.profiles?.full_name || r.profiles?.email}
                   </span>
@@ -741,8 +856,37 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                 </div>
               )}
               {isExpanded && a.type !== "quiz" && (
-                <div className="mt-4 rounded-lg bg-neutral-950 p-4">
-                  <ActivityResultsView activity={a} results={r ?? null} />
+                <div className="mt-4 space-y-3">
+                  {a.type === "open_text" && (r?.entries?.length ?? 0) > 0 && (
+                    <div className="space-y-1.5 rounded-lg border border-neutral-800 p-3">
+                      <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                        Destacar no telão
+                      </h4>
+                      {(r?.entries ?? []).map((e) => {
+                        const spotted = a.config.spotlight === e.id;
+                        return (
+                          <div
+                            key={e.id}
+                            className="flex items-center justify-between gap-3 text-sm"
+                          >
+                            <span className={`min-w-0 ${spotted ? "font-semibold" : ""}`}>
+                              {spotted && "⭐ "}
+                              {e.text}
+                            </span>
+                            <button
+                              onClick={() => setSpotlight(a, spotted ? null : e.id)}
+                              className="shrink-0 rounded-lg border border-neutral-700 px-2.5 py-1 text-xs hover:bg-neutral-800"
+                            >
+                              {spotted ? "Remover destaque" : "Destacar"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="rounded-lg bg-neutral-950 p-4">
+                    <ActivityResultsView activity={a} results={r ?? null} />
+                  </div>
                 </div>
               )}
             </div>

@@ -143,9 +143,31 @@ function ActivityCard({
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [word, setWord] = useState("");
+  const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const statements = activity.config.statements ?? [];
+  const scaleMax = activity.config.scale_max ?? 5;
+  const orderOptions = activity.config.options ?? [];
+  // estado local por card (o componente é montado por atividade via key)
+  const [ratings, setRatings] = useState<number[]>(() =>
+    statements.map(() => Math.ceil(scaleMax / 2)),
+  );
+  const [order, setOrder] = useState<number[]>(() =>
+    orderOptions.map((_, i) => i),
+  );
+
+  function moveItem(pos: number, delta: number) {
+    setOrder((cur) => {
+      const next = [...cur];
+      const target = pos + delta;
+      if (target < 0 || target >= next.length) return cur;
+      [next[pos], next[target]] = [next[target], next[pos]];
+      return next;
+    });
+  }
 
   const mine = state.myResponses.filter((r) => r.activity_id === activity.id);
   const isOpen = activity.status === "open";
@@ -181,7 +203,7 @@ function ActivityCard({
     setBusy(false);
   }
 
-  async function submit(payload: { word?: string; option_index?: number }) {
+  async function submit(payload: ActivityResponse["payload"]) {
     setBusy(true);
     setFeedback(null);
     const { error } = await supabase.rpc("submit_activity_response", {
@@ -190,15 +212,17 @@ function ActivityCard({
     });
     if (error) {
       const msg = error.message;
-      if (msg.includes("bloqueada")) setFeedback("Essa palavra não é permitida.");
+      if (msg.includes("bloqueada")) setFeedback("Esse conteúdo não é permitido.");
       else if (msg.includes("Limite")) setFeedback("Você atingiu o limite de envios.");
-      else if (msg.includes("já enviou")) setFeedback("Você já enviou essa palavra.");
-      else if (msg.includes("já votou")) setFeedback("Você já votou nesta enquete.");
+      else if (msg.includes("já enviou")) setFeedback("Você já enviou.");
+      else if (msg.includes("já votou") || msg.includes("já respondeu"))
+        setFeedback("Você já respondeu esta atividade.");
       else if (msg.includes("não está aberta")) setFeedback("Esta atividade foi encerrada.");
       else if (msg.includes("inscritos")) setFeedback("Só participantes inscritos podem responder.");
       else setFeedback(`Não foi possível enviar (${msg}).`);
     } else {
       setWord("");
+      setText("");
       state.refresh();
       inputRef.current?.focus();
     }
@@ -293,7 +317,131 @@ function ActivityCard({
             </p>
           )}
         </div>
-      ) : activity.type === "quiz_ranking" ? null : activity.type === "word_cloud" ? (
+      ) : activity.type === "quiz_ranking" ? null : activity.type === "scale" ? (
+        <div className="mb-3 space-y-3">
+          {isOpen && mine.length === 0 ? (
+            <>
+              {(activity.config.min_label || activity.config.max_label) && (
+                <p className="text-xs text-neutral-500">
+                  1 = {activity.config.min_label || "mínimo"} · {scaleMax} ={" "}
+                  {activity.config.max_label || "máximo"}
+                </p>
+              )}
+              {statements.map((s, i) => (
+                <div key={i}>
+                  <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                    <span>{s}</span>
+                    <span className="font-mono tabular-nums text-[var(--brand,#38bdf8)]">
+                      {ratings[i]}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1}
+                    max={scaleMax}
+                    step={1}
+                    value={ratings[i]}
+                    onChange={(e) =>
+                      setRatings((cur) =>
+                        cur.map((v, j) => (j === i ? Number(e.target.value) : v)),
+                      )
+                    }
+                    className="w-full accent-[var(--brand,#0284c7)]"
+                  />
+                </div>
+              ))}
+              <button
+                onClick={() => submit({ ratings })}
+                disabled={busy}
+                className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                Enviar avaliação
+              </button>
+            </>
+          ) : mine.length > 0 ? (
+            <p className="text-xs text-neutral-400">Avaliação registrada!</p>
+          ) : null}
+        </div>
+      ) : activity.type === "open_text" ? (
+        <>
+          {isOpen && mine.length < maxEntries && (
+            <form
+              className="mb-3 flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (text.trim()) submit({ text: text.trim() });
+              }}
+            >
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength={200}
+                placeholder="Escreva sua resposta…"
+                className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500"
+              />
+              <button
+                type="submit"
+                disabled={busy || !text.trim()}
+                className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                Enviar
+              </button>
+            </form>
+          )}
+          {isOpen && (
+            <p className="mb-3 text-xs text-neutral-500">
+              {mine.length}/{maxEntries} envio{maxEntries === 1 ? "" : "s"}
+              {mine.some((r) => !r.approved) && " (aguardando moderação)"}
+            </p>
+          )}
+        </>
+      ) : activity.type === "ordering" ? (
+        <div className="mb-3 space-y-2">
+          {isOpen && mine.length === 0 ? (
+            <>
+              <p className="text-xs text-neutral-500">
+                Use as setas para ordenar do mais importante para o menos.
+              </p>
+              {order.map((optIdx, pos) => (
+                <div
+                  key={optIdx}
+                  className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+                >
+                  <span className="w-5 text-right font-mono text-neutral-500">
+                    {pos + 1}.
+                  </span>
+                  <span className="min-w-0 flex-1">{orderOptions[optIdx]}</span>
+                  <button
+                    onClick={() => moveItem(pos, -1)}
+                    disabled={pos === 0}
+                    aria-label="Subir"
+                    className="rounded px-2 py-0.5 text-neutral-400 hover:bg-neutral-800 hover:text-white disabled:opacity-30"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveItem(pos, 1)}
+                    disabled={pos === order.length - 1}
+                    aria-label="Descer"
+                    className="rounded px-2 py-0.5 text-neutral-400 hover:bg-neutral-800 hover:text-white disabled:opacity-30"
+                  >
+                    ↓
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => submit({ order })}
+                disabled={busy}
+                className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                Enviar ordem
+              </button>
+            </>
+          ) : mine.length > 0 ? (
+            <p className="text-xs text-neutral-400">Ordem registrada!</p>
+          ) : null}
+        </div>
+      ) : activity.type === "word_cloud" ? (
         <>
           {isOpen && mine.length < maxEntries && (
             <form

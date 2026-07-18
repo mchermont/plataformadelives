@@ -203,15 +203,31 @@ export interface QuizAnswer {
 
 // ===== Atividades interativas (migração 0009, Fase E) =====
 
-export type ActivityType = "word_cloud" | "poll" | "quiz" | "quiz_ranking";
+export type ActivityType =
+  | "word_cloud"
+  | "poll"
+  | "quiz"
+  | "quiz_ranking"
+  | "scale"
+  | "open_text"
+  | "ordering";
 export type ActivityStatus = "pending" | "open" | "closed";
 export type ActivityResultsVisible = "live" | "after_publish";
 
 export interface ActivityConfig {
-  /** poll: alternativas de voto */
+  /** poll/ordering: alternativas/itens */
   options?: string[];
-  /** word_cloud: envios por pessoa (padrão 3) */
+  /** word_cloud/open_text: envios por pessoa (padrão 3) */
   max_entries?: number;
+  /** scale: afirmações avaliadas */
+  statements?: string[];
+  /** scale: valor máximo da régua (padrão 5) */
+  scale_max?: number;
+  /** scale: rótulos das pontas */
+  min_label?: string;
+  max_label?: string;
+  /** open_text: id da resposta destacada no telão */
+  spotlight?: string;
 }
 
 export interface Activity {
@@ -236,7 +252,13 @@ export interface ActivityResponse {
   id: string;
   activity_id: string;
   user_id: string;
-  payload: { word?: string; option_index?: number };
+  payload: {
+    word?: string;
+    option_index?: number;
+    ratings?: number[];
+    text?: string;
+    order?: number[];
+  };
   approved: boolean;
   created_at: string;
 }
@@ -259,6 +281,27 @@ export interface RankingRow {
   correct: number;
 }
 
+export interface ScaleStatementResults {
+  statement: string;
+  avg: number | null;
+  count: number;
+  /** distribuição de votos por valor (1..scale_max) */
+  dist: number[];
+}
+
+export interface OpenEntry {
+  id: string;
+  text: string;
+}
+
+export interface OrderingItemResults {
+  option: string;
+  /** índice original do item na config */
+  index: number;
+  /** posição média (1 = topo); null sem respostas */
+  avg_pos: number | null;
+}
+
 /** Resultado agregado do RPC get_activity_results */
 export interface ActivityResults {
   type: ActivityType;
@@ -267,6 +310,11 @@ export interface ActivityResults {
   counts?: number[];
   questions?: QuizQuestionResults[];
   ranking?: RankingRow[];
+  scale_max?: number;
+  statements?: ScaleStatementResults[];
+  entries?: OpenEntry[];
+  spotlight?: OpenEntry | null;
+  order?: OrderingItemResults[];
 }
 
 /** Estado público do telão (RPC get_screen_state) */
@@ -286,6 +334,9 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   poll: "Enquete",
   quiz: "Quiz",
   quiz_ranking: "Ranking geral",
+  scale: "Escalas",
+  open_text: "Respostas abertas",
+  ordering: "Ordenação",
 };
 
 export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = {

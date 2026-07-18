@@ -140,6 +140,143 @@ export function ActivityResultsView({
     );
   }
 
+  if (activity.type === "scale") {
+    const statements = results.statements ?? [];
+    const scaleMax = results.scale_max ?? activity.config.scale_max ?? 5;
+    const minLabel = activity.config.min_label;
+    const maxLabel = activity.config.max_label;
+    return (
+      <div className={screen ? "space-y-7" : "space-y-4"}>
+        {(minLabel || maxLabel) && (
+          <p className={`text-neutral-400 ${screen ? "text-xl" : "text-xs"}`}>
+            1 = {minLabel || "mínimo"} · {scaleMax} = {maxLabel || "máximo"}
+          </p>
+        )}
+        {statements.map((s, i) => {
+          const pct = s.avg !== null ? ((s.avg - 1) / (scaleMax - 1)) * 100 : 0;
+          return (
+            <div key={i}>
+              <div
+                className={`mb-1 flex items-baseline justify-between gap-4 ${
+                  screen ? "text-2xl" : "text-sm"
+                }`}
+              >
+                <span className="font-medium">{s.statement}</span>
+                <span className="shrink-0 font-mono text-lg tabular-nums text-[var(--brand,#38bdf8)]">
+                  {s.avg !== null ? s.avg.toFixed(1) : "—"}
+                </span>
+              </div>
+              {/* régua com marcador na média */}
+              <div
+                className={`relative rounded-full bg-neutral-800 ${
+                  screen ? "h-4" : "h-2.5"
+                }`}
+              >
+                <div
+                  className="h-full rounded-full bg-[var(--brand,#38bdf8)]/40 transition-all duration-700"
+                  style={{ width: `${pct}%` }}
+                />
+                {s.avg !== null && (
+                  <div
+                    className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--brand,#38bdf8)] transition-all duration-700 ${
+                      screen ? "h-7 w-7" : "h-4 w-4"
+                    }`}
+                    style={{ left: `${pct}%` }}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
+          {results.total} resposta{results.total === 1 ? "" : "s"}
+        </p>
+      </div>
+    );
+  }
+
+  if (activity.type === "open_text") {
+    const entries = results.entries ?? [];
+    const spotlight = results.spotlight ?? null;
+    const rest = spotlight
+      ? entries.filter((e) => e.id !== spotlight.id)
+      : entries;
+    return (
+      <div className={screen ? "space-y-8" : "space-y-3"}>
+        {spotlight && (
+          <blockquote
+            className={`rounded-xl border border-[var(--brand,#38bdf8)]/50 bg-neutral-900/80 font-medium leading-snug ${
+              screen ? "p-8 text-center text-4xl" : "p-4 text-base"
+            }`}
+          >
+            “{spotlight.text}”
+          </blockquote>
+        )}
+        <div
+          className={`flex flex-wrap ${screen ? "justify-center gap-4" : "gap-2"}`}
+        >
+          {rest.map((e) => (
+            <span
+              key={e.id}
+              className={`rounded-xl border border-neutral-700 bg-neutral-900 leading-snug ${
+                screen ? "px-5 py-3 text-2xl" : "px-3 py-1.5 text-sm"
+              }`}
+            >
+              {e.text}
+            </span>
+          ))}
+        </div>
+        <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
+          {results.total} resposta{results.total === 1 ? "" : "s"}
+        </p>
+      </div>
+    );
+  }
+
+  if (activity.type === "ordering") {
+    const items = results.order ?? [];
+    const n = items.length || 1;
+    return (
+      <div className={screen ? "space-y-4" : "space-y-2"}>
+        {items.map((item, i) => {
+          // menor posição média = mais bem ranqueado = barra maior
+          const strength =
+            item.avg_pos !== null ? 1 - (item.avg_pos - 1) / Math.max(1, n - 1) : 0;
+          return (
+            <div key={item.index}>
+              <div
+                className={`mb-0.5 flex items-baseline justify-between gap-4 ${
+                  screen ? "text-2xl" : "text-sm"
+                } ${i === 0 ? "font-semibold" : ""}`}
+              >
+                <span>
+                  <span className="mr-2 font-mono text-neutral-500">{i + 1}.</span>
+                  {item.option}
+                </span>
+                <span className="shrink-0 font-mono tabular-nums text-neutral-400">
+                  {item.avg_pos !== null ? `média ${item.avg_pos.toFixed(1)}` : "—"}
+                </span>
+              </div>
+              <div
+                className={`overflow-hidden rounded-full bg-neutral-800 ${
+                  screen ? "h-4" : "h-2"
+                }`}
+              >
+                <div
+                  className="h-full rounded-full bg-[var(--brand,#38bdf8)] transition-all duration-700"
+                  style={{ width: `${Math.round(20 + strength * 80)}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+        <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
+          {results.total} resposta{results.total === 1 ? "" : "s"}
+        </p>
+      </div>
+    );
+  }
+
   if (activity.type === "quiz_ranking") {
     return (
       <div className={screen ? "space-y-6" : "space-y-3"}>
