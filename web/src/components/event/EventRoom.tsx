@@ -10,6 +10,7 @@ import { ChatPanel } from "./ChatPanel";
 import { QAPanel } from "./QAPanel";
 import { PhotoGallery } from "./PhotoGallery";
 import { MaterialsPanel, useMaterials } from "./Materials";
+import { RaffleOverlay, useDisplayedRaffle } from "./RaffleOverlay";
 import { PresenceBadge } from "./PresenceBadge";
 import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
 import { ActivityOverlay, InteractionPanel, useActivities } from "./Activities";
@@ -29,6 +30,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
   const { floats, send } = useReactions(initialEvent.id);
   const activities = useActivities(initialEvent.id, userId);
   const materials = useMaterials(initialEvent.id);
+  const raffle = useDisplayedRaffle(initialEvent.id);
   const router = useRouter();
 
   // Atividade abriu ao vivo → traz o participante para a aba Interação
@@ -122,6 +124,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
           <div className="relative">
             <ReactionOverlay floats={floats} />
             <ActivityOverlay state={activities} />
+            <RaffleOverlay raffle={raffle} />
             {isLive ? (
               <StreamPlayer
                 provider={event.stream_provider}

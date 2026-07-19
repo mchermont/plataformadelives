@@ -328,7 +328,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
               </span>
               {r.displayed && (
                 <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] font-semibold text-sky-400">
-                  📺 No telão
+                  📺 Em exibição
                 </span>
               )}
               <span className="ml-auto text-[11px] text-neutral-500">
@@ -350,7 +350,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
                     : "bg-sky-600 text-white hover:bg-sky-500"
                 }`}
               >
-                {r.displayed ? "Ocultar do telão" : "📺 Exibir no telão"}
+                {r.displayed ? "Ocultar" : "📺 Exibir (sala + telão)"}
               </button>
               <button
                 onClick={() => exportAudit(r)}
