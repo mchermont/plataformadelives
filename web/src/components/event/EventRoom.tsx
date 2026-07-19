@@ -7,6 +7,7 @@ import type { LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { StreamPlayer } from "@/components/player/StreamPlayer";
 import { ChatPanel } from "./ChatPanel";
+import { QAPanel } from "./QAPanel";
 import { PresenceBadge } from "./PresenceBadge";
 import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
 import { ActivityOverlay, InteractionPanel, useActivities } from "./Activities";
@@ -18,7 +19,7 @@ interface EventRoomProps {
   isAdmin: boolean;
 }
 
-type Tab = "chat" | "interacao";
+type Tab = "chat" | "perguntas" | "interacao";
 
 export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoomProps) {
   const [event, setEvent] = useState(initialEvent);
@@ -166,6 +167,18 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 Chat
               </button>
             )}
+            {event.qa_enabled && (
+              <button
+                onClick={() => setTab("perguntas")}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === "perguntas"
+                    ? "border-b-2 border-[var(--brand)] text-white"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                Perguntas
+              </button>
+            )}
             {activities.activities.length > 0 && (
               <button
                 onClick={() => {
@@ -188,6 +201,8 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
           <div className="min-h-0 flex-1">
             {tab === "chat" && event.chat_enabled ? (
               <ChatPanel eventId={event.id} userId={userId} isAdmin={isAdmin} />
+            ) : tab === "perguntas" && event.qa_enabled ? (
+              <QAPanel event={event} userId={userId} />
             ) : (
               <InteractionPanel state={activities} />
             )}

@@ -80,18 +80,22 @@ para atividades.
       de entrada telao-in ao trocar de atividade). Temas ficam para depois
       junto do white-label do player (Fase I)
 
-## Fase F — Q&A com upvote
+## Fase F — Q&A com upvote ✅ (18/07/2026, migração 0014)
 
 **Objetivo:** perguntas do público com votação, o recurso mais pedido em
 eventos corporativos.
 
-- [ ] Envio de pergunta com identificação **ou anônima** (config por evento:
-      permitir anônimas sim/não)
-- [ ] Upvote nas perguntas dos outros; ordenação por votos
-- [ ] Moderação: fila de aprovação opcional antes de aparecer para todos;
-      marcar como respondida; apagar
-- [ ] Painel do apresentador no Diretor (ordenar por votos/recentes)
-- [ ] Export CSV
+- [x] Envio de pergunta com identificação **ou anônima** (config por evento:
+      permitir anônimas sim/não; anônima esconde o nome na tela, mas o CSV
+      do organizador é identificado)
+- [x] Upvote nas perguntas dos outros (toggle ▲); ordenação por votos
+- [x] Moderação: fila de aprovação opcional antes de aparecer para todos
+      (config por evento); marcar como respondida; apagar; blocklist
+- [x] Painel do apresentador no Diretor (aba Perguntas ao lado do chat;
+      ordenar por votos/recentes)
+- [x] Export CSV
+- Config no EventForm: "Perguntas do público (Q&A)" + anônimas + moderação;
+  aba "Perguntas" na sala só aparece com Q&A habilitado
 
 ## Fase G — Moderação e mídia
 

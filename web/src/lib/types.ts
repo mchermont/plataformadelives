@@ -131,6 +131,27 @@ export interface LiveEvent {
   bg_image_mobile_url: string | null;
   card_image_url: string | null;
   sponsor_logos: string[];
+  // Q&A (migração 0014)
+  qa_enabled: boolean;
+  qa_allow_anonymous: boolean;
+  qa_moderation: boolean;
+}
+
+// ===== Q&A com upvote (migração 0014, Fase F) =====
+
+export type QuestionStatusQA = "pending" | "visible" | "answered" | "rejected";
+
+export interface EventQuestion {
+  id: string;
+  event_id: string;
+  author_id: string;
+  /** '' quando anônima (nome real só no CSV do organizador) */
+  author_name: string;
+  is_anonymous: boolean;
+  content: string;
+  status: QuestionStatusQA;
+  votes_count: number;
+  created_at: string;
 }
 
 export interface EventField {

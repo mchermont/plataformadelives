@@ -68,6 +68,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
     capacity: event?.capacity ?? 1000,
     chat_enabled: event?.chat_enabled ?? true,
     quiz_enabled: event?.quiz_enabled ?? true,
+    qa_enabled: event?.qa_enabled ?? false,
+    qa_allow_anonymous: event?.qa_allow_anonymous ?? true,
+    qa_moderation: event?.qa_moderation ?? false,
     brand_color: event?.brand_color ?? "#0284c7",
     brand_logo_url: event?.brand_logo_url ?? "",
     bg_image_url: event?.bg_image_url ?? "",
@@ -138,6 +141,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
       capacity: form.capacity,
       chat_enabled: form.chat_enabled,
       quiz_enabled: form.quiz_enabled,
+      qa_enabled: form.qa_enabled,
+      qa_allow_anonymous: form.qa_allow_anonymous,
+      qa_moderation: form.qa_moderation,
       brand_color: form.brand_color,
       brand_logo_url: form.brand_logo_url || null,
       bg_image_url: form.bg_image_url || null,
@@ -497,7 +503,38 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             />
             Quiz
           </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.qa_enabled}
+              onChange={(e) => set("qa_enabled", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Perguntas do público (Q&amp;A)
+          </label>
         </div>
+        {form.qa_enabled && (
+          <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-300">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.qa_allow_anonymous}
+                onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
+                className="h-4 w-4 accent-sky-500"
+              />
+              Permitir perguntas anônimas
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.qa_moderation}
+                onChange={(e) => set("qa_moderation", e.target.checked)}
+                className="h-4 w-4 accent-sky-500"
+              />
+              Aprovar perguntas antes de exibir
+            </label>
+          </div>
+        )}
         <div>
           <label className={labelClass}>Capacidade</label>
           <input

@@ -8,6 +8,7 @@ import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { ChatPanel } from "@/components/event/ChatPanel";
 import { PresenceBadge } from "@/components/event/PresenceBadge";
 import { ActivityManager } from "./ActivityManager";
+import { QAManager } from "./QAManager";
 
 interface LiveControlRoomProps {
   initialEvent: LiveEvent;
@@ -25,6 +26,7 @@ export function LiveControlRoom({
 }: LiveControlRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [busy, setBusy] = useState(false);
+  const [sideTab, setSideTab] = useState<"chat" | "perguntas">("chat");
 
   useEffect(() => {
     const supabase = createClient();
@@ -128,10 +130,33 @@ export function LiveControlRoom({
 
         <section className="flex flex-col">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
-            Chat · moderação
+            Chat e perguntas · moderação
           </h2>
           <div className="flex h-[70dvh] flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:sticky lg:top-4">
-            <ChatPanel eventId={event.id} userId={userId} isAdmin />
+            {event.qa_enabled && (
+              <div className="flex border-b border-neutral-800">
+                {(["chat", "perguntas"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setSideTab(t)}
+                    className={`flex-1 px-4 py-2 text-sm font-medium transition ${
+                      sideTab === t
+                        ? "border-b-2 border-sky-500 text-white"
+                        : "text-neutral-400 hover:text-neutral-200"
+                    }`}
+                  >
+                    {t === "chat" ? "Chat" : "Perguntas"}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="min-h-0 flex-1">
+              {sideTab === "perguntas" && event.qa_enabled ? (
+                <QAManager eventId={event.id} />
+              ) : (
+                <ChatPanel eventId={event.id} userId={userId} isAdmin />
+              )}
+            </div>
           </div>
         </section>
       </div>
