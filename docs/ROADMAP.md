@@ -121,7 +121,7 @@ apoio.
       "Materiais" na sala aparece só quando há material visível, com ícone por
       tipo, tamanho e download direto; visibilidade reflete na hora (Realtime)
 
-## Fase H — Sorteios ✅ (19/07/2026, migração 0018)
+## Fase H — Sorteios ✅ (19/07/2026, migrações 0018–0019)
 
 **Objetivo:** sorteios ao vivo com prova de lisura, integrados à base de
 participantes.
@@ -135,7 +135,9 @@ participantes.
 - [x] **Visuais de sorteio** — bloco "Sorteios" no Diretor; no telão: cartões
       de revelação escalonada, roleta giratória (opt-in) e cara ou coroa com
       moeda animada; sorteio exibido tem prioridade sobre a atividade no
-      get_screen_state ("📺 Exibir no telão" / "Ocultar")
+      get_screen_state ("📺 Exibir (sala + telão)" / "Ocultar"); na **sala**,
+      overlay sobre o player com contagem regressiva de 5 s e revelação
+      (RPC leve `get_displayed_raffle`, polling de 3 s — 0019)
 - [x] **Auditoria** — sorteio roda no servidor (RPC `run_raffle`) com semente
       aleatória e algoritmo determinístico (ganhadores = menores
       md5(semente‖chave), reproduzível externamente); snapshot dos elegíveis +
