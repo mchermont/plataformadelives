@@ -75,6 +75,9 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
   const [muted, setMuted] = useState(true); // autoplay exige começar mudo
   const [volume, setVolume] = useState(100);
   const [fullscreen, setFullscreen] = useState(false);
+  // player já está tocando, mas o Vimeo ainda pode mostrar título/logo por
+  // alguns segundos — só revela de verdade depois da folga
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -122,6 +125,18 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
       () => setPhase((p) => (p === "loading" ? "cover" : p)),
       4000,
     );
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  // Mantém a tela de carregamento por 4s depois de "playing" de verdade
+  // (autoplay ou retomar do pause) — dá tempo do título/logo do Vimeo
+  // sumir antes de revelar o vídeo por trás do nosso overlay.
+  useEffect(() => {
+    if (phase !== "playing") {
+      setRevealed(false);
+      return;
+    }
+    const t = setTimeout(() => setRevealed(true), 4000);
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -195,14 +210,14 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
         </button>
       )}
 
-      {phase === "loading" && (
+      {(phase === "loading" || (phase === "playing" && !revealed)) && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-2xl">
           <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-white/25 border-t-white" />
           <p className="text-sm font-medium text-white/90">Carregando vídeo…</p>
         </div>
       )}
 
-      {phase === "playing" && (
+      {phase === "playing" && revealed && (
         <div className="absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 opacity-0 transition group-hover:opacity-100">
           <button
             onClick={pause}
