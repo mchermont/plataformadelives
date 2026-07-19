@@ -15,6 +15,8 @@ interface YTNamespace {
   Player: new (
     el: HTMLElement,
     opts: {
+      width: string;
+      height: string;
       videoId: string;
       playerVars: Record<string, string | number>;
       events: {
@@ -76,6 +78,8 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     loadApi().then((YT) => {
       if (disposed || !hostRef.current) return;
       playerRef.current = new YT.Player(hostRef.current, {
+        width: "100%",
+        height: "100%",
         videoId,
         playerVars: {
           controls: 0,
@@ -145,10 +149,15 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         fullscreen ? "h-full" : "aspect-video rounded-xl"
       }`}
     >
-      {/* pointer-events-none no iframe: nenhum hover/clique chega ao YouTube
-          (sem tooltip de URL, sem links); todo controle é nosso via API */}
-      <div className="absolute inset-0 [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
-        <div ref={hostRef} className="h-full w-full" />
+      {/* pointer-events-none: nenhum hover/clique chega ao YouTube (sem
+          tooltip de URL). Zoom + overflow-hidden empurra o título/logo do
+          YouTube (fora da faixa central) para fora da área visível. */}
+      <div className="absolute inset-0 overflow-hidden [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
+        <div
+          ref={hostRef}
+          className="h-full w-full scale-[1.18]"
+          style={{ transformOrigin: "center" }}
+        />
       </div>
 
       {/* bloqueia cliques na UI do YouTube (logo, título, sugestões) */}
