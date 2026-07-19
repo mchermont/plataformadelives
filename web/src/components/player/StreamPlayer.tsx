@@ -52,8 +52,9 @@ function embedSrc(provider: StreamProvider, ref: string): string | null {
 export function StreamPlayer({ provider, streamRef, title, coverUrl }: StreamPlayerProps) {
   const src = embedSrc(provider, streamRef);
 
-  // YouTube: player white-label (IFrame API, controles próprios)
-  if (provider === "youtube") {
+  // YouTube: player white-label (IFrame API, controles próprios).
+  // Detecta link do YouTube mesmo com provider errado no cadastro.
+  if (provider === "youtube" || /youtu\.?be/.test(streamRef)) {
     return (
       <YouTubePlayer videoId={youTubeId(streamRef)} title={title} coverUrl={coverUrl} />
     );

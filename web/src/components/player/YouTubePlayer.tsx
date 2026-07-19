@@ -145,7 +145,9 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         fullscreen ? "h-full" : "aspect-video rounded-xl"
       }`}
     >
-      <div className="absolute inset-0 [&_iframe]:h-full [&_iframe]:w-full">
+      {/* pointer-events-none no iframe: nenhum hover/clique chega ao YouTube
+          (sem tooltip de URL, sem links); todo controle é nosso via API */}
+      <div className="absolute inset-0 [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
         <div ref={hostRef} className="h-full w-full" />
       </div>
 
