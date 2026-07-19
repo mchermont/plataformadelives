@@ -2,6 +2,7 @@
 
 import type { StreamProvider } from "@/lib/types";
 import { YouTubePlayer } from "./YouTubePlayer";
+import { VimeoPlayer } from "./VimeoPlayer";
 
 interface StreamPlayerProps {
   provider: StreamProvider;
@@ -25,9 +26,14 @@ function youTubeId(ref: string): string {
 }
 
 /** Extrai o ID numérico do Vimeo de uma URL ou devolve o próprio valor. */
-function vimeoId(ref: string): string {
+export function vimeoId(ref: string): string {
   const m = ref.match(/vimeo\.com\/(?:event\/)?(\d+)/);
   return m ? m[1] : ref;
+}
+
+/** true se a URL for um evento ao vivo do Vimeo (/event/{id}). */
+export function isVimeoLiveEvent(ref: string): boolean {
+  return /vimeo\.com\/event\//.test(ref);
 }
 
 function embedSrc(provider: StreamProvider, ref: string): string | null {
@@ -58,6 +64,10 @@ export function StreamPlayer({ provider, streamRef, title, coverUrl }: StreamPla
     return (
       <YouTubePlayer videoId={youTubeId(streamRef)} title={title} coverUrl={coverUrl} />
     );
+  }
+
+  if (provider === "vimeo" || /vimeo\.com/.test(streamRef)) {
+    return <VimeoPlayer streamRef={streamRef} title={title} coverUrl={coverUrl} />;
   }
 
   if (provider === "hls") {

@@ -1,72 +1,70 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isVimeoLiveEvent, vimeoId } from "./StreamPlayer";
 
-interface YTPlayer {
-  playVideo(): void;
-  pauseVideo(): void;
-  mute(): void;
-  unMute(): void;
-  setVolume(volume: number): void;
-  destroy(): void;
+interface VimeoPlayerInstance {
+  play(): Promise<void>;
+  pause(): Promise<void>;
+  setVolume(level: number): Promise<number>;
+  ready(): Promise<void>;
+  on(event: string, cb: () => void): void;
+  destroy(): Promise<void>;
 }
 
-interface YTNamespace {
+interface VimeoNamespace {
   Player: new (
     el: HTMLElement,
     opts: {
-      width: string;
-      height: string;
-      videoId: string;
-      playerVars: Record<string, string | number>;
-      events: {
-        onReady: () => void;
-        onStateChange: (e: { data: number }) => void;
-      };
+      id?: string;
+      url?: string;
+      width?: string;
+      height?: string;
+      controls: boolean;
+      title: boolean;
+      byline: boolean;
+      portrait: boolean;
+      dnt: boolean;
+      playsinline: boolean;
     },
-  ) => YTPlayer;
+  ) => VimeoPlayerInstance;
 }
 
 declare global {
   interface Window {
-    YT?: YTNamespace;
-    onYouTubeIframeAPIReady?: () => void;
+    Vimeo?: VimeoNamespace;
   }
 }
 
-let apiPromise: Promise<YTNamespace> | null = null;
-function loadApi(): Promise<YTNamespace> {
+let apiPromise: Promise<VimeoNamespace> | null = null;
+function loadApi(): Promise<VimeoNamespace> {
   if (apiPromise) return apiPromise;
   apiPromise = new Promise((resolve) => {
-    if (window.YT?.Player) return resolve(window.YT);
-    const previous = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      previous?.();
-      resolve(window.YT!);
-    };
+    if (window.Vimeo?.Player) return resolve(window.Vimeo);
     const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
+    script.src = "https://player.vimeo.com/api/player.js";
+    script.onload = () => resolve(window.Vimeo!);
     document.head.appendChild(script);
   });
   return apiPromise;
 }
 
-interface YouTubePlayerProps {
-  videoId: string;
+interface VimeoPlayerProps {
+  streamRef: string;
   title: string;
   coverUrl?: string | null;
 }
 
 /**
- * Player white-label (Fase I): YouTube IFrame API com controls=0, capa
- * própria antes do play, overlay bloqueando cliques na UI do YouTube e
- * capa de volta na pausa/fim (esconde a logo de pausa). Limite conhecido:
- * os termos do YouTube não permitem remover 100% a marca.
+ * Player white-label (Fase I): Vimeo Player.js com controls/title/byline/
+ * portrait desligados, capa própria, overlay bloqueando cliques/hover no
+ * iframe e zoom+crop empurrando qualquer chrome residual pra fora da área
+ * visível. Mesma abordagem do YouTubePlayer.
  */
-export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) {
+export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<YTPlayer | null>(null);
+  const playerRef = useRef<VimeoPlayerInstance | null>(null);
   const [phase, setPhase] = useState<"cover" | "playing" | "paused">("cover");
   const [ready, setReady] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -75,38 +73,31 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
 
   useEffect(() => {
     let disposed = false;
-    loadApi().then((YT) => {
+    loadApi().then((Vimeo) => {
       if (disposed || !hostRef.current) return;
-      playerRef.current = new YT.Player(hostRef.current, {
+      const isEvent = isVimeoLiveEvent(streamRef);
+      playerRef.current = new Vimeo.Player(hostRef.current, {
+        ...(isEvent ? { url: streamRef } : { id: vimeoId(streamRef) }),
         width: "100%",
         height: "100%",
-        videoId,
-        playerVars: {
-          controls: 0,
-          rel: 0,
-          modestbranding: 1,
-          disablekb: 1,
-          playsinline: 1,
-          iv_load_policy: 3,
-          fs: 0,
-          origin: window.location.origin,
-        },
-        events: {
-          onReady: () => setReady(true),
-          onStateChange: (e) => {
-            if (e.data === 1) setPhase("playing");
-            else if (e.data === 2) setPhase("paused");
-            else if (e.data === 0) setPhase("cover"); // fim → capa (sem tela do YouTube)
-          },
-        },
+        controls: false,
+        title: false,
+        byline: false,
+        portrait: false,
+        dnt: true,
+        playsinline: true,
       });
+      playerRef.current.ready().then(() => setReady(true));
+      playerRef.current.on("play", () => setPhase("playing"));
+      playerRef.current.on("pause", () => setPhase("paused"));
+      playerRef.current.on("ended", () => setPhase("cover"));
     });
     return () => {
       disposed = true;
       playerRef.current?.destroy();
       playerRef.current = null;
     };
-  }, [videoId]);
+  }, [streamRef]);
 
   useEffect(() => {
     const onChange = () =>
@@ -115,26 +106,23 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  const play = useCallback(() => playerRef.current?.playVideo(), []);
-  const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
+  const play = useCallback(() => playerRef.current?.play(), []);
+  const pause = useCallback(() => playerRef.current?.pause(), []);
 
   function toggleMute() {
     if (muted) {
-      playerRef.current?.unMute();
+      playerRef.current?.setVolume(volume / 100);
       setMuted(false);
     } else {
-      playerRef.current?.mute();
+      playerRef.current?.setVolume(0);
       setMuted(true);
     }
   }
 
   function changeVolume(v: number) {
     setVolume(v);
-    playerRef.current?.setVolume(v);
-    if (v > 0 && muted) {
-      playerRef.current?.unMute();
-      setMuted(false);
-    }
+    playerRef.current?.setVolume(v / 100);
+    if (v > 0) setMuted(false);
   }
 
   function toggleFullscreen() {
@@ -150,9 +138,6 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         fullscreen ? "h-full" : "aspect-video rounded-xl"
       }`}
     >
-      {/* pointer-events-none: nenhum hover/clique chega ao YouTube (sem
-          tooltip de URL). Zoom + overflow-hidden empurra o título/logo do
-          YouTube (fora da faixa central) para fora da área visível. */}
       <div className="absolute inset-0 overflow-hidden [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
         <div
           ref={hostRef}
@@ -161,7 +146,6 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         />
       </div>
 
-      {/* bloqueia cliques na UI do YouTube (logo, título, sugestões) */}
       <div
         className="absolute inset-0 z-10"
         onClick={phase === "playing" ? pause : play}
