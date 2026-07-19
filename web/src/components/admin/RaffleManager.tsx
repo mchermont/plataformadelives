@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Raffle, RaffleKind, RaffleSource, RaffleWinner } from "@/lib/types";
 import { RAFFLE_KIND_LABELS } from "@/lib/types";
+import { friendlyError } from "@/lib/friendlyError";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
@@ -107,7 +108,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
       p_raffle_id: r.id,
       p_show: show,
     });
-    if (err) setError(err.message);
+    if (err) setError(friendlyError(err.message));
     await load();
   }
 
@@ -166,7 +167,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
       {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
 
       {showForm && (
-        <div className="mb-4 space-y-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-3">
+        <div className="mb-4 max-w-2xl space-y-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-3">
           <div className="flex flex-wrap gap-1.5">
             {(Object.keys(RAFFLE_KIND_LABELS) as RaffleKind[]).map((k) => (
               <button

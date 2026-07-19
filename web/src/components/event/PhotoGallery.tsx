@@ -86,11 +86,10 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
     setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
   }
 
-  // aprovadas para todos + as próprias pendentes (com selo); recusadas somem
+  // aprovadas para todos + qualquer status da própria (pendente/rejeitada),
+  // sempre com selo — nunca some sem explicação pro autor
   const visible = photos.filter(
-    (p) =>
-      p.status === "approved" ||
-      (p.author_id === userId && p.status === "pending"),
+    (p) => p.status === "approved" || p.author_id === userId,
   );
 
   return (
@@ -139,10 +138,10 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={publicUrl(p.storage_path)}
-                    alt=""
+                    alt={`Foto de ${p.author_name || "participante"}`}
                     loading="lazy"
                     className={`h-full w-full rounded-lg object-cover ${
-                      p.status === "pending" ? "opacity-50" : ""
+                      p.status !== "approved" ? "opacity-50" : ""
                     }`}
                   />
                 </button>
@@ -151,12 +150,17 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
                     em moderação
                   </span>
                 )}
+                {p.status === "rejected" && (
+                  <span className="absolute bottom-1 left-1 rounded bg-red-500/90 px-1.5 text-[10px] font-semibold text-white">
+                    rejeitada pela moderação
+                  </span>
+                )}
                 {p.author_id === userId && (
                   <button
                     onClick={() => removeOwn(p)}
                     title="Remover minha foto"
                     aria-label="Remover minha foto"
-                    className="absolute right-1 top-1 hidden rounded bg-black/70 px-1.5 text-xs text-white group-hover:block"
+                    className="absolute right-1 top-1 hidden rounded bg-black/70 px-1.5 text-xs text-white group-hover:block group-focus-within:block"
                   >
                     ✕
                   </button>

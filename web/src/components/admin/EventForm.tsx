@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -17,6 +17,7 @@ import {
   PROVIDER_LABELS,
   REGISTRATION_MODE_LABELS,
 } from "@/lib/types";
+import { friendlyError } from "@/lib/friendlyError";
 
 interface EventFormProps {
   event?: LiveEvent;
@@ -46,6 +47,13 @@ interface DraftField {
 const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 const labelClass = "mb-1.5 block text-sm font-medium";
+
+const STREAM_PLACEHOLDERS: Record<StreamProvider, string> = {
+  youtube: "Link do vídeo/live do YouTube (ex.: https://youtube.com/watch?v=... ou o ID)",
+  vimeo: "Link do vídeo/evento do Vimeo (ex.: https://vimeo.com/123456789)",
+  dacast: "URL completa do player fornecida pelo painel Dacast",
+  hls: "URL do stream HLS (.m3u8) — disponível na Fase J (streaming próprio)",
+};
 
 export function EventForm({ event, fields, allowlist, userId, clientId }: EventFormProps) {
   const router = useRouter();
@@ -104,9 +112,30 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
   const [removedFieldIds, setRemovedFieldIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // erro aparece longe do botão Salvar num formulário longo — rola até ele
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
+
+  // mesmo destino usado por Salvar e Cancelar (evita ejetar o organizador
+  // pra um lugar diferente de onde ele veio)
+  const backTo = clientId
+    ? `/admin/clientes/${clientId}`
+    : event?.client_id
+      ? `/admin/clientes/${event.client_id}`
+      : "/admin";
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+    setDirty(true);
+  }
+
+  function cancel() {
+    if (dirty && !confirm("Descartar as alterações não salvas?")) return;
+    router.push(backTo);
   }
 
   function slugify(text: string) {
@@ -210,11 +239,15 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
       }
     }
 
-    const backTo = clientId
-      ? `/admin/clientes/${clientId}`
-      : event?.client_id
-        ? `/admin/clientes/${event.client_id}`
-        : "/admin";
+    // Evento novo com allowlist: a tela acabou de instruir "salve para
+    // gerenciar a lista" — manter na própria edição em vez de ejetar o
+    // organizador antes dele poder fazer exatamente isso.
+    if (!event && form.registration_mode === "allowlist") {
+      router.push(`/admin/eventos/${eventId}`);
+      router.refresh();
+      return;
+    }
+
     router.push(backTo);
     router.refresh();
   }
@@ -231,6 +264,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
       const url = supabase.storage.from("branding").getPublicUrl(path).data.publicUrl;
       if (kind === "sponsor") {
         setForm((f) => ({ ...f, sponsor_logos: [...f.sponsor_logos, url] }));
+        setDirty(true);
       } else {
         set(IMAGE_FIELD[kind], url);
       }
@@ -240,6 +274,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
 
   function removeSponsorLogo(url: string) {
     setForm((f) => ({ ...f, sponsor_logos: f.sponsor_logos.filter((u) => u !== url) }));
+    setDirty(true);
   }
 
   async function addAllowlistEmails() {
@@ -283,13 +318,18 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
   function errorMessage(message: string): string {
     if (message.includes("events_slug_key")) return "Já existe um evento com esse slug.";
     if (message.includes("slug")) return "Slug inválido: use letras minúsculas, números e hífens (mín. 3).";
-    return "Não foi possível salvar o evento.";
+    return friendlyError(message);
   }
 
   return (
     <div className="max-w-2xl space-y-8">
       {error && (
-        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+        <p
+          ref={errorRef}
+          className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400"
+        >
+          {error}
+        </p>
       )}
 
       <section className="space-y-4">
@@ -297,8 +337,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           Informações básicas
         </h2>
         <div>
-          <label className={labelClass}>Título *</label>
+          <label className={labelClass} htmlFor="ev-title">Título *</label>
           <input
+            id="ev-title"
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             className={inputClass}
@@ -306,8 +347,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Slug (URL)</label>
+            <label className={labelClass} htmlFor="ev-slug">Slug (URL)</label>
             <input
+              id="ev-slug"
               value={form.slug}
               onChange={(e) => set("slug", e.target.value)}
               placeholder={slugify(form.title) || "meu-evento"}
@@ -315,8 +357,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             />
           </div>
           <div>
-            <label className={labelClass}>Início</label>
+            <label className={labelClass} htmlFor="ev-starts-at">Início</label>
             <input
+              id="ev-starts-at"
               type="datetime-local"
               value={form.starts_at}
               onChange={(e) => set("starts_at", e.target.value)}
@@ -325,8 +368,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           </div>
         </div>
         <div>
-          <label className={labelClass}>Descrição</label>
+          <label className={labelClass} htmlFor="ev-description">Descrição</label>
           <textarea
+            id="ev-description"
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
             rows={3}
@@ -334,8 +378,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           />
         </div>
         <div>
-          <label className={labelClass}>Status</label>
+          <label className={labelClass} htmlFor="ev-status">Status</label>
           <select
+            id="ev-status"
             value={form.status}
             onChange={(e) => set("status", e.target.value as EventStatus)}
             className={inputClass}
@@ -358,8 +403,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Fonte</label>
+            <label className={labelClass} htmlFor="ev-provider">Fonte</label>
             <select
+              id="ev-provider"
               value={form.stream_provider}
               onChange={(e) => set("stream_provider", e.target.value as StreamProvider)}
               className={inputClass}
@@ -372,11 +418,12 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             </select>
           </div>
           <div>
-            <label className={labelClass}>ID ou URL da transmissão</label>
+            <label className={labelClass} htmlFor="ev-stream-ref">ID ou URL da transmissão</label>
             <input
+              id="ev-stream-ref"
               value={form.stream_ref}
               onChange={(e) => set("stream_ref", e.target.value)}
-              placeholder="URL do vídeo/live ou ID"
+              placeholder={STREAM_PLACEHOLDERS[form.stream_provider]}
               className={inputClass}
             />
           </div>
@@ -388,8 +435,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           Controle de acesso
         </h2>
         <div>
-          <label className={labelClass}>Modo de inscrição</label>
+          <label className={labelClass} htmlFor="ev-registration-mode">Modo de inscrição</label>
           <select
+            id="ev-registration-mode"
             value={form.registration_mode}
             onChange={(e) => set("registration_mode", e.target.value as RegistrationMode)}
             className={inputClass}
@@ -403,8 +451,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </div>
         {form.registration_mode === "domain" && (
           <div>
-            <label className={labelClass}>Domínios permitidos (separados por vírgula)</label>
+            <label className={labelClass} htmlFor="ev-allowed-domains">Domínios permitidos (separados por vírgula)</label>
             <input
+              id="ev-allowed-domains"
               value={form.allowed_domains}
               onChange={(e) => set("allowed_domains", e.target.value)}
               placeholder="empresa.com.br, parceiro.com"
@@ -429,8 +478,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
               </p>
             ) : (
               <>
-                <label className={labelClass}>Adicionar e-mails (um por linha, ou separados por vírgula)</label>
+                <label className={labelClass} htmlFor="ev-new-emails">Adicionar e-mails (um por linha, ou separados por vírgula)</label>
                 <textarea
+                  id="ev-new-emails"
                   value={newEmailsText}
                   onChange={(e) => setNewEmailsText(e.target.value)}
                   rows={3}
@@ -565,8 +615,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           Galeria de fotos (moderação obrigatória)
         </label>
         <div>
-          <label className={labelClass}>Capacidade</label>
+          <label className={labelClass} htmlFor="ev-capacity">Capacidade</label>
           <input
+            id="ev-capacity"
             type="number"
             min={1}
             value={form.capacity}
@@ -575,8 +626,9 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           />
         </div>
         <div>
-          <label className={labelClass}>Texto de consentimento (LGPD)</label>
+          <label className={labelClass} htmlFor="ev-consent-text">Texto de consentimento (LGPD)</label>
           <textarea
+            id="ev-consent-text"
             value={form.consent_text}
             onChange={(e) => set("consent_text", e.target.value)}
             rows={2}
@@ -621,15 +673,17 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className={labelClass}>Cor da marca</label>
+            <label className={labelClass} htmlFor="ev-brand-color">Cor da marca</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
+                aria-label="Selecionar cor da marca"
                 value={form.brand_color}
                 onChange={(e) => set("brand_color", e.target.value)}
                 className="h-9 w-12 cursor-pointer rounded border border-neutral-700 bg-neutral-950"
               />
               <input
+                id="ev-brand-color"
                 value={form.brand_color}
                 onChange={(e) => set("brand_color", e.target.value)}
                 className={`${inputClass} font-mono`}
@@ -640,7 +694,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             </p>
           </div>
           <div>
-            <label className={labelClass}>Logo do evento/cliente</label>
+            <label className={labelClass} htmlFor="ev-logo">Logo do evento/cliente</label>
             {form.brand_logo_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -650,6 +704,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
               />
             )}
             <input
+              id="ev-logo"
               type="file"
               accept="image/*"
               disabled={uploading !== null}
@@ -664,7 +719,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             )}
           </div>
           <div>
-            <label className={labelClass}>Fundo (desktop, 1920×1080)</label>
+            <label className={labelClass} htmlFor="ev-bg">Fundo (desktop, 1920×1080)</label>
             {form.bg_image_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -674,6 +729,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
               />
             )}
             <input
+              id="ev-bg"
               type="file"
               accept="image/*"
               disabled={uploading !== null}
@@ -686,7 +742,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             {uploading === "bg" && <p className="mt-1 text-xs text-neutral-500">Enviando…</p>}
           </div>
           <div>
-            <label className={labelClass}>Fundo mobile (1080×1920, opcional)</label>
+            <label className={labelClass} htmlFor="ev-bg-mobile">Fundo mobile (1080×1920, opcional)</label>
             {form.bg_image_mobile_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -696,6 +752,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
               />
             )}
             <input
+              id="ev-bg-mobile"
               type="file"
               accept="image/*"
               disabled={uploading !== null}
@@ -710,7 +767,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             )}
           </div>
           <div>
-            <label className={labelClass}>Card (900×560, opcional)</label>
+            <label className={labelClass} htmlFor="ev-card">Card (900×560, opcional)</label>
             {form.card_image_url && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -720,6 +777,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
               />
             )}
             <input
+              id="ev-card"
               type="file"
               accept="image/*"
               disabled={uploading !== null}
@@ -733,7 +791,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           </div>
         </div>
         <div>
-          <label className={labelClass}>Logos de apoiadores (400×200 cada, opcional)</label>
+          <label className={labelClass} htmlFor="ev-sponsor">Logos de apoiadores (400×200 cada, opcional)</label>
           {form.sponsor_logos.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-2">
               {form.sponsor_logos.map((url) => (
@@ -746,7 +804,8 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
                   />
                   <button
                     onClick={() => removeSponsorLogo(url)}
-                    className="absolute -right-1.5 -top-1.5 h-4 w-4 rounded-full bg-red-500 text-[10px] leading-4 text-white"
+                    aria-label="Remover logo de apoiador"
+                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
                   >
                     ×
                   </button>
@@ -755,6 +814,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             </div>
           )}
           <input
+            id="ev-sponsor"
             type="file"
             accept="image/*"
             disabled={uploading !== null}
@@ -775,12 +835,13 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             Campos do cadastro
           </h2>
           <button
-            onClick={() =>
+            onClick={() => {
               setDraftFields((f) => [
                 ...f,
                 { label: "", field_type: "text", required: false, options: "" },
-              ])
-            }
+              ]);
+              setDirty(true);
+            }}
             className="text-sm text-sky-400 hover:underline"
           >
             + Adicionar campo
@@ -796,54 +857,64 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             className="grid grid-cols-[1fr_auto_auto_auto] items-end gap-3 rounded-lg border border-neutral-800 p-3"
           >
             <div>
-              <label className={labelClass}>Rótulo</label>
+              <label className={labelClass} htmlFor={`ev-field-label-${i}`}>Rótulo</label>
               <input
+                id={`ev-field-label-${i}`}
                 value={field.label}
-                onChange={(e) =>
+                onChange={(e) => {
                   setDraftFields((fs) =>
                     fs.map((f, j) => (j === i ? { ...f, label: e.target.value } : f)),
-                  )
-                }
+                  );
+                  setDirty(true);
+                }}
                 placeholder="Ex.: Empresa"
                 className={inputClass}
               />
               {field.field_type === "select" && (
                 <input
+                  aria-label="Opções separadas por vírgula"
                   value={field.options}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setDraftFields((fs) =>
                       fs.map((f, j) => (j === i ? { ...f, options: e.target.value } : f)),
-                    )
-                  }
+                    );
+                    setDirty(true);
+                  }}
                   placeholder="Opções separadas por vírgula"
                   className={`${inputClass} mt-2`}
                 />
               )}
             </div>
-            <select
-              value={field.field_type}
-              onChange={(e) =>
-                setDraftFields((fs) =>
-                  fs.map((f, j) =>
-                    j === i ? { ...f, field_type: e.target.value as FieldType } : f,
-                  ),
-                )
-              }
-              className={`${inputClass} w-auto`}
-            >
-              <option value="text">Texto</option>
-              <option value="select">Seleção</option>
-              <option value="checkbox">Checkbox</option>
-            </select>
+            <div>
+              <label className={labelClass} htmlFor={`ev-field-type-${i}`}>Tipo</label>
+              <select
+                id={`ev-field-type-${i}`}
+                value={field.field_type}
+                onChange={(e) => {
+                  setDraftFields((fs) =>
+                    fs.map((f, j) =>
+                      j === i ? { ...f, field_type: e.target.value as FieldType } : f,
+                    ),
+                  );
+                  setDirty(true);
+                }}
+                className={`${inputClass} w-auto`}
+              >
+                <option value="text">Texto</option>
+                <option value="select">Seleção</option>
+                <option value="checkbox">Caixa de marcação</option>
+              </select>
+            </div>
             <label className="flex items-center gap-1.5 pb-2 text-sm">
               <input
                 type="checkbox"
                 checked={field.required}
-                onChange={(e) =>
+                onChange={(e) => {
                   setDraftFields((fs) =>
                     fs.map((f, j) => (j === i ? { ...f, required: e.target.checked } : f)),
-                  )
-                }
+                  );
+                  setDirty(true);
+                }}
                 className="h-4 w-4 accent-sky-500"
               />
               Obrigatório
@@ -852,6 +923,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
               onClick={() => {
                 if (field.id) setRemovedFieldIds((ids) => [...ids, field.id!]);
                 setDraftFields((fs) => fs.filter((_, j) => j !== i));
+                setDirty(true);
               }}
               className="pb-2 text-sm text-red-400 hover:underline"
             >
@@ -870,7 +942,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           {busy ? "Salvando…" : event ? "Salvar alterações" : "Criar evento"}
         </button>
         <button
-          onClick={() => router.push("/admin")}
+          onClick={cancel}
           className="rounded-lg border border-neutral-700 px-6 py-2.5 text-sm font-semibold transition hover:bg-neutral-800"
         >
           Cancelar

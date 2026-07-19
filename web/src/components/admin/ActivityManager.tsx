@@ -10,6 +10,7 @@ import type {
   QuizQuestion,
 } from "@/lib/types";
 import { ACTIVITY_STATUS_LABELS, ACTIVITY_TYPE_LABELS } from "@/lib/types";
+import { friendlyError } from "@/lib/friendlyError";
 
 const TYPE_ICONS: Record<ActivityType, string> = {
   word_cloud: "☁️",
@@ -291,7 +292,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       .single();
     if (err) {
       if (quizId) await supabase.from("quizzes").delete().eq("id", quizId);
-      setError(`Não foi possível criar a atividade (${err.message}).`);
+      setError(`Não foi possível criar a atividade: ${friendlyError(err.message)}`);
     } else {
       setTitle("");
       setOptionsText("");
@@ -353,6 +354,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
   }
 
   async function removeQuestion(id: string) {
+    if (!confirm("Excluir esta pergunta do quiz?")) return;
     await supabase.from("quiz_questions").delete().eq("id", id);
     await load();
   }
@@ -363,7 +365,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       p_activity_id: id,
       p_action: action,
     });
-    if (err) setError(err.message);
+    if (err) setError(friendlyError(err.message));
     await load();
   }
 
@@ -408,7 +410,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       p_activity_id: act.id,
       p_action: act.status === "open" ? "close" : "open",
     });
-    if (err) setError(err.message);
+    if (err) setError(friendlyError(err.message));
     await load();
   }
 
@@ -427,6 +429,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
         .update({ approved: true })
         .eq("id", response.id);
     } else {
+      if (!confirm("Remover esta resposta da fila?")) return;
       await supabase.from("activity_responses").delete().eq("id", response.id);
     }
     await load();
@@ -556,7 +559,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {showForm && (
-        <div className="space-y-3 rounded-xl border border-neutral-800 p-4">
+        <div className="max-w-2xl space-y-3 rounded-xl border border-neutral-800 p-4">
           <div className="flex flex-wrap gap-2">
             {CREATABLE_TYPES.map((t) => (
               <button

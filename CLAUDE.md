@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0020.
+  a última aplicada é a 0021.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -64,6 +64,11 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **UI sem scroll** nas áreas de interação: ou pagina, ou cabe na tela
   (regra do Marcelo). Chat/listas rolam só internamente.
 - Textos da UI em pt-BR; CSVs e datas em formato brasileiro.
+- **Ações destrutivas sempre com `confirm()`** (banir, apagar mensagem/foto/
+  pergunta/resposta) — padrão consolidado após revisão `/impeccable critique`
+  em 19/07/2026; qualquer exclusão nova segue o mesmo padrão.
+- Erros técnicos do Supabase/Postgres passam por `src/lib/friendlyError.ts`
+  antes de chegar à UI (não expor `err.message` cru a usuário/operador).
 
 ## Estado (19/07/2026)
 
@@ -71,7 +76,8 @@ Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
 F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
 obrigatória, materiais p/ download — buckets `gallery` e `materials`),
 H (sorteios auditáveis no Diretor + telão), I (player YouTube white-label —
-`YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Próxima:
-J (streaming próprio). Pendências avulsas:
+`YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Revisão de
+UX/UI completa (`/impeccable critique`) nas 3 telas centrais — ver ROADMAP.
+Próxima fase: J (streaming próprio). Pendências avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.

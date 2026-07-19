@@ -35,6 +35,51 @@ export function LiveControlRoom({
   // prévias: o que o participante vê no player (overlays inclusos)
   const activities = useActivities(event.id, userId);
   const raffle = useDisplayedRaffle(event.id);
+  // contagem de pendências: aba inativa não pode esconder algo esperando moderação
+  const [pending, setPending] = useState({ chat: 0, perguntas: 0, fotos: 0 });
+  const [telaoExpanded, setTelaoExpanded] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let alive = true;
+    async function poll() {
+      const [chat, perguntas, fotos] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("*", { count: "exact", head: true })
+          .eq("event_id", event.id)
+          .eq("approved", false)
+          .is("deleted_at", null),
+        event.qa_enabled
+          ? supabase
+              .from("questions")
+              .select("*", { count: "exact", head: true })
+              .eq("event_id", event.id)
+              .eq("status", "pending")
+          : Promise.resolve({ count: 0 }),
+        event.gallery_enabled
+          ? supabase
+              .from("event_photos")
+              .select("*", { count: "exact", head: true })
+              .eq("event_id", event.id)
+              .eq("status", "pending")
+          : Promise.resolve({ count: 0 }),
+      ]);
+      if (alive) {
+        setPending({
+          chat: chat.count ?? 0,
+          perguntas: perguntas.count ?? 0,
+          fotos: fotos.count ?? 0,
+        });
+      }
+    }
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => {
+      alive = false;
+      clearInterval(interval);
+    };
+  }, [event.id, event.qa_enabled, event.gallery_enabled]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -159,13 +204,17 @@ export function LiveControlRoom({
               </p>
             </div>
             <div>
-              <div className="relative aspect-video overflow-hidden rounded-xl border border-neutral-800 bg-black">
+              <button
+                onClick={() => setTelaoExpanded(true)}
+                aria-label="Ampliar prévia do telão"
+                className="relative block aspect-video w-full overflow-hidden rounded-xl border border-neutral-800 bg-black"
+              >
                 <iframe
                   src={`/telao/${event.id}`}
                   title="Prévia do telão"
                   className="pointer-events-none absolute left-0 top-0 h-[500%] w-[500%] origin-top-left scale-[0.2]"
                 />
-              </div>
+              </button>
               <p className="mt-1.5 flex items-center justify-between text-xs text-neutral-500">
                 <span>📽 Telão (OBS) ao vivo</span>
                 <Link
@@ -205,13 +254,18 @@ export function LiveControlRoom({
                   <button
                     key={t}
                     onClick={() => setSideTab(t)}
-                    className={`flex-1 px-4 py-2 text-sm font-medium transition ${
+                    className={`relative flex-1 px-4 py-2 text-sm font-medium transition ${
                       sideTab === t
                         ? "border-b-2 border-sky-500 text-white"
                         : "text-neutral-400 hover:text-neutral-200"
                     }`}
                   >
                     {label}
+                    {pending[t] > 0 && sideTab !== t && (
+                      <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold text-black">
+                        {pending[t]}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -233,6 +287,33 @@ export function LiveControlRoom({
           </div>
         </section>
       </div>
+
+      {telaoExpanded && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setTelaoExpanded(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-6"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl border border-neutral-700 bg-black shadow-2xl"
+          >
+            <iframe
+              src={`/telao/${event.id}`}
+              title="Prévia do telão (ampliada)"
+              className="pointer-events-none absolute left-0 top-0 h-[500%] w-[500%] origin-top-left scale-[0.2]"
+            />
+          </div>
+          <button
+            onClick={() => setTelaoExpanded(false)}
+            aria-label="Fechar"
+            className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full bg-neutral-800 text-white hover:bg-neutral-700"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

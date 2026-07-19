@@ -113,7 +113,8 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
             const next = exists
               ? prev.map((p) => (p.id === post.id ? post : p))
               : [...prev, post].sort((a, b) => a.created_at.localeCompare(b.created_at));
-            return next.filter((p) => isAdmin || !p.deleted_at);
+            // autor mantém a própria mensagem visível mesmo removida (com selo)
+            return next.filter((p) => isAdmin || !p.deleted_at || p.author_id === userId);
           });
           if (added) handleIncoming();
         },
@@ -177,6 +178,9 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
   }
 
   async function moderate(post: Post, action: "pin" | "delete" | "ban") {
+    if (action === "delete" && !confirm("Apagar esta mensagem para todos?")) return;
+    if (action === "ban" && !confirm(`Banir ${post.author_name || "este participante"}? Ele perde o acesso ao evento.`)) return;
+
     const supabase = supabaseRef.current;
     if (action === "pin") {
       await supabase.from("posts").update({ pinned: !post.pinned }).eq("id", post.id);
@@ -197,10 +201,13 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
   }
 
   const pinned = posts.filter((p) => p.pinned && !p.deleted_at);
-  // pendentes de outros ficam fora do fluxo: participante não vê (RLS),
-  // operador vê na fila de aprovação acima do chat
+  // pendentes/removidas de outros ficam fora do fluxo (RLS já filtra);
+  // a própria mensagem do autor continua visível mesmo removida, com selo
+  // "removida pela moderação" em vez de sumir sem explicação
   const visible = posts.filter(
-    (p) => !p.deleted_at && (p.approved || p.author_id === userId),
+    (p) =>
+      (!p.deleted_at && (p.approved || p.author_id === userId)) ||
+      (p.deleted_at && p.author_id === userId),
   );
   const queue = isAdmin
     ? posts.filter((p) => !p.approved && !p.deleted_at && p.author_id !== userId)
@@ -290,10 +297,19 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                     <span className="ml-1 font-normal text-neutral-500">(você)</span>
                   )}
                 </span>{" "}
-                <span className={post.approved ? "text-neutral-200" : "text-neutral-400"}>
-                  {post.content}
-                </span>
-                {!post.approved && (
+                {post.deleted_at ? (
+                  <span className="italic text-neutral-500">mensagem removida</span>
+                ) : (
+                  <span className={post.approved ? "text-neutral-200" : "text-neutral-400"}>
+                    {post.content}
+                  </span>
+                )}
+                {post.deleted_at && (
+                  <span className="ml-1.5 rounded bg-red-500/15 px-1.5 align-middle text-[10px] text-red-400">
+                    removida pela moderação
+                  </span>
+                )}
+                {!post.deleted_at && !post.approved && (
                   <span className="ml-1.5 rounded bg-amber-500/15 px-1.5 align-middle text-[10px] text-amber-400">
                     em moderação
                   </span>
@@ -301,7 +317,8 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                 <span className="ml-1.5 align-middle text-[10px] text-neutral-600">
                   {formatTime(post.created_at)}
                 </span>
-                <span className="ml-1.5 hidden gap-0.5 align-middle group-hover:inline-flex">
+                {!post.deleted_at && (
+                <span className="ml-1.5 hidden gap-0.5 align-middle group-hover:inline-flex group-focus-within:inline-flex">
                   <button
                     onClick={() => startReply(post)}
                     title="Responder"
@@ -315,6 +332,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                       <button
                         onClick={() => moderate(post, "pin")}
                         title={post.pinned ? "Desafixar" : "Fixar"}
+                        aria-label={post.pinned ? "Desafixar mensagem" : "Fixar mensagem"}
                         className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
                       >
                         📌
@@ -322,6 +340,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                       <button
                         onClick={() => moderate(post, "delete")}
                         title="Apagar"
+                        aria-label="Apagar mensagem"
                         className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
                       >
                         🗑
@@ -329,6 +348,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                       <button
                         onClick={() => moderate(post, "ban")}
                         title="Banir participante"
+                        aria-label={`Banir ${post.author_name || "participante"}`}
                         className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
                       >
                         🚫
@@ -336,6 +356,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                     </>
                   )}
                 </span>
+                )}
               </div>
             );
           })}

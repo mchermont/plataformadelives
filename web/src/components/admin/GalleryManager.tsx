@@ -45,6 +45,7 @@ export function GalleryManager({ eventId }: { eventId: string }) {
   }
 
   async function remove(photo: EventPhoto) {
+    if (!confirm("Apagar esta foto? Não é possível desfazer.")) return;
     // apaga o arquivo também (operador tem delete no bucket)
     await supabase.storage.from("gallery").remove([photo.storage_path]);
     await supabase.from("event_photos").delete().eq("id", photo.id);

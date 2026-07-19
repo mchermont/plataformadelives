@@ -10,6 +10,44 @@ agências/clientes num painel multi-tenant.
 
 ---
 
+## Revisão de UX/UI — /impeccable critique ✅ (19/07/2026, migração 0021)
+
+Crítica dual-agent (design review + detector/scan manual) nas três telas
+centrais — sala do participante (`EventRoom.tsx`), painel Diretor
+(`LiveControlRoom.tsx`) e formulário de evento (`EventForm.tsx`). Todos os
+achados P0–P3 corrigidos nesta passagem:
+
+- [x] Confirmação em toda ação destrutiva sem exceção: banir/apagar no chat,
+      apagar foto (irreversível), excluir pergunta de Q&A, excluir pergunta de
+      quiz, remover resposta da fila de moderação
+- [x] Contador de pendências nas abas inativas do Diretor (perguntas/fotos)
+- [x] Fluxo de allowlist no EventForm não ejeta mais o organizador: evento
+      novo com allowlist mantém na própria edição em vez de navegar embora
+- [x] Rejeição silenciosa corrigida (migração 0021 + frontend): mensagem/foto
+      do próprio autor continua visível com selo "removida/rejeitada pela
+      moderação" em vez de sumir sem explicação
+- [x] Troca forçada de aba na sala removida (só o indicador pulsante convida,
+      sem mover o foco de quem está digitando)
+- [x] `max-w-2xl` nos formulários da coluna central do Diretor; prévia do
+      telão ganhou modal de ampliar (clique abre versão maior)
+- [x] Todos os ~20 campos do EventForm com `htmlFor`/`id` associando label ao
+      controle; campo "Tipo" de campo personalizado ganhou label visível
+- [x] Cancelar no EventForm usa o mesmo destino calculado do Salvar +
+      confirmação de descarte se houver alterações não salvas
+- [x] Controles de moderação/remoção (chat, fotos) acessíveis via
+      `focus-within` além de hover — funcionam em touch/teclado
+- [x] Abas da sala (até 5) com `overflow-x-auto` — rolam em vez de espremer
+      texto em telas estreitas
+- [x] Erros técnicos do Supabase traduzidos (`src/lib/friendlyError.ts`) no
+      Diretor e no EventForm; erro do EventForm rola automaticamente até a
+      visão (formulário longo, botão Salvar distante)
+- [x] Placeholder do campo de transmissão muda por provedor
+      (YouTube/Vimeo/Dacast/HLS)
+
+Snapshots das críticas em `web/.impeccable/critique/`.
+
+---
+
 ## Fase E — Motor de atividades interativas (estilo Mentimeter)
 
 **Objetivo:** uma infraestrutura única de "atividades" ao vivo (abrir → coletar

@@ -59,6 +59,7 @@ export function QAManager({ eventId }: { eventId: string }) {
   }
 
   async function remove(q: EventQuestion) {
+    if (!confirm("Apagar esta pergunta?")) return;
     await supabase.from("questions").delete().eq("id", q.id);
     await load();
   }
