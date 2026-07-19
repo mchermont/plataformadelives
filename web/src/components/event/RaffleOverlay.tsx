@@ -80,22 +80,42 @@ export function RaffleOverlay({ raffle }: { raffle: ScreenRaffle | null }) {
           </>
         ) : (
           <>
-            <div className="flex w-full flex-col items-center gap-2">
-              {winners.map((name, i) => (
-                <div
-                  key={`${raffle.id}-${i}`}
-                  className="telao-in w-full break-words rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 font-bold shadow-lg"
-                  style={{
-                    fontSize: winners.length <= 2 ? "1.5rem" : "1.1rem",
-                    animationDelay: `${0.2 + i * 0.6}s`,
-                    borderTopColor: "var(--brand, #0284c7)",
-                    borderTopWidth: 4,
-                  }}
-                >
-                  {raffle.kind === "coin" ? `🪙 ${name}` : `🏆 ${name}`}
-                </div>
-              ))}
-            </div>
+            {raffle.kind === "numbers" ? (
+              // números: chips lado a lado, quebrando em poucas linhas (sem scroll)
+              <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                {winners.map((n, i) => (
+                  <div
+                    key={`${raffle.id}-${i}`}
+                    className="telao-in rounded-xl border border-white/15 bg-white/10 px-4 py-2 font-black tabular-nums shadow-lg"
+                    style={{
+                      fontSize: winners.length <= 6 ? "1.75rem" : "1.25rem",
+                      animationDelay: `${0.2 + i * 0.35}s`,
+                      borderTopColor: "var(--brand, #0284c7)",
+                      borderTopWidth: 4,
+                    }}
+                  >
+                    {n}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex w-full flex-col items-center gap-2">
+                {winners.map((name, i) => (
+                  <div
+                    key={`${raffle.id}-${i}`}
+                    className="telao-in w-full break-words rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 font-bold shadow-lg"
+                    style={{
+                      fontSize: winners.length <= 2 ? "1.5rem" : "1.1rem",
+                      animationDelay: `${0.2 + i * 0.6}s`,
+                      borderTopColor: "var(--brand, #0284c7)",
+                      borderTopWidth: 4,
+                    }}
+                  >
+                    {raffle.kind === "coin" ? `🪙 ${name}` : `🏆 ${name}`}
+                  </div>
+                ))}
+              </div>
+            )}
             {raffle.kind === "participants" && raffle.total_entries != null && (
               <p
                 className="telao-in text-xs text-neutral-400"
