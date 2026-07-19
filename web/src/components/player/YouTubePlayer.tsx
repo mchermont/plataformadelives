@@ -60,14 +60,17 @@ interface YouTubePlayerProps {
 /**
  * Player white-label (Fase I): YouTube IFrame API com controls=0, capa
  * própria antes do play, overlay bloqueando cliques na UI do YouTube e
- * capa de volta na pausa/fim (esconde a logo de pausa). Limite conhecido:
- * os termos do YouTube não permitem remover 100% a marca.
+ * tela de "Carregando vídeo" (desfoque) durante buffer/pausa/fim — sem
+ * cortar a imagem. Limite conhecido: os termos do YouTube não permitem
+ * remover 100% a marca.
  */
 export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
-  const [phase, setPhase] = useState<"cover" | "playing" | "paused">("cover");
+  const [phase, setPhase] = useState<"cover" | "loading" | "playing" | "paused">(
+    "loading",
+  );
   const [ready, setReady] = useState(false);
   const [muted, setMuted] = useState(true); // autoplay exige começar mudo
   const [volume, setVolume] = useState(100);
@@ -98,6 +101,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
           onStateChange: (e) => {
             if (e.data === 1) setPhase("playing");
             else if (e.data === 2) setPhase("paused");
+            else if (e.data === 3) setPhase("loading"); // carregando/buffer
             else if (e.data === 0) setPhase("cover"); // fim → capa (sem tela do YouTube)
           },
         },
@@ -116,6 +120,17 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  // Se o autoplay travar (bloqueado pelo navegador), some o spinner e volta
+  // pro botão de play manual em vez de carregar pra sempre.
+  useEffect(() => {
+    if (phase !== "loading") return;
+    const t = setTimeout(
+      () => setPhase((p) => (p === "loading" ? "cover" : p)),
+      4000,
+    );
+    return () => clearTimeout(t);
+  }, [phase]);
 
   const play = useCallback(() => playerRef.current?.playVideo(), []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
@@ -153,8 +168,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       }`}
     >
       {/* pointer-events-none: nenhum hover/clique chega ao YouTube (sem
-          tooltip de URL). Zoom + overflow-hidden empurra o título/logo do
-          YouTube (fora da faixa central) para fora da área visível. */}
+          tooltip de URL) — todo controle é nosso via API. */}
       <div className="absolute inset-0 [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
         <div ref={hostRef} className="h-full w-full" />
       </div>
@@ -165,12 +179,12 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         onClick={phase === "playing" ? pause : play}
       />
 
-      {phase !== "playing" && (
+      {(phase === "cover" || phase === "paused") && (
         <button
           onClick={play}
           disabled={!ready}
           aria-label="Assistir"
-          className="absolute inset-0 z-20 flex items-center justify-center bg-black"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-2xl"
         >
           {coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -180,7 +194,6 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
               className="absolute inset-0 h-full w-full object-cover"
             />
           )}
-          <span className="absolute inset-0 bg-black/40" />
           <span
             className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full pl-1 text-2xl text-white shadow-2xl transition group-hover:scale-110 sm:h-20 sm:w-20 sm:text-3xl"
             style={{ background: "var(--brand, #0284c7)" }}
@@ -193,6 +206,14 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
             </span>
           )}
         </button>
+      )}
+
+      {/* carregando/buffer: desfoque + spinner, sem revelar a UI do YouTube */}
+      {phase === "loading" && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-2xl">
+          <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-white/25 border-t-white" />
+          <p className="text-sm font-medium text-white/90">Carregando vídeo…</p>
+        </div>
       )}
 
       {phase === "playing" && (

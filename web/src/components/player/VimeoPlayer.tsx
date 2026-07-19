@@ -60,14 +60,17 @@ interface VimeoPlayerProps {
 /**
  * Player white-label (Fase I): Vimeo Player.js com controls/title/byline/
  * portrait desligados, capa própria, overlay bloqueando cliques/hover no
- * iframe e zoom+crop empurrando qualquer chrome residual pra fora da área
- * visível. Mesma abordagem do YouTubePlayer.
+ * iframe e tela de "Carregando vídeo" (desfoque) durante buffer/transições,
+ * escondendo qualquer chrome residual sem cortar a imagem. Mesma abordagem
+ * do YouTubePlayer.
  */
 export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<VimeoPlayerInstance | null>(null);
-  const [phase, setPhase] = useState<"cover" | "playing" | "paused">("cover");
+  const [phase, setPhase] = useState<"cover" | "loading" | "playing" | "paused">(
+    "loading",
+  );
   const [ready, setReady] = useState(false);
   const [muted, setMuted] = useState(true); // autoplay exige começar mudo
   const [volume, setVolume] = useState(100);
@@ -94,6 +97,7 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
       playerRef.current.ready().then(() => setReady(true));
       playerRef.current.on("play", () => setPhase("playing"));
       playerRef.current.on("pause", () => setPhase("paused"));
+      playerRef.current.on("bufferstart", () => setPhase("loading"));
       playerRef.current.on("ended", () => setPhase("cover"));
     });
     return () => {
@@ -109,6 +113,17 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  // Se o autoplay travar (bloqueado pelo navegador), some o spinner e volta
+  // pro botão de play manual em vez de carregar pra sempre.
+  useEffect(() => {
+    if (phase !== "loading") return;
+    const t = setTimeout(
+      () => setPhase((p) => (p === "loading" ? "cover" : p)),
+      4000,
+    );
+    return () => clearTimeout(t);
+  }, [phase]);
 
   const play = useCallback(() => playerRef.current?.play(), []);
   const pause = useCallback(() => playerRef.current?.pause(), []);
@@ -151,12 +166,12 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
         onClick={phase === "playing" ? pause : play}
       />
 
-      {phase !== "playing" && (
+      {(phase === "cover" || phase === "paused") && (
         <button
           onClick={play}
           disabled={!ready}
           aria-label="Assistir"
-          className="absolute inset-0 z-20 flex items-center justify-center bg-black"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-2xl"
         >
           {coverUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -166,7 +181,6 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
               className="absolute inset-0 h-full w-full object-cover"
             />
           )}
-          <span className="absolute inset-0 bg-black/40" />
           <span
             className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full pl-1 text-2xl text-white shadow-2xl transition group-hover:scale-110 sm:h-20 sm:w-20 sm:text-3xl"
             style={{ background: "var(--brand, #0284c7)" }}
@@ -179,6 +193,13 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
             </span>
           )}
         </button>
+      )}
+
+      {phase === "loading" && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-2xl">
+          <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-white/25 border-t-white" />
+          <p className="text-sm font-medium text-white/90">Carregando vídeo…</p>
+        </div>
       )}
 
       {phase === "playing" && (
