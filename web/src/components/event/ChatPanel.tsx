@@ -8,6 +8,8 @@ interface ChatPanelProps {
   eventId: string;
   userId: string;
   isAdmin: boolean;
+  /** chat pré-moderado: mensagens de participantes entram na fila (0015) */
+  moderated?: boolean;
 }
 
 /** Paleta de cores de nome por autor (determinística via hash do id). */
@@ -39,7 +41,7 @@ function formatTime(value: string) {
   });
 }
 
-export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
+export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -102,11 +104,18 @@ export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
         { event: "UPDATE", schema: "public", table: "posts", filter: `event_id=eq.${eventId}` },
         (payload) => {
           const post = payload.new as Post;
-          setPosts((prev) =>
-            prev
-              .map((p) => (p.id === post.id ? post : p))
-              .filter((p) => isAdmin || !p.deleted_at),
-          );
+          // aprovação na moderação chega como UPDATE de uma mensagem que o
+          // participante ainda não tem — entra na posição certa por data
+          let added = false;
+          setPosts((prev) => {
+            const exists = prev.some((p) => p.id === post.id);
+            added = !exists;
+            const next = exists
+              ? prev.map((p) => (p.id === post.id ? post : p))
+              : [...prev, post].sort((a, b) => a.created_at.localeCompare(b.created_at));
+            return next.filter((p) => isAdmin || !p.deleted_at);
+          });
+          if (added) handleIncoming();
         },
       )
       .subscribe();
@@ -155,6 +164,18 @@ export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
     setSending(false);
   }
 
+  async function review(post: Post, ok: boolean) {
+    const supabase = supabaseRef.current;
+    if (ok) {
+      await supabase.from("posts").update({ approved: true }).eq("id", post.id);
+    } else {
+      await supabase
+        .from("posts")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", post.id);
+    }
+  }
+
   async function moderate(post: Post, action: "pin" | "delete" | "ban") {
     const supabase = supabaseRef.current;
     if (action === "pin") {
@@ -176,7 +197,14 @@ export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
   }
 
   const pinned = posts.filter((p) => p.pinned && !p.deleted_at);
-  const visible = posts.filter((p) => !p.deleted_at);
+  // pendentes de outros ficam fora do fluxo: participante não vê (RLS),
+  // operador vê na fila de aprovação acima do chat
+  const visible = posts.filter(
+    (p) => !p.deleted_at && (p.approved || p.author_id === userId),
+  );
+  const queue = isAdmin
+    ? posts.filter((p) => !p.approved && !p.deleted_at && p.author_id !== userId)
+    : [];
   const byId = new Map(posts.map((p) => [p.id, p]));
 
   return (
@@ -192,6 +220,45 @@ export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
               <span className="font-semibold">{p.author_name}:</span> {p.content}
             </div>
           ))}
+        </div>
+      )}
+
+      {queue.length > 0 && (
+        <div className="border-b border-amber-900 bg-amber-950/30 p-2">
+          <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-amber-400">
+            Fila de moderação ({queue.length})
+          </h4>
+          <div className="max-h-40 space-y-1 overflow-y-auto">
+            {queue.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-start justify-between gap-2 text-[13px] leading-snug"
+              >
+                <p className="min-w-0 break-words">
+                  <span className="font-semibold">
+                    {p.author_name || "Participante"}:
+                  </span>{" "}
+                  <span className="text-neutral-200">{p.content}</span>
+                </p>
+                <span className="flex shrink-0 gap-1">
+                  <button
+                    onClick={() => review(p, true)}
+                    title="Aprovar"
+                    className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    onClick={() => review(p, false)}
+                    title="Rejeitar"
+                    className="rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
+                  >
+                    ✕
+                  </button>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -223,7 +290,14 @@ export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
                     <span className="ml-1 font-normal text-neutral-500">(você)</span>
                   )}
                 </span>{" "}
-                <span className="text-neutral-200">{post.content}</span>
+                <span className={post.approved ? "text-neutral-200" : "text-neutral-400"}>
+                  {post.content}
+                </span>
+                {!post.approved && (
+                  <span className="ml-1.5 rounded bg-amber-500/15 px-1.5 align-middle text-[10px] text-amber-400">
+                    em moderação
+                  </span>
+                )}
                 <span className="ml-1.5 align-middle text-[10px] text-neutral-600">
                   {formatTime(post.created_at)}
                 </span>
@@ -284,6 +358,11 @@ export function ChatPanel({ eventId, userId, isAdmin }: ChatPanelProps) {
 
       <div className="border-t border-neutral-800 p-2">
         {error && <p className="mb-1.5 text-xs text-red-400">{error}</p>}
+        {moderated && !isAdmin && (
+          <p className="mb-1.5 text-[11px] text-neutral-500">
+            As mensagens passam por aprovação antes de aparecer para todos.
+          </p>
+        )}
         {replyTo && (
           <div className="mb-1.5 flex items-center justify-between gap-2 rounded-lg bg-neutral-800/60 px-2.5 py-1 text-xs">
             <span className="min-w-0 truncate text-neutral-400">

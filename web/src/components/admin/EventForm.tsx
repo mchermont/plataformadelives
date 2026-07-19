@@ -67,8 +67,10 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
     google_login_enabled: event?.google_login_enabled ?? true,
     capacity: event?.capacity ?? 1000,
     chat_enabled: event?.chat_enabled ?? true,
+    chat_moderation: event?.chat_moderation ?? false,
     quiz_enabled: event?.quiz_enabled ?? true,
     qa_enabled: event?.qa_enabled ?? false,
+    gallery_enabled: event?.gallery_enabled ?? false,
     qa_allow_anonymous: event?.qa_allow_anonymous ?? true,
     qa_moderation: event?.qa_moderation ?? false,
     brand_color: event?.brand_color ?? "#0284c7",
@@ -140,8 +142,10 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
       google_login_enabled: form.google_login_enabled,
       capacity: form.capacity,
       chat_enabled: form.chat_enabled,
+      chat_moderation: form.chat_moderation,
       quiz_enabled: form.quiz_enabled,
       qa_enabled: form.qa_enabled,
+      gallery_enabled: form.gallery_enabled,
       qa_allow_anonymous: form.qa_allow_anonymous,
       qa_moderation: form.qa_moderation,
       brand_color: form.brand_color,
@@ -512,7 +516,29 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             />
             Perguntas do público (Q&amp;A)
           </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.gallery_enabled}
+              onChange={(e) => set("gallery_enabled", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Galeria de fotos (moderação obrigatória)
+          </label>
         </div>
+        {form.chat_enabled && (
+          <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-300">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.chat_moderation}
+                onChange={(e) => set("chat_moderation", e.target.checked)}
+                className="h-4 w-4 accent-sky-500"
+              />
+              Aprovar mensagens do chat antes de publicar
+            </label>
+          </div>
+        )}
         {form.qa_enabled && (
           <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-300">
             <label className="flex items-center gap-2">

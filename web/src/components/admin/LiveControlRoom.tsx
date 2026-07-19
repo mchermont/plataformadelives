@@ -9,6 +9,7 @@ import { ChatPanel } from "@/components/event/ChatPanel";
 import { PresenceBadge } from "@/components/event/PresenceBadge";
 import { ActivityManager } from "./ActivityManager";
 import { QAManager } from "./QAManager";
+import { GalleryManager } from "./GalleryManager";
 
 interface LiveControlRoomProps {
   initialEvent: LiveEvent;
@@ -26,7 +27,7 @@ export function LiveControlRoom({
 }: LiveControlRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [busy, setBusy] = useState(false);
-  const [sideTab, setSideTab] = useState<"chat" | "perguntas">("chat");
+  const [sideTab, setSideTab] = useState<"chat" | "perguntas" | "fotos">("chat");
 
   useEffect(() => {
     const supabase = createClient();
@@ -133,9 +134,15 @@ export function LiveControlRoom({
             Chat e perguntas · moderação
           </h2>
           <div className="flex h-[70dvh] flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:sticky lg:top-4">
-            {event.qa_enabled && (
+            {(event.qa_enabled || event.gallery_enabled) && (
               <div className="flex border-b border-neutral-800">
-                {(["chat", "perguntas"] as const).map((t) => (
+                {(
+                  [
+                    ["chat", "Chat"],
+                    ...(event.qa_enabled ? [["perguntas", "Perguntas"]] : []),
+                    ...(event.gallery_enabled ? [["fotos", "Fotos"]] : []),
+                  ] as [typeof sideTab, string][]
+                ).map(([t, label]) => (
                   <button
                     key={t}
                     onClick={() => setSideTab(t)}
@@ -145,7 +152,7 @@ export function LiveControlRoom({
                         : "text-neutral-400 hover:text-neutral-200"
                     }`}
                   >
-                    {t === "chat" ? "Chat" : "Perguntas"}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -153,8 +160,15 @@ export function LiveControlRoom({
             <div className="min-h-0 flex-1">
               {sideTab === "perguntas" && event.qa_enabled ? (
                 <QAManager eventId={event.id} />
+              ) : sideTab === "fotos" && event.gallery_enabled ? (
+                <GalleryManager eventId={event.id} />
               ) : (
-                <ChatPanel eventId={event.id} userId={userId} isAdmin />
+                <ChatPanel
+                  eventId={event.id}
+                  userId={userId}
+                  isAdmin
+                  moderated={event.chat_moderation}
+                />
               )}
             </div>
           </div>

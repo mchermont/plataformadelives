@@ -1,6 +1,6 @@
 # Roadmap
 
-> Atualizado em 18/07/2026. Fases concluídas resumidas no fim do arquivo.
+> Atualizado em 19/07/2026. Fases concluídas resumidas no fim do arquivo.
 
 ## Visão
 
@@ -97,22 +97,29 @@ eventos corporativos.
 - Config no EventForm: "Perguntas do público (Q&A)" + anônimas + moderação;
   aba "Perguntas" na sala só aparece com Q&A habilitado
 
-## Fase G — Moderação e mídia
+## Fase G — Moderação e mídia ✅ (19/07/2026, migrações 0015–0017)
 
 **Objetivo:** controle editorial total do que aparece na live + conteúdo de
 apoio.
 
-- [ ] **Chat pré-moderado** — opção por evento ("chat com moderação: sim/não").
-      Com moderação ativa, mensagem só publica após aprovação (fila no Diretor).
-      Independente do modo, colaboradores habilitados sempre podem apagar
-      mensagem e banir usuário (já existe hoje)
-- [ ] **Galeria de fotos dos participantes** — envio de foto pelos
-      participantes; **moderação obrigatória** (nada aparece sem aprovação);
-      galeria visível na sala durante a live; limites de tamanho/formato;
-      bucket próprio no Storage
-- [ ] **Materiais do evento** — organizador disponibiliza arquivos para
-      download (PPT, PDF, vídeo, imagem, áudio); aba/box na sala; controle de
-      quais materiais estão visíveis e quando
+- [x] **Chat pré-moderado** (0015) — opção por evento no EventForm ("Aprovar
+      mensagens do chat antes de publicar"). `posts.approved` definido por
+      trigger no insert (operador de chat publica direto); participante vê a
+      própria mensagem com selo "em moderação"; fila de aprovação no topo do
+      ChatPanel para operadores (Diretor e sala); aprovação chega aos
+      participantes via Realtime (UPDATE vira mensagem nova na posição certa).
+      Colaboradores seguem podendo apagar/banir em qualquer modo
+- [x] **Galeria de fotos dos participantes** (0016) — bucket próprio `gallery`
+      (público, 10 MB, JPG/PNG/WebP no próprio Storage); envio via RPC
+      `submit_photo` (sempre `pending`, máx. 10 fotos/pessoa); **moderação
+      obrigatória** com fila na aba "Fotos" do Diretor (aprovar/rejeitar/
+      apagar, moderação usa `can_chat`); aba "Fotos" na sala com grade das
+      aprovadas + as próprias pendentes; autor pode remover a própria foto
+- [x] **Materiais do evento** (0017) — bucket `materials` (100 MB); gestão na
+      página do evento (`/admin/eventos/[id]`): upload, renomear, exibir/
+      ocultar e apagar (permissão = gestor do evento ou `can_stream`); aba
+      "Materiais" na sala aparece só quando há material visível, com ícone por
+      tipo, tamanho e download direto; visibilidade reflete na hora (Realtime)
 
 ## Fase H — Sorteios
 

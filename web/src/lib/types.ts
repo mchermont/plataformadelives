@@ -135,6 +135,25 @@ export interface LiveEvent {
   qa_enabled: boolean;
   qa_allow_anonymous: boolean;
   qa_moderation: boolean;
+  /** chat pré-moderado (migração 0015): mensagem só publica após aprovação */
+  chat_moderation: boolean;
+  /** galeria de fotos dos participantes (migração 0016), moderação obrigatória */
+  gallery_enabled: boolean;
+}
+
+// ===== Galeria de fotos (migração 0016, Fase G.2) =====
+
+export type PhotoStatus = "pending" | "approved" | "rejected";
+
+export interface EventPhoto {
+  id: string;
+  event_id: string;
+  author_id: string;
+  /** desnormalizado (padrão de posts) — só aparece na moderação */
+  author_name: string;
+  storage_path: string;
+  status: PhotoStatus;
+  created_at: string;
 }
 
 // ===== Q&A com upvote (migração 0014, Fase F) =====
@@ -151,6 +170,21 @@ export interface EventQuestion {
   content: string;
   status: QuestionStatusQA;
   votes_count: number;
+  created_at: string;
+}
+
+// ===== Materiais do evento (migração 0017, Fase G.3) =====
+
+export interface EventMaterial {
+  id: string;
+  event_id: string;
+  title: string;
+  storage_path: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  visible: boolean;
+  added_by: string | null;
   created_at: string;
 }
 
@@ -193,6 +227,8 @@ export interface Post {
   created_at: string;
   /** mensagem citada (reply), migração 0012 */
   reply_to_id: string | null;
+  /** false = aguardando moderação (migração 0015) */
+  approved: boolean;
 }
 
 export interface Quiz {

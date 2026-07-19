@@ -8,6 +8,8 @@ import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { StreamPlayer } from "@/components/player/StreamPlayer";
 import { ChatPanel } from "./ChatPanel";
 import { QAPanel } from "./QAPanel";
+import { PhotoGallery } from "./PhotoGallery";
+import { MaterialsPanel, useMaterials } from "./Materials";
 import { PresenceBadge } from "./PresenceBadge";
 import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
 import { ActivityOverlay, InteractionPanel, useActivities } from "./Activities";
@@ -19,13 +21,14 @@ interface EventRoomProps {
   isAdmin: boolean;
 }
 
-type Tab = "chat" | "perguntas" | "interacao";
+type Tab = "chat" | "perguntas" | "interacao" | "fotos" | "materiais";
 
 export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [tab, setTab] = useState<Tab>("chat");
   const { floats, send } = useReactions(initialEvent.id);
   const activities = useActivities(initialEvent.id, userId);
+  const materials = useMaterials(initialEvent.id);
   const router = useRouter();
 
   // Atividade abriu ao vivo → traz o participante para a aba Interação
@@ -179,6 +182,30 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 Perguntas
               </button>
             )}
+            {event.gallery_enabled && (
+              <button
+                onClick={() => setTab("fotos")}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === "fotos"
+                    ? "border-b-2 border-[var(--brand)] text-white"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                Fotos
+              </button>
+            )}
+            {materials.length > 0 && (
+              <button
+                onClick={() => setTab("materiais")}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium transition ${
+                  tab === "materiais"
+                    ? "border-b-2 border-[var(--brand)] text-white"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                Materiais
+              </button>
+            )}
             {activities.activities.length > 0 && (
               <button
                 onClick={() => {
@@ -200,9 +227,18 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
           </div>
           <div className="min-h-0 flex-1">
             {tab === "chat" && event.chat_enabled ? (
-              <ChatPanel eventId={event.id} userId={userId} isAdmin={isAdmin} />
+              <ChatPanel
+                eventId={event.id}
+                userId={userId}
+                isAdmin={isAdmin}
+                moderated={event.chat_moderation}
+              />
             ) : tab === "perguntas" && event.qa_enabled ? (
               <QAPanel event={event} userId={userId} />
+            ) : tab === "fotos" && event.gallery_enabled ? (
+              <PhotoGallery eventId={event.id} userId={userId} />
+            ) : tab === "materiais" && materials.length > 0 ? (
+              <MaterialsPanel materials={materials} />
             ) : (
               <InteractionPanel state={activities} />
             )}

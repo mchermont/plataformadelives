@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { EventAllowlistEntry, EventField, LiveEvent } from "@/lib/types";
 import { EventForm } from "@/components/admin/EventForm";
 import { EventTeam } from "@/components/admin/EventTeam";
+import { MaterialsManager } from "@/components/admin/MaterialsManager";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function EditarEventoPage({
         allowlist={(allowlist as EventAllowlistEntry[]) ?? []}
         userId={user.id}
       />
+      <div className="mt-10 max-w-2xl border-t border-neutral-800 pt-8">
+        <MaterialsManager eventId={event.id} userId={user.id} />
+      </div>
       <div className="mt-10 max-w-2xl border-t border-neutral-800 pt-8">
         <EventTeam eventId={event.id} clientId={event.client_id} />
       </div>

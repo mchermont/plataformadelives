@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0014.
+  a última aplicada é a 0017.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -37,7 +37,8 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 
 - Permissões por evento = 5 caixas em `event_members`
   (stream/chat/quiz/registrations/reports) via `has_event_role()`;
-  `can_quiz` = "Quiz e interações"; moderação de chat e Q&A usa `can_chat`.
+  `can_quiz` = "Quiz e interações"; moderação de chat, Q&A e galeria de fotos
+  usa `can_chat`; materiais p/ download usam `can_stream` (ou gestor).
 - **Anonimato**: telas públicas anônimas; export CSV identificado (padrão
   pt-BR: separador `;` + BOM UTF-8).
 - **Atividades interativas** (tabelas `activities`/`activity_responses`):
@@ -51,11 +52,12 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   (regra do Marcelo). Chat/listas rolam só internamente.
 - Textos da UI em pt-BR; CSVs e datas em formato brasileiro.
 
-## Estado (18/07/2026)
+## Estado (19/07/2026)
 
 Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
-F (Q&A com upvote). Próximas: G (chat pré-moderado, galeria de fotos com
-moderação obrigatória, materiais p/ download), H (sorteios auditáveis),
-I (player YouTube white-label), J (streaming próprio). Pendências avulsas:
+F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
+obrigatória, materiais p/ download — buckets `gallery` e `materials`).
+Próximas: H (sorteios auditáveis), I (player YouTube white-label),
+J (streaming próprio). Pendências avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.
