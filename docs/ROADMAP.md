@@ -121,22 +121,27 @@ apoio.
       "Materiais" na sala aparece só quando há material visível, com ícone por
       tipo, tamanho e download direto; visibilidade reflete na hora (Realtime)
 
-## Fase H — Sorteios
+## Fase H — Sorteios ✅ (19/07/2026, migração 0018)
 
 **Objetivo:** sorteios ao vivo com prova de lisura, integrados à base de
 participantes.
 
-- [ ] **Sorteio entre participantes** — fontes: inscritos aprovados, presentes
-      na sala (attendance) ou lista colada/importada (.txt/planilha)
-- [ ] Regras: nº de ganhadores, permitir/impedir ganhar mais de uma vez,
-      exclusões (ex.: equipe)
-- [ ] **Sorteio de números** — intervalo personalizado (ex.: 1–100), quantidade
-      por rodada, sem repetição
-- [ ] **Visuais de sorteio** — roleta giratória e cara ou coroa para dinâmicas
-      rápidas; animação de revelação na tela pública
-- [ ] **Auditoria** — log de cada sorteio (data/hora, semente aleatória,
-      participantes elegíveis, resultado) armazenado e exportável, garantindo
-      resultado matemático e não manipulado (estilo Sorteador UFSCar)
+- [x] **Sorteio entre participantes** — fontes: inscritos aprovados, presentes
+      na sala agora (attendance < 5 min) ou lista colada (um nome por linha)
+- [x] Regras: nº de ganhadores, excluir equipe (event_members + client_members,
+      padrão ligado), excluir quem já ganhou nesta live
+- [x] **Sorteio de números** — intervalo personalizado (máx. 100.000 números),
+      quantidade por rodada, sem repetir números já sorteados no evento
+- [x] **Visuais de sorteio** — bloco "Sorteios" no Diretor; no telão: cartões
+      de revelação escalonada, roleta giratória (opt-in) e cara ou coroa com
+      moeda animada; sorteio exibido tem prioridade sobre a atividade no
+      get_screen_state ("📺 Exibir no telão" / "Ocultar")
+- [x] **Auditoria** — sorteio roda no servidor (RPC `run_raffle`) com semente
+      aleatória e algoritmo determinístico (ganhadores = menores
+      md5(semente‖chave), reproduzível externamente); snapshot dos elegíveis +
+      config + semente gravados na tabela `raffles`, **sem policy de UPDATE**
+      (log imutável); export CSV de auditoria por sorteio; permissão =
+      `can_quiz`
 - [ ] Integração com redes sociais (comentários de Instagram/Facebook):
       **avaliar depois** — depende de APIs da Meta e revisão de permissões;
       fora do escopo próximo

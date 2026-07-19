@@ -53,3 +53,28 @@ body {
 .telao-in {
   animation: telao-in 0.6s ease-out both;
 }
+
+/* Sorteios no telão (Fase H) */
+@keyframes raffle-wheel-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(1980deg);
+  }
+}
+.raffle-wheel-spin {
+  animation: raffle-wheel-spin 3.5s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@keyframes raffle-coin-flip {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(1800deg);
+  }
+}
+.raffle-coin-flip {
+  animation: raffle-coin-flip 2.5s cubic-bezier(0.3, 0.7, 0.3, 1) both;
+}

@@ -390,6 +390,63 @@ export interface ActivityResults {
   items?: MatrixItemResults[];
 }
 
+// ===== Sorteios (migração 0018, Fase H) =====
+
+export type RaffleKind = "participants" | "numbers" | "coin";
+export type RaffleVisual = "cards" | "wheel" | "coin";
+export type RaffleSource = "registrations" | "attendance" | "list";
+
+export interface RaffleWinner {
+  /** user_id (fontes do banco) ou o próprio nome (lista colada) */
+  key: string;
+  name: string;
+}
+
+export interface RaffleConfig {
+  source?: RaffleSource;
+  winners?: number;
+  exclude_team?: boolean;
+  exclude_winners?: boolean;
+  list?: string[];
+  min?: number;
+  max?: number;
+  count?: number;
+  exclude_drawn?: boolean;
+}
+
+export interface Raffle {
+  id: string;
+  event_id: string;
+  kind: RaffleKind;
+  visual: RaffleVisual;
+  title: string;
+  config: RaffleConfig;
+  /** semente do sorteio: ganhadores = menores md5(semente || chave) */
+  seed: string;
+  /** snapshot dos elegíveis (auditoria) */
+  entries: RaffleWinner[] | { min: number; max: number; excluded: number[] };
+  result: RaffleWinner[] | number[] | string[];
+  displayed: boolean;
+  drawn_by: string | null;
+  created_at: string;
+}
+
+export const RAFFLE_KIND_LABELS: Record<RaffleKind, string> = {
+  participants: "Participantes",
+  numbers: "Números",
+  coin: "Cara ou coroa",
+};
+
+/** Sorteio exibido no telão (parte do get_screen_state) */
+export interface ScreenRaffle {
+  id: string;
+  kind: RaffleKind;
+  visual: RaffleVisual;
+  title: string;
+  result: RaffleWinner[] | number[] | string[];
+  total_entries: number | null;
+}
+
 /** Estado público do telão (RPC get_screen_state) */
 export interface ScreenState {
   event: {
@@ -400,6 +457,8 @@ export interface ScreenState {
   };
   activity: Pick<Activity, "id" | "type" | "title" | "status" | "config"> | null;
   results: ActivityResults | null;
+  /** sorteio exibido (migração 0018) — tem prioridade sobre a atividade */
+  raffle: ScreenRaffle | null;
 }
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {

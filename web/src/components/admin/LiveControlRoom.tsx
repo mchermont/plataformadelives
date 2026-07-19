@@ -10,6 +10,7 @@ import { PresenceBadge } from "@/components/event/PresenceBadge";
 import { ActivityManager } from "./ActivityManager";
 import { QAManager } from "./QAManager";
 import { GalleryManager } from "./GalleryManager";
+import { RaffleManager } from "./RaffleManager";
 
 interface LiveControlRoomProps {
   initialEvent: LiveEvent;
@@ -127,6 +128,7 @@ export function LiveControlRoom({
             Atividades interativas · quiz, enquete, nuvem
           </h2>
           <ActivityManager eventId={event.id} />
+          <RaffleManager eventId={event.id} />
         </section>
 
         <section className="flex flex-col">

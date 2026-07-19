@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0017.
+  a última aplicada é a 0018.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -48,6 +48,9 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   (spotlight no telão), ordering, matrix. Inserts só via RPCs
   (`submit_activity_response`, `answer_question`, `submit_question`).
 - Blocklist de texto livre: tabela `banned_words` (match por palavra inteira).
+- **Sorteios** (tabela `raffles`, permissão `can_quiz`): só via RPC
+  `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log
+  imutável, CSV de auditoria); exibição no telão via `raffle_display`.
 - **UI sem scroll** nas áreas de interação: ou pagina, ou cabe na tela
   (regra do Marcelo). Chat/listas rolam só internamente.
 - Textos da UI em pt-BR; CSVs e datas em formato brasileiro.
@@ -56,8 +59,8 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 
 Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
 F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
-obrigatória, materiais p/ download — buckets `gallery` e `materials`).
-Próximas: H (sorteios auditáveis), I (player YouTube white-label),
-J (streaming próprio). Pendências avulsas:
+obrigatória, materiais p/ download — buckets `gallery` e `materials`),
+H (sorteios auditáveis no Diretor + telão). Próximas: I (player YouTube
+white-label), J (streaming próprio). Pendências avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.
