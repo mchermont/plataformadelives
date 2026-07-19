@@ -52,13 +52,15 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log
   imutável, CSV de auditoria); exibição no telão via `raffle_display`.
 - **Player white-label** (`YouTubePlayer.tsx`/`VimeoPlayer.tsx`): sem
-  controles/logo/título nativos, autoplay mudo, zoom+crop, clique-direito
-  bloqueado. `stream_ref` não vai no HTML inicial nem no Realtime bruto da
-  tabela `events` (vazava a linha inteira) — a sala usa `get_room_event`
+  controles/logo/título nativos (sem zoom/crop — cortava imagem, removido),
+  autoplay mudo. `stream_ref` não vai no HTML inicial nem no Realtime bruto
+  da tabela `events` (vazava a linha inteira) — a sala usa `get_room_event`
   (RPC, polling autenticado) que só inclui a fonte quando `status = 'live'`.
-  Limite: a requisição ao YouTube/Vimeo sempre aparece na aba Network do
-  DevTools — impossível de evitar em embed client-side (só resolve na
-  Fase J, streaming próprio).
+  `DisableInspect.tsx` bloqueia clique-direito e atalhos comuns (F12,
+  Ctrl+Shift+I/J/C, Ctrl+U) na sala e no telão — **best-effort, não é
+  segurança real**: o navegador reserva F12/menu de DevTools independente
+  de JS, e a requisição ao YouTube/Vimeo sempre aparece na aba Network.
+  Ocultar de verdade só com streaming próprio (Fase J).
 - **UI sem scroll** nas áreas de interação: ou pagina, ou cabe na tela
   (regra do Marcelo). Chat/listas rolam só internamente.
 - Textos da UI em pt-BR; CSVs e datas em formato brasileiro.

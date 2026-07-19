@@ -142,12 +142,8 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
         fullscreen ? "h-full" : "aspect-video rounded-xl"
       }`}
     >
-      <div className="absolute inset-0 overflow-hidden [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
-        <div
-          ref={hostRef}
-          className="h-full w-full scale-[1.18]"
-          style={{ transformOrigin: "center" }}
-        />
+      <div className="absolute inset-0 [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
+        <div ref={hostRef} className="h-full w-full" />
       </div>
 
       <div

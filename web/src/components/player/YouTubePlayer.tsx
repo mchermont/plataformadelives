@@ -155,12 +155,8 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       {/* pointer-events-none: nenhum hover/clique chega ao YouTube (sem
           tooltip de URL). Zoom + overflow-hidden empurra o título/logo do
           YouTube (fora da faixa central) para fora da área visível. */}
-      <div className="absolute inset-0 overflow-hidden [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
-        <div
-          ref={hostRef}
-          className="h-full w-full scale-[1.18]"
-          style={{ transformOrigin: "center" }}
-        />
+      <div className="absolute inset-0 [&_iframe]:pointer-events-none [&_iframe]:h-full [&_iframe]:w-full">
+        <div ref={hostRef} className="h-full w-full" />
       </div>
 
       {/* bloqueia cliques na UI do YouTube (logo, título, sugestões) */}

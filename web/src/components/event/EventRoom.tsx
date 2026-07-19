@@ -14,6 +14,7 @@ import { RaffleOverlay, useDisplayedRaffle } from "./RaffleOverlay";
 import { PresenceBadge } from "./PresenceBadge";
 import { ReactionBar, ReactionOverlay, useReactions } from "./Reactions";
 import { ActivityOverlay, InteractionPanel, useActivities } from "./Activities";
+import { DisableInspect } from "./DisableInspect";
 
 interface EventRoomProps {
   initialEvent: LiveEvent;
@@ -83,9 +84,11 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
 
   return (
     <div
+      onContextMenu={(e) => e.preventDefault()}
       className="flex min-h-dvh flex-col lg:h-dvh lg:overflow-hidden"
       style={{ "--brand": event.brand_color } as React.CSSProperties}
     >
+      <DisableInspect />
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 px-4 py-2 md:px-6">
         <div className="flex items-center gap-3">
           {event.brand_logo_url && (

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RaffleWinner, ScreenRaffle, ScreenState } from "@/lib/types";
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
+import { DisableInspect } from "@/components/event/DisableInspect";
 
 const WHEEL_COLORS = [
   "#0ea5e9",
@@ -159,6 +160,7 @@ export function TelaoView({ eventId, bg }: { eventId: string; bg: string }) {
 
   return (
     <div
+      onContextMenu={(e) => e.preventDefault()}
       className="flex min-h-dvh flex-col items-center justify-center p-[4vw]"
       style={
         {
@@ -173,6 +175,7 @@ export function TelaoView({ eventId, bg }: { eventId: string; bg: string }) {
         } as React.CSSProperties
       }
     >
+      <DisableInspect />
       {raffle ? (
         // sorteio exibido tem prioridade sobre a atividade
         <RaffleScreen key={raffle.id} raffle={raffle} />
