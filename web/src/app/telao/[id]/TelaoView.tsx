@@ -63,7 +63,7 @@ export function TelaoView({ eventId, bg }: { eventId: string; bg: string }) {
       }
     >
       {activity ? (
-        <div className="w-full max-w-6xl text-center">
+        <div key={activity.id} className="telao-in w-full max-w-6xl text-center">
           <h1
             className="mb-[4vh] text-balance font-bold leading-tight"
             style={{ fontSize: "min(4.5vw, 3.5rem)" }}

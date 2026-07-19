@@ -19,6 +19,7 @@ const TYPE_ICONS: Record<ActivityType, string> = {
   scale: "🎚️",
   open_text: "💬",
   ordering: "🔀",
+  matrix: "🧭",
 };
 
 /** Tipos criáveis na barra (o Ranking geral é um controle dentro do quiz). */
@@ -29,6 +30,7 @@ const CREATABLE_TYPES: ActivityType[] = [
   "scale",
   "open_text",
   "ordering",
+  "matrix",
 ];
 
 /** Textos do popup explicativo de cada tipo. */
@@ -68,6 +70,11 @@ const TYPE_HELP: Record<ActivityType, string[]> = {
   ordering: [
     "Você lista itens e cada participante os ordena com as setas ↑↓ (funciona bem no celular), enviando uma vez.",
     "O resultado é o ranking por posição média: o item com menor média fica no topo — bom para priorização e preferências.",
+  ],
+  matrix: [
+    "Cada participante avalia os itens em DOIS eixos (ex.: impacto × esforço), com um slider de 1 a 5 para cada eixo.",
+    "O resultado é o mapa 2×2: cada item vira um ponto posicionado pela média dos votos — ótimo para priorização visual (o quadrante superior direito é o \"faça primeiro\").",
+    "Dê nomes claros aos eixos ao criar (ex.: X = esforço, Y = impacto).",
   ],
 };
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
@@ -120,6 +127,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
   const [scaleMax, setScaleMax] = useState(5);
   const [minLabel, setMinLabel] = useState("");
   const [maxLabel, setMaxLabel] = useState("");
+  const [xLabel, setXLabel] = useState("");
+  const [yLabel, setYLabel] = useState("");
   const [highlight, setHighlight] = useState(true);
   const [liveResults, setLiveResults] = useState(true);
   const [moderation, setModeration] = useState(false);
@@ -211,7 +220,10 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       setError("Escreva a pergunta/título da atividade.");
       return;
     }
-    if ((type === "poll" || type === "ordering") && options.length < 2) {
+    if (
+      (type === "poll" || type === "ordering" || type === "matrix") &&
+      options.length < 2
+    ) {
       setError("Informe pelo menos 2 opções/itens (um por linha).");
       return;
     }
@@ -259,7 +271,14 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                       ...(minLabel.trim() ? { min_label: minLabel.trim() } : {}),
                       ...(maxLabel.trim() ? { max_label: maxLabel.trim() } : {}),
                     }
-                  : {},
+                  : type === "matrix"
+                    ? {
+                        options,
+                        scale_max: 5,
+                        ...(xLabel.trim() ? { x_label: xLabel.trim() } : {}),
+                        ...(yLabel.trim() ? { y_label: yLabel.trim() } : {}),
+                      }
+                    : {},
         // quiz revela gabarito só no "Exibir resultado"; ranking geral é sempre ao vivo
         results_visible:
           type === "quiz" ? "after_publish" : type === "quiz_ranking" ? "live" : liveResults ? "live" : "after_publish",
@@ -279,6 +298,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       setStatementsText("");
       setMinLabel("");
       setMaxLabel("");
+      setXLabel("");
+      setYLabel("");
       setShowForm(false);
       if (created && type === "quiz") setExpanded(created.id); // já abre p/ adicionar perguntas
       await load();
@@ -489,6 +510,13 @@ export function ActivityManager({ eventId }: { eventId: string }) {
           return (row.payload.order ?? [])
             .map((optIdx, pos) => `${pos + 1}º ${options[optIdx] ?? optIdx}`)
             .join(" | ");
+        case "matrix":
+          return options
+            .map(
+              (o, i) =>
+                `${o}: ${activity.config.x_label || "x"}=${row.payload.xs?.[i] ?? ""}, ${activity.config.y_label || "y"}=${row.payload.ys?.[i] ?? ""}`,
+            )
+            .join(" | ");
         default:
           return "";
       }
@@ -569,11 +597,13 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                         ? "Título (ex.: Avalie as afirmações abaixo)"
                         : type === "open_text"
                           ? "Pergunta aberta (ex.: Qual sua maior dúvida?)"
-                          : "Título (ex.: Ordene por prioridade)"
+                          : type === "ordering"
+                            ? "Título (ex.: Ordene por prioridade)"
+                            : "Título (ex.: Priorize os projetos: impacto × esforço)"
             }
             className={inputClass}
           />
-          {(type === "poll" || type === "ordering") && (
+          {(type === "poll" || type === "ordering" || type === "matrix") && (
             <textarea
               value={optionsText}
               onChange={(e) => setOptionsText(e.target.value)}
@@ -581,10 +611,38 @@ export function ActivityManager({ eventId }: { eventId: string }) {
               placeholder={
                 type === "poll"
                   ? "Uma opção por linha\nOpção A\nOpção B"
-                  : "Um item por linha (os participantes ordenam)\nItem A\nItem B\nItem C"
+                  : type === "ordering"
+                    ? "Um item por linha (os participantes ordenam)\nItem A\nItem B\nItem C"
+                    : "Um item por linha (avaliados nos dois eixos)\nProjeto A\nProjeto B"
               }
               className={inputClass}
             />
+          )}
+          {type === "matrix" && (
+            <div className="flex flex-wrap gap-3">
+              <div className="min-w-36 flex-1">
+                <label className="mb-1 block text-xs text-neutral-400">
+                  Eixo X (horizontal)
+                </label>
+                <input
+                  value={xLabel}
+                  onChange={(e) => setXLabel(e.target.value)}
+                  placeholder="ex.: esforço"
+                  className={inputClass}
+                />
+              </div>
+              <div className="min-w-36 flex-1">
+                <label className="mb-1 block text-xs text-neutral-400">
+                  Eixo Y (vertical)
+                </label>
+                <input
+                  value={yLabel}
+                  onChange={(e) => setYLabel(e.target.value)}
+                  placeholder="ex.: impacto"
+                  className={inputClass}
+                />
+              </div>
+            </div>
           )}
           {type === "scale" && (
             <>

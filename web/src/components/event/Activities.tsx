@@ -158,6 +158,13 @@ function ActivityCard({
   const [order, setOrder] = useState<number[]>(() =>
     orderOptions.map((_, i) => i),
   );
+  // matrix: um par de valores (x, y) por item
+  const [xs, setXs] = useState<number[]>(() =>
+    orderOptions.map(() => Math.ceil(scaleMax / 2)),
+  );
+  const [ys, setYs] = useState<number[]>(() =>
+    orderOptions.map(() => Math.ceil(scaleMax / 2)),
+  );
 
   function moveItem(pos: number, delta: number) {
     setOrder((cur) => {
@@ -472,6 +479,96 @@ function ActivityCard({
             </p>
           )}
         </>
+      ) : activity.type === "matrix" ? (
+        <div className="mb-3 space-y-3">
+          {isOpen && mine.length === 0 ? (
+            <>
+              {orderOptions.length > 1 && (
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  Item {Math.min(scalePage, orderOptions.length - 1) + 1} de{" "}
+                  {orderOptions.length}
+                </p>
+              )}
+              {(() => {
+                const i = Math.min(scalePage, orderOptions.length - 1);
+                const isLast = i === orderOptions.length - 1;
+                const axes: {
+                  label: string;
+                  values: number[];
+                  set: React.Dispatch<React.SetStateAction<number[]>>;
+                }[] = [
+                  {
+                    label: activity.config.x_label || "Eixo X",
+                    values: xs,
+                    set: setXs,
+                  },
+                  {
+                    label: activity.config.y_label || "Eixo Y",
+                    values: ys,
+                    set: setYs,
+                  },
+                ];
+                return (
+                  <>
+                    <p className="text-sm font-medium">{orderOptions[i]}</p>
+                    {axes.map((axis) => (
+                      <div key={axis.label}>
+                        <div className="mb-1 flex items-baseline justify-between gap-3 text-xs text-neutral-400">
+                          <span>{axis.label}</span>
+                          <span className="font-mono tabular-nums text-[var(--brand,#38bdf8)]">
+                            {axis.values[i]}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={1}
+                          max={scaleMax}
+                          step={1}
+                          value={axis.values[i]}
+                          onChange={(e) =>
+                            axis.set((cur) =>
+                              cur.map((v, j) =>
+                                j === i ? Number(e.target.value) : v,
+                              ),
+                            )
+                          }
+                          className="w-full accent-[var(--brand,#0284c7)]"
+                        />
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => setScalePage(i - 1)}
+                        disabled={i === 0}
+                        className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
+                      >
+                        ← Anterior
+                      </button>
+                      {isLast ? (
+                        <button
+                          onClick={() => submit({ xs, ys })}
+                          disabled={busy}
+                          className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+                        >
+                          Enviar avaliação
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setScalePage(i + 1)}
+                          className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-1.5 text-sm font-semibold text-white"
+                        >
+                          Próxima →
+                        </button>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </>
+          ) : mine.length > 0 ? (
+            <p className="text-xs text-neutral-400">Avaliação registrada!</p>
+          ) : null}
+        </div>
       ) : activity.type === "ordering" ? (
         <div className="mb-3 space-y-2">
           {isOpen && mine.length === 0 ? (

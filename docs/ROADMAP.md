@@ -72,9 +72,13 @@ para atividades.
 - [x] **Ranking (ordering)** (participante ordena com setas ↑↓; resultado
       por posição média, menor média = topo)
 
-### E.3 — Avançado
-- [ ] **Matrix 2×2** (itens posicionados em dois eixos; média ponderada)
-- [ ] Refinamentos do telão (temas, chroma key, animações de entrada)
+### E.3 — Avançado ✅ (18/07/2026, migração 0013)
+- [x] **Matrix 2×2** (itens avaliados em dois eixos com sliders 1–5,
+      paginado por item; resultado = pontos no quadrante pela média dos
+      votos, com rótulos de eixo configuráveis)
+- [x] Refinamentos do telão (chroma key via ?bg=green já existia; animação
+      de entrada telao-in ao trocar de atividade). Temas ficam para depois
+      junto do white-label do player (Fase I)
 
 ## Fase F — Q&A com upvote
 

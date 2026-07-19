@@ -282,6 +282,69 @@ export function ActivityResultsView({
     );
   }
 
+  if (activity.type === "matrix") {
+    const items = results.items ?? [];
+    const scaleMax = results.scale_max ?? activity.config.scale_max ?? 5;
+    const pos = (v: number | null) =>
+      v === null ? 50 : ((v - 1) / Math.max(1, scaleMax - 1)) * 100;
+    return (
+      <div className={screen ? "space-y-4" : "space-y-3"}>
+        <div
+          className={`relative mx-auto aspect-square w-full rounded-xl border border-neutral-800 bg-neutral-900/60 ${
+            screen ? "max-w-[70vh]" : "max-w-72"
+          }`}
+        >
+          {/* linhas centrais dos quadrantes */}
+          <div className="absolute inset-y-0 left-1/2 w-px bg-neutral-700" />
+          <div className="absolute inset-x-0 top-1/2 h-px bg-neutral-700" />
+          {/* rótulos dos eixos */}
+          <span
+            className={`absolute bottom-1 right-2 text-neutral-500 ${
+              screen ? "text-lg" : "text-[10px]"
+            }`}
+          >
+            {activity.config.x_label || "eixo X"} →
+          </span>
+          <span
+            className={`absolute left-2 top-1 text-neutral-500 ${
+              screen ? "text-lg" : "text-[10px]"
+            }`}
+          >
+            ↑ {activity.config.y_label || "eixo Y"}
+          </span>
+          {items.map((item, i) => (
+            <div
+              key={item.index}
+              className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-700"
+              style={{
+                left: `${pos(item.avg_x)}%`,
+                top: `${100 - pos(item.avg_y)}%`,
+              }}
+            >
+              <div className="flex flex-col items-center">
+                <span
+                  className={`rounded-full ${screen ? "h-5 w-5" : "h-3 w-3"}`}
+                  style={{ background: CLOUD_COLORS[i % CLOUD_COLORS.length] }}
+                />
+                <span
+                  className={`mt-0.5 max-w-32 truncate text-center font-medium ${
+                    screen ? "text-xl" : "text-[11px]"
+                  }`}
+                >
+                  {item.option}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className={`text-neutral-500 ${screen ? "text-xl" : "text-xs"}`}>
+          {results.total} resposta{results.total === 1 ? "" : "s"} · posição =
+          média dos votos (1–{scaleMax})
+        </p>
+      </div>
+    );
+  }
+
   if (activity.type === "quiz_ranking") {
     return (
       <div className={screen ? "space-y-6" : "space-y-3"}>

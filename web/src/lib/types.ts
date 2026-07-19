@@ -212,7 +212,8 @@ export type ActivityType =
   | "quiz_ranking"
   | "scale"
   | "open_text"
-  | "ordering";
+  | "ordering"
+  | "matrix";
 export type ActivityStatus = "pending" | "open" | "closed";
 export type ActivityResultsVisible = "live" | "after_publish";
 
@@ -230,6 +231,9 @@ export interface ActivityConfig {
   max_label?: string;
   /** open_text: id da resposta destacada no telão */
   spotlight?: string;
+  /** matrix: rótulos dos eixos */
+  x_label?: string;
+  y_label?: string;
 }
 
 export interface Activity {
@@ -260,6 +264,8 @@ export interface ActivityResponse {
     ratings?: number[];
     text?: string;
     order?: number[];
+    xs?: number[];
+    ys?: number[];
   };
   approved: boolean;
   created_at: string;
@@ -296,6 +302,13 @@ export interface OpenEntry {
   text: string;
 }
 
+export interface MatrixItemResults {
+  option: string;
+  index: number;
+  avg_x: number | null;
+  avg_y: number | null;
+}
+
 export interface OrderingItemResults {
   option: string;
   /** índice original do item na config */
@@ -317,6 +330,7 @@ export interface ActivityResults {
   entries?: OpenEntry[];
   spotlight?: OpenEntry | null;
   order?: OrderingItemResults[];
+  items?: MatrixItemResults[];
 }
 
 /** Estado público do telão (RPC get_screen_state) */
@@ -339,6 +353,7 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   scale: "Escalas",
   open_text: "Respostas abertas",
   ordering: "Ordenação",
+  matrix: "Matriz 2×2",
 };
 
 export const ACTIVITY_STATUS_LABELS: Record<ActivityStatus, string> = {
