@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0019.
+  a última aplicada é a 0020.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -51,6 +51,14 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Sorteios** (tabela `raffles`, permissão `can_quiz`): só via RPC
   `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log
   imutável, CSV de auditoria); exibição no telão via `raffle_display`.
+- **Player white-label** (`YouTubePlayer.tsx`/`VimeoPlayer.tsx`): sem
+  controles/logo/título nativos, autoplay mudo, zoom+crop, clique-direito
+  bloqueado. `stream_ref` não vai no HTML inicial nem no Realtime bruto da
+  tabela `events` (vazava a linha inteira) — a sala usa `get_room_event`
+  (RPC, polling autenticado) que só inclui a fonte quando `status = 'live'`.
+  Limite: a requisição ao YouTube/Vimeo sempre aparece na aba Network do
+  DevTools — impossível de evitar em embed client-side (só resolve na
+  Fase J, streaming próprio).
 - **UI sem scroll** nas áreas de interação: ou pagina, ou cabe na tela
   (regra do Marcelo). Chat/listas rolam só internamente.
 - Textos da UI em pt-BR; CSVs e datas em formato brasileiro.

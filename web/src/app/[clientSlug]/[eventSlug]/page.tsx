@@ -58,7 +58,9 @@ export default async function ClientEventPage({
 
   return (
     <EventRoom
-      initialEvent={event}
+      // stream_ref some do HTML/payload inicial; a sala busca via
+      // get_room_event (RPC autenticada), só quando o evento está ao vivo
+      initialEvent={{ ...event, stream_ref: "" }}
       userId={user.id}
       userName={profile?.full_name || user.email || "Participante"}
       isAdmin={isStaff}

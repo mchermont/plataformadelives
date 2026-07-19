@@ -160,8 +160,17 @@ máximo a identidade da origem. Sem migração (só frontend).
 - [x] Capa personalizada antes do play (`cover_url` → fallback
       `card_image_url`); overlay transparente bloqueia cliques na UI do
       YouTube; pausa e fim voltam para a capa (esconde a logo de pausa)
-- [x] Vimeo avaliado: player já é limpo (plano pago) — segue no embed padrão;
-      Dacast idem
+- [x] Vimeo: mesmo tratamento (`VimeoPlayer.tsx`, Player.js SDK,
+      controls/title/byline/portrait desligados, dnt); Dacast segue no
+      embed padrão
+- [x] Autoplay mudo nos dois (exigência dos navegadores) + clique-direito
+      bloqueado
+- [x] `stream_ref`/`stream_provider` fora do HTML inicial e do Realtime
+      bruto da tabela `events` (migração 0020, `get_room_event`) — só
+      trafegam por RPC autenticada quando o evento está ao vivo. Limite
+      reconhecido: a requisição ao provedor sempre aparece na aba Network
+      do DevTools; ocultar isso por completo exige streaming próprio
+      (Fase J)
 - ⚠️ **Limite conhecido:** os termos do YouTube não permitem remover 100% a
   marca (a logo pode aparecer em pausa/fim). O caminho definitivo para
   white-label total é a **Fase J (streaming próprio)** — este player é a

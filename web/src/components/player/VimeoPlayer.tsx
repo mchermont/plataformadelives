@@ -20,6 +20,8 @@ interface VimeoNamespace {
       url?: string;
       width?: string;
       height?: string;
+      autoplay: boolean;
+      muted: boolean;
       controls: boolean;
       title: boolean;
       byline: boolean;
@@ -67,7 +69,7 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
   const playerRef = useRef<VimeoPlayerInstance | null>(null);
   const [phase, setPhase] = useState<"cover" | "playing" | "paused">("cover");
   const [ready, setReady] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true); // autoplay exige começar mudo
   const [volume, setVolume] = useState(100);
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -80,6 +82,8 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
         ...(isEvent ? { url: streamRef } : { id: vimeoId(streamRef) }),
         width: "100%",
         height: "100%",
+        autoplay: true,
+        muted: true,
         controls: false,
         title: false,
         byline: false,

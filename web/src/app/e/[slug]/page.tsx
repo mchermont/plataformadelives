@@ -55,7 +55,7 @@ export default async function EventPage({
 
   return (
     <EventRoom
-      initialEvent={event}
+      initialEvent={{ ...event, stream_ref: "" }}
       userId={user.id}
       userName={profile?.full_name || user.email || "Participante"}
       isAdmin={isStaff}

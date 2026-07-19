@@ -38,19 +38,26 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
     if (activities.alert) setTab("interacao");
   }, [activities.alert]);
 
-  // Atualiza status/fonte do vídeo em tempo real (ex.: evento entra no ar)
+  // Estado do evento via polling autenticado (get_room_event) em vez de
+  // postgres_changes bruto: a tabela events tem stream_ref/stream_provider,
+  // e o Realtime manda a linha inteira a qualquer troca — a RPC só inclui
+  // a fonte do vídeo quando o evento está ao vivo.
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel(`event:${event.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "events", filter: `id=eq.${event.id}` },
-        (payload) => setEvent(payload.new as LiveEvent),
-      )
-      .subscribe();
+    let alive = true;
+    async function poll() {
+      const { data } = await supabase.rpc("get_room_event", {
+        p_event_id: event.id,
+      });
+      if (alive && data) {
+        setEvent((prev) => ({ ...prev, ...(data as Partial<LiveEvent>) }));
+      }
+    }
+    poll();
+    const interval = setInterval(poll, 4000);
     return () => {
-      supabase.removeChannel(channel);
+      alive = false;
+      clearInterval(interval);
     };
   }, [event.id]);
 
@@ -125,13 +132,17 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             <ReactionOverlay floats={floats} />
             <ActivityOverlay state={activities} />
             <RaffleOverlay raffle={raffle} />
-            {isLive ? (
+            {isLive && event.stream_ref ? (
               <StreamPlayer
                 provider={event.stream_provider}
                 streamRef={event.stream_ref}
                 title={event.title}
                 coverUrl={event.cover_url || event.card_image_url}
               />
+            ) : isLive ? (
+              <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-neutral-900 text-sm text-neutral-500">
+                Carregando transmissão…
+              </div>
             ) : (
               <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-neutral-900 text-neutral-400">
                 <p className="text-lg font-medium">

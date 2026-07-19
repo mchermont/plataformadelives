@@ -69,7 +69,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
   const playerRef = useRef<YTPlayer | null>(null);
   const [phase, setPhase] = useState<"cover" | "playing" | "paused">("cover");
   const [ready, setReady] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true); // autoplay exige começar mudo
   const [volume, setVolume] = useState(100);
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -82,6 +82,8 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         height: "100%",
         videoId,
         playerVars: {
+          autoplay: 1,
+          mute: 1,
           controls: 0,
           rel: 0,
           modestbranding: 1,
