@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventPhoto } from "@/lib/types";
+import { Lightbox } from "@/components/event/Lightbox";
 
 /** Moderação da galeria no Diretor: fila de aprovação + fotos publicadas. */
 export function GalleryManager({ eventId }: { eventId: string }) {
   const supabase = useMemo(() => createClient(), []);
   const [photos, setPhotos] = useState<EventPhoto[]>([]);
+  const [zoom, setZoom] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await supabase
@@ -62,15 +64,19 @@ export function GalleryManager({ eventId }: { eventId: string }) {
           <div className="space-y-2">
             {pending.map((p) => (
               <div key={p.id} className="flex items-center gap-2.5">
-                <a href={publicUrl(p.storage_path)} target="_blank" rel="noreferrer">
+                <button
+                  onClick={() => setZoom(publicUrl(p.storage_path))}
+                  aria-label="Ampliar foto"
+                  className="shrink-0"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={publicUrl(p.storage_path)}
                     alt=""
                     loading="lazy"
-                    className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                    className="h-16 w-16 rounded-lg object-cover"
                   />
-                </a>
+                </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] text-neutral-200">
                     {p.author_name || "Participante"}
@@ -116,7 +122,11 @@ export function GalleryManager({ eventId }: { eventId: string }) {
           <div className="grid grid-cols-3 gap-1.5">
             {approved.map((p) => (
               <div key={p.id} className="group relative aspect-square">
-                <a href={publicUrl(p.storage_path)} target="_blank" rel="noreferrer">
+                <button
+                  onClick={() => setZoom(publicUrl(p.storage_path))}
+                  aria-label="Ampliar foto"
+                  className="block h-full w-full"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={publicUrl(p.storage_path)}
@@ -124,7 +134,7 @@ export function GalleryManager({ eventId }: { eventId: string }) {
                     loading="lazy"
                     className="h-full w-full rounded-lg object-cover"
                   />
-                </a>
+                </button>
                 <span className="absolute bottom-1 left-1 max-w-[calc(100%-0.5rem)] truncate rounded bg-black/70 px-1.5 text-[10px] text-neutral-200">
                   {p.author_name || "Participante"}
                 </span>
@@ -141,6 +151,8 @@ export function GalleryManager({ eventId }: { eventId: string }) {
           </div>
         </div>
       )}
+
+      <Lightbox src={zoom} onClose={() => setZoom(null)} />
     </div>
   );
 }

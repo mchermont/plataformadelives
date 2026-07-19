@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventPhoto } from "@/lib/types";
+import { Lightbox } from "./Lightbox";
 
 interface PhotoGalleryProps {
   eventId: string;
@@ -18,6 +19,7 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
   const [photos, setPhotos] = useState<EventPhoto[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -129,10 +131,10 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
           <div className="grid grid-cols-3 gap-1.5">
             {visible.map((p) => (
               <div key={p.id} className="group relative aspect-square">
-                <a
-                  href={publicUrl(p.storage_path)}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  onClick={() => setZoom(publicUrl(p.storage_path))}
+                  aria-label="Ampliar foto"
+                  className="block h-full w-full"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -143,7 +145,7 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
                       p.status === "pending" ? "opacity-50" : ""
                     }`}
                   />
-                </a>
+                </button>
                 {p.status === "pending" && (
                   <span className="absolute bottom-1 left-1 rounded bg-amber-500/90 px-1.5 text-[10px] font-semibold text-black">
                     em moderação
@@ -164,6 +166,8 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
           </div>
         )}
       </div>
+
+      <Lightbox src={zoom} onClose={() => setZoom(null)} />
     </div>
   );
 }

@@ -91,8 +91,11 @@ export function MaterialsManager({ eventId, userId }: { eventId: string; userId:
         <div>
           <h2 className="text-lg font-semibold">Materiais para download</h2>
           <p className="text-sm text-neutral-400">
-            PPT, PDF, vídeo, imagem, áudio — só aparecem na sala quando marcados
-            como visíveis.
+            PPT, PDF, vídeo, imagem, áudio.{" "}
+            <span className="font-medium text-amber-400">
+              Novos arquivos entram ocultos — clique em “Exibir” para aparecer
+              na sala.
+            </span>
           </p>
         </div>
         <input
@@ -140,10 +143,10 @@ export function MaterialsManager({ eventId, userId }: { eventId: string; userId:
                 className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   m.visible
                     ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-neutral-800 text-neutral-400"
+                    : "bg-amber-500/15 text-amber-400"
                 }`}
               >
-                {m.visible ? "Visível na sala" : "Oculto"}
+                {m.visible ? "Visível na sala" : "Oculto da sala"}
               </span>
               <button
                 onClick={() => toggleVisible(m)}

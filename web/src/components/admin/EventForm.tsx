@@ -492,21 +492,37 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              checked={form.chat_enabled}
-              onChange={(e) => set("chat_enabled", e.target.checked)}
-              className="h-4 w-4 accent-sky-500"
-            />
-            Chat
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
               checked={form.quiz_enabled}
               onChange={(e) => set("quiz_enabled", e.target.checked)}
               className="h-4 w-4 accent-sky-500"
             />
             Quiz
           </label>
+        </div>
+        {/* cada recurso com suas sub-opções logo abaixo (hierarquia clara) */}
+        <div className="space-y-1.5 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.chat_enabled}
+              onChange={(e) => set("chat_enabled", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Chat
+          </label>
+          {form.chat_enabled && (
+            <label className="ml-6 flex items-center gap-2 text-neutral-300">
+              <input
+                type="checkbox"
+                checked={form.chat_moderation}
+                onChange={(e) => set("chat_moderation", e.target.checked)}
+                className="h-4 w-4 accent-sky-500"
+              />
+              Aprovar mensagens do chat antes de publicar
+            </label>
+          )}
+        </div>
+        <div className="space-y-1.5 text-sm">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -516,51 +532,38 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
             />
             Perguntas do público (Q&amp;A)
           </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.gallery_enabled}
-              onChange={(e) => set("gallery_enabled", e.target.checked)}
-              className="h-4 w-4 accent-sky-500"
-            />
-            Galeria de fotos (moderação obrigatória)
-          </label>
+          {form.qa_enabled && (
+            <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-neutral-300">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.qa_allow_anonymous}
+                  onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Permitir perguntas anônimas
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.qa_moderation}
+                  onChange={(e) => set("qa_moderation", e.target.checked)}
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Aprovar perguntas antes de exibir
+              </label>
+            </div>
+          )}
         </div>
-        {form.chat_enabled && (
-          <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-300">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.chat_moderation}
-                onChange={(e) => set("chat_moderation", e.target.checked)}
-                className="h-4 w-4 accent-sky-500"
-              />
-              Aprovar mensagens do chat antes de publicar
-            </label>
-          </div>
-        )}
-        {form.qa_enabled && (
-          <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-neutral-300">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.qa_allow_anonymous}
-                onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
-                className="h-4 w-4 accent-sky-500"
-              />
-              Permitir perguntas anônimas
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.qa_moderation}
-                onChange={(e) => set("qa_moderation", e.target.checked)}
-                className="h-4 w-4 accent-sky-500"
-              />
-              Aprovar perguntas antes de exibir
-            </label>
-          </div>
-        )}
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.gallery_enabled}
+            onChange={(e) => set("gallery_enabled", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Galeria de fotos (moderação obrigatória)
+        </label>
         <div>
           <label className={labelClass}>Capacidade</label>
           <input

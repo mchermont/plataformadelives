@@ -895,14 +895,12 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   >
                     ⬇ CSV
                   </button>
-                  {a.status === "pending" && (
-                    <button
-                      onClick={() => removeActivity(a)}
-                      className="rounded-lg border border-red-900 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950"
-                    >
-                      Excluir
-                    </button>
-                  )}
+                  <button
+                    onClick={() => removeActivity(a)}
+                    className="rounded-lg border border-red-900 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950"
+                  >
+                    Excluir
+                  </button>
                 </div>
               </div>
               {isExpanded && a.type === "quiz" && (

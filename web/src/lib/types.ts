@@ -83,7 +83,7 @@ export const FOLDER_VISIBILITY_LABELS: Record<FolderVisibility, string> = {
 
 export const EVENT_CAPABILITIES = [
   { key: "can_stream", label: "Transmissão", hint: "Configurar fonte e entrar/sair do ar" },
-  { key: "can_chat", label: "Chat", hint: "Moderar, fixar e banir" },
+  { key: "can_chat", label: "Chat", hint: "Moderar e aprovar: chat, perguntas e fotos" },
   { key: "can_quiz", label: "Quiz e interações", hint: "Perguntas, enquetes e nuvem de palavras" },
   { key: "can_registrations", label: "Inscrições", hint: "Aprovar, banir, planilha" },
   { key: "can_reports", label: "Relatórios", hint: "Ver e exportar" },
