@@ -1,11 +1,14 @@
 "use client";
 
 import type { StreamProvider } from "@/lib/types";
+import { YouTubePlayer } from "./YouTubePlayer";
 
 interface StreamPlayerProps {
   provider: StreamProvider;
   streamRef: string;
   title: string;
+  /** capa exibida antes do play (player white-label, Fase I) */
+  coverUrl?: string | null;
 }
 
 /** Extrai o ID de vídeo do YouTube de uma URL (watch, live, youtu.be) ou devolve o próprio valor. */
@@ -46,8 +49,15 @@ function embedSrc(provider: StreamProvider, ref: string): string | null {
   }
 }
 
-export function StreamPlayer({ provider, streamRef, title }: StreamPlayerProps) {
+export function StreamPlayer({ provider, streamRef, title, coverUrl }: StreamPlayerProps) {
   const src = embedSrc(provider, streamRef);
+
+  // YouTube: player white-label (IFrame API, controles próprios)
+  if (provider === "youtube") {
+    return (
+      <YouTubePlayer videoId={youTubeId(streamRef)} title={title} coverUrl={coverUrl} />
+    );
+  }
 
   if (provider === "hls") {
     return (

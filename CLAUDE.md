@@ -60,7 +60,8 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
 F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
 obrigatória, materiais p/ download — buckets `gallery` e `materials`),
-H (sorteios auditáveis no Diretor + telão). Próximas: I (player YouTube
-white-label), J (streaming próprio). Pendências avulsas:
+H (sorteios auditáveis no Diretor + telão), I (player YouTube white-label —
+`YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Próxima:
+J (streaming próprio). Pendências avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.

@@ -148,16 +148,20 @@ participantes.
       **avaliar depois** — depende de APIs da Meta e revisão de permissões;
       fora do escopo próximo
 
-## Fase I — Player white-label (YouTube sem cara de YouTube)
+## Fase I — Player white-label (YouTube sem cara de YouTube) ✅ (19/07/2026)
 
 **Objetivo:** rodar vídeo do YouTube dentro de player próprio ocultando ao
-máximo a identidade da origem.
+máximo a identidade da origem. Sem migração (só frontend).
 
-- [ ] Wrapper com a YouTube IFrame API: `controls=0`, sem título/overlays,
-      controles próprios da plataforma (play/pausa/volume/fullscreen) por cima
-- [ ] Capa personalizada antes do play; overlay bloqueando cliques na logo e
-      impedindo pausa-com-logo
-- [ ] Mesma abordagem avaliada para Vimeo (player já é limpo com plano pago)
+- [x] Wrapper com a YouTube IFrame API (`YouTubePlayer.tsx`): `controls=0`,
+      `modestbranding`, `disablekb`, `fs=0`, sem título/overlays; controles
+      próprios (play/pausa/volume/mudo/fullscreen no wrapper) que aparecem no
+      hover, com selo "● Ao vivo"
+- [x] Capa personalizada antes do play (`cover_url` → fallback
+      `card_image_url`); overlay transparente bloqueia cliques na UI do
+      YouTube; pausa e fim voltam para a capa (esconde a logo de pausa)
+- [x] Vimeo avaliado: player já é limpo (plano pago) — segue no embed padrão;
+      Dacast idem
 - ⚠️ **Limite conhecido:** os termos do YouTube não permitem remover 100% a
   marca (a logo pode aparecer em pausa/fim). O caminho definitivo para
   white-label total é a **Fase J (streaming próprio)** — este player é a

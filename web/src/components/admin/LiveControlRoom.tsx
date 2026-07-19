@@ -142,6 +142,7 @@ export function LiveControlRoom({
                     provider={event.stream_provider}
                     streamRef={event.stream_ref}
                     title={event.title}
+                    coverUrl={event.cover_url || event.card_image_url}
                   />
                 ) : (
                   <div className="flex aspect-video w-full items-center justify-center bg-neutral-900 text-sm text-neutral-500">

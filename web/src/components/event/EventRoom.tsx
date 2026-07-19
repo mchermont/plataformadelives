@@ -130,6 +130,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 provider={event.stream_provider}
                 streamRef={event.stream_ref}
                 title={event.title}
+                coverUrl={event.cover_url || event.card_image_url}
               />
             ) : (
               <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-neutral-900 text-neutral-400">
