@@ -7,6 +7,9 @@ import type { EventStatus, LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { ChatPanel } from "@/components/event/ChatPanel";
 import { PresenceBadge } from "@/components/event/PresenceBadge";
+import { StreamPlayer } from "@/components/player/StreamPlayer";
+import { ActivityOverlay, useActivities } from "@/components/event/Activities";
+import { RaffleOverlay, useDisplayedRaffle } from "@/components/event/RaffleOverlay";
 import { ActivityManager } from "./ActivityManager";
 import { QAManager } from "./QAManager";
 import { GalleryManager } from "./GalleryManager";
@@ -29,6 +32,9 @@ export function LiveControlRoom({
   const [event, setEvent] = useState(initialEvent);
   const [busy, setBusy] = useState(false);
   const [sideTab, setSideTab] = useState<"chat" | "perguntas" | "fotos">("chat");
+  // prévias: o que o participante vê no player (overlays inclusos)
+  const activities = useActivities(event.id, userId);
+  const raffle = useDisplayedRaffle(event.id);
 
   useEffect(() => {
     const supabase = createClient();
@@ -122,7 +128,57 @@ export function LiveControlRoom({
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[400px_minmax(0,1fr)_400px]">
+        {/* Prévias: lado a lado no lg (linha inteira), coluna própria no xl */}
+        <section className="lg:col-span-2 xl:col-span-1">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+            Prévias · o que o público está vendo
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <div>
+              <div className="relative overflow-hidden rounded-xl border border-neutral-800">
+                {isLive ? (
+                  <StreamPlayer
+                    provider={event.stream_provider}
+                    streamRef={event.stream_ref}
+                    title={event.title}
+                  />
+                ) : (
+                  <div className="flex aspect-video w-full items-center justify-center bg-neutral-900 text-sm text-neutral-500">
+                    {event.status === "ended"
+                      ? "Transmissão encerrada."
+                      : "A transmissão ainda não começou."}
+                  </div>
+                )}
+                <ActivityOverlay state={activities} />
+                <RaffleOverlay raffle={raffle} />
+              </div>
+              <p className="mt-1.5 text-xs text-neutral-500">
+                🖥 Player da sala (com overlays de atividade e sorteio)
+              </p>
+            </div>
+            <div>
+              <div className="relative aspect-video overflow-hidden rounded-xl border border-neutral-800 bg-black">
+                <iframe
+                  src={`/telao/${event.id}`}
+                  title="Prévia do telão"
+                  className="pointer-events-none absolute left-0 top-0 h-[500%] w-[500%] origin-top-left scale-[0.2]"
+                />
+              </div>
+              <p className="mt-1.5 flex items-center justify-between text-xs text-neutral-500">
+                <span>📽 Telão (OBS) ao vivo</span>
+                <Link
+                  href={`/telao/${event.id}`}
+                  target="_blank"
+                  className="underline-offset-2 hover:text-white hover:underline"
+                >
+                  Abrir telão ↗
+                </Link>
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Atividades interativas · quiz, enquete, nuvem

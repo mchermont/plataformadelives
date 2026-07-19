@@ -92,3 +92,9 @@ body {
 .raffle-count {
   animation: raffle-count 0.9s ease-out both;
 }
+
+/* Evita scroll horizontal do truque full-bleed (w-screen no Diretor) */
+html,
+body {
+  overflow-x: clip;
+}

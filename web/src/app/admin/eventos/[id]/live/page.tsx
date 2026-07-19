@@ -27,11 +27,14 @@ export default async function DiretorDeLivePage({
   if (!event) notFound();
 
   return (
-    <LiveControlRoom
-      initialEvent={event}
-      userId={user!.id}
-      userName={profile?.full_name || "Equipe"}
-      isAdmin={profile?.is_platform_admin ?? false}
-    />
+    // full-bleed: escapa do max-w-5xl do layout /admin para aproveitar a tela
+    <div className="relative left-1/2 w-screen -translate-x-1/2 px-6">
+      <LiveControlRoom
+        initialEvent={event}
+        userId={user!.id}
+        userName={profile?.full_name || "Equipe"}
+        isAdmin={profile?.is_platform_admin ?? false}
+      />
+    </div>
   );
 }
