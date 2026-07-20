@@ -308,13 +308,13 @@ export function EntrarFlow({
         </>
       )}
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
+        <div className="mb-10 text-center">
           {event.brand_logo_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={event.brand_logo_url}
               alt=""
-              className="mx-auto mb-5 h-20 object-contain"
+              className="mx-auto mb-6 h-28 max-w-full object-contain"
             />
           )}
           <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>

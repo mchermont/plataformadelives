@@ -84,14 +84,14 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
       style={{ "--brand": event.brand_color } as React.CSSProperties}
     >
       <DisableInspect />
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 px-4 py-2 md:px-6">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 px-4 py-2.5 md:px-6 md:py-3">
         <div className="flex items-center gap-3">
           {event.brand_logo_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={event.brand_logo_url}
               alt=""
-              className="h-8 max-w-32 object-contain"
+              className="h-11 max-w-44 object-contain"
             />
           )}
           <h1 className="font-semibold tracking-tight">{event.title}</h1>
