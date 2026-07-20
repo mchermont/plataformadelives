@@ -63,12 +63,33 @@ design, paleta onix aprovada). Implementação em 3 fases:
   painel Diretor (seletor de tipo de atividade, botão Encerrar
   transmissão, export CSV do Q&A) via dev server
 
-### Fase C — Vitrine pública clara (pendente)
+### Fase C — Vitrine pública clara ✅ (19/07/2026)
 
-### Fase C — Vitrine pública clara (pendente)
+Tema claro em `/[clientSlug]` (vitrine do cliente) e no fluxo de
+cadastro/login do participante (`EntrarFlow.tsx`, compartilhado por
+`/[clientSlug]/[eventSlug]/entrar` e pela rota legada `/e/[slug]/entrar`) —
+única superfície verdadeiramente pública/participante antes da sala. Login
+do organizador (`/login`, `/senha/nova`) e a sala/Diretor/telão permanecem
+onix (mesmo público de admin/staff, sem mudança de tema).
 
-Tema claro em `/[clientSlug]` e páginas pré-entrada (`/entrar`) — vitrine
-do evento antes do login, com a cor do cliente carregando a identidade.
+- [x] `[clientSlug]/page.tsx`: banner de imagem de fundo do cliente (quando
+      houver) com gradiente até o branco sólido; grid de eventos em cards
+      brancos (`border-neutral-200`, `shadow-sm`, hover eleva + borda na cor
+      da marca do cliente); badge "Em breve"/"Encerrado" em pílula
+      translúcida (`bg-white/90 backdrop-blur-sm`) legível sobre qualquer
+      thumbnail; miniatura sem capa usa tinta suave da marca (`${brand}12`)
+- [x] `EntrarFlow.tsx`: mesmo tratamento nos 5 passos (credenciais, código,
+      cadastro, aguardando, bloqueado) — card branco, inputs com borda
+      neutra clara e foco/CTA na cor da marca do evento (`--brand`, sem mais
+      `sky-600` fixo), mensagens de erro/sucesso em tons claros
+      (`bg-red-50`/`text-red-700`), texto secundário em `neutral-600`/`700`
+      para manter contraste AA em fundo branco
+- Verificado: `tsc --noEmit` + `next build` limpos; conferência visual da
+  vitrine (com foto de capa + fallback sem capa, estado "AO VIVO", hover do
+  card) via dev server. Fluxo `EntrarFlow` confirmado por revisão de código
+  (mesmo padrão já validado na vitrine) — não verificado ao vivo no
+  navegador porque a sessão de teste está autenticada como admin, que pula
+  `/entrar` direto para a sala.
 
 ---
 

@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 const STATUS_BADGES: Partial<Record<LiveEvent["status"], { label: string; className: string }>> = {
   live: { label: "AO VIVO", className: "bg-red-600 text-white" },
-  scheduled: { label: "Em breve", className: "bg-neutral-800 text-neutral-300" },
-  ended: { label: "Encerrado", className: "bg-neutral-800 text-neutral-500" },
+  scheduled: { label: "Em breve", className: "bg-white/90 text-neutral-600 backdrop-blur-sm" },
+  ended: { label: "Encerrado", className: "bg-white/90 text-neutral-500 backdrop-blur-sm" },
 };
 
 // Página pública do cliente: lista os eventos marcados como "listar na página".
@@ -28,7 +28,7 @@ export default async function ClientPage({
   if (!client.can_view_folder) {
     return (
       <div
-        className="flex min-h-dvh flex-col items-center justify-center px-4 text-center"
+        className="flex min-h-dvh flex-col items-center justify-center bg-white px-4 text-center text-neutral-900"
         style={{ "--brand": client.brand_color } as React.CSSProperties}
       >
         {client.brand_logo_url && (
@@ -36,7 +36,7 @@ export default async function ClientPage({
           <img src={client.brand_logo_url} alt="" className="mb-6 h-14 object-contain" />
         )}
         <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
-        <p className="mt-3 max-w-sm text-sm text-neutral-400">
+        <p className="mt-3 max-w-sm text-sm text-neutral-600">
           Esta página é restrita. Se você já participou de um evento, entre com
           a sua conta; senão, use o link direto enviado pelo organizador.
         </p>
@@ -63,18 +63,18 @@ export default async function ClientPage({
 
   return (
     <div
-      className="relative min-h-dvh overflow-hidden"
+      className="min-h-dvh bg-white text-neutral-900"
       style={{ "--brand": client.brand_color } as React.CSSProperties}
     >
       {hasBg && (
-        <>
+        <div className="relative h-56 w-full overflow-hidden sm:h-72">
           {client.bg_image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={client.bg_image_url}
               alt=""
               aria-hidden
-              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover ${
+              className={`h-full w-full object-cover ${
                 client.bg_image_mobile_url ? "hidden sm:block" : ""
               }`}
             />
@@ -85,17 +85,17 @@ export default async function ClientPage({
               src={client.bg_image_mobile_url}
               alt=""
               aria-hidden
-              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover ${
+              className={`h-full w-full object-cover ${
                 client.bg_image_url ? "sm:hidden" : ""
               }`}
             />
           )}
-          <div aria-hidden className="absolute inset-0 -z-10 bg-black/60" />
-        </>
+          <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-black/10 via-white/60 to-white" />
+        </div>
       )}
 
-      <div className="mx-auto max-w-4xl px-4 py-14">
-        <header className="mb-10 text-center">
+      <div className={`mx-auto max-w-4xl px-4 pb-16 ${hasBg ? "-mt-10" : "pt-16"}`}>
+        <header className="relative mb-10 text-center">
           {client.brand_logo_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -108,7 +108,7 @@ export default async function ClientPage({
         </header>
 
         {list.length === 0 ? (
-          <p className="text-center text-sm text-neutral-400">
+          <p className="text-center text-sm text-neutral-600">
             Nenhum evento disponível no momento.
           </p>
         ) : (
@@ -120,9 +120,9 @@ export default async function ClientPage({
                 <Link
                   key={event.id}
                   href={`/${client.slug}/${event.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950/70 transition hover:border-[var(--brand,#0284c7)]"
+                  className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--brand,#0284c7)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand,#0284c7)] focus-visible:ring-offset-2"
                 >
-                  <div className="relative aspect-[9/5.6] w-full bg-neutral-900">
+                  <div className="relative aspect-[9/5.6] w-full bg-neutral-100">
                     {image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -133,16 +133,16 @@ export default async function ClientPage({
                     ) : (
                       <div
                         className="flex h-full w-full items-center justify-center"
-                        style={{ background: `${client.brand_color}22` }}
+                        style={{ background: `${client.brand_color}12` }}
                       >
-                        <span className="px-6 text-center text-lg font-semibold text-neutral-300">
+                        <span className="px-6 text-center text-lg font-semibold text-neutral-700">
                           {event.title}
                         </span>
                       </div>
                     )}
                     {badge && (
                       <span
-                        className={`absolute left-3 top-3 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${badge.className}`}
+                        className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide shadow-sm ${badge.className}`}
                       >
                         {badge.label}
                       </span>
@@ -151,7 +151,7 @@ export default async function ClientPage({
                   <div className="p-4">
                     <h2 className="font-semibold leading-snug">{event.title}</h2>
                     {event.starts_at && (
-                      <p className="mt-1 text-sm text-neutral-400">
+                      <p className="mt-1 text-sm text-neutral-600">
                         {new Date(event.starts_at).toLocaleString("pt-BR", {
                           dateStyle: "long",
                           timeStyle: "short",

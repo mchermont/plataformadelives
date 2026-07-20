@@ -24,7 +24,7 @@ interface EntrarFlowProps {
 type Step = "credenciais" | "codigo" | "cadastro" | "aguardando" | "bloqueado";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+  "w-full rounded-lg border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-[var(--brand,#0284c7)] focus:ring-2 focus:ring-[var(--brand,#0284c7)]/20";
 
 export function EntrarFlow({
   event,
@@ -248,7 +248,7 @@ export function EntrarFlow({
 
   return (
     <div
-      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-neutral-50 px-4 py-12"
       style={{ "--brand": event.brand_color } as React.CSSProperties}
     >
       {hasBg && (
@@ -259,7 +259,7 @@ export function EntrarFlow({
               src={event.bg_image_url}
               alt=""
               aria-hidden
-              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover ${
+              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover opacity-25 ${
                 event.bg_image_mobile_url ? "hidden sm:block" : ""
               }`}
             />
@@ -270,13 +270,13 @@ export function EntrarFlow({
               src={event.bg_image_mobile_url}
               alt=""
               aria-hidden
-              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover ${
+              className={`pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover opacity-25 ${
                 event.bg_image_url ? "sm:hidden" : ""
               }`}
             />
           )}
-          {/* escurece o fundo para o formulário continuar legível */}
-          <div aria-hidden className="absolute inset-0 -z-10 bg-black/55" />
+          {/* clareia o fundo para o formulário continuar legível */}
+          <div aria-hidden className="absolute inset-0 -z-10 bg-white/70" />
         </>
       )}
       <div className="w-full max-w-md">
@@ -289,12 +289,12 @@ export function EntrarFlow({
               className="mx-auto mb-4 h-14 object-contain"
             />
           )}
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--brand,#38bdf8)]">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--brand,#0284c7)]">
             {REGISTRATION_MODE_LABELS[event.registration_mode]}
           </p>
-          <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{event.title}</h1>
           {event.starts_at && (
-            <p className="mt-2 text-sm text-neutral-400">
+            <p className="mt-2 text-sm text-neutral-600">
               {new Date(event.starts_at).toLocaleString("pt-BR", {
                 dateStyle: "long",
                 timeStyle: "short",
@@ -304,12 +304,12 @@ export function EntrarFlow({
         </div>
 
         <div
-          className={`rounded-2xl border border-neutral-800 p-6 ${
-            hasBg ? "bg-neutral-950/80 backdrop-blur-sm" : "bg-neutral-900/60"
+          className={`rounded-2xl border border-neutral-200 p-6 shadow-sm ${
+            hasBg ? "bg-white/95 backdrop-blur-sm" : "bg-white"
           }`}
         >
           {error && (
-            <p className="mb-4 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
+            <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
             </p>
           )}
@@ -317,7 +317,7 @@ export function EntrarFlow({
           {step === "credenciais" && (
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium">Seu e-mail</label>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-900">Seu e-mail</label>
                 <input
                   type="email"
                   value={email}
@@ -326,11 +326,11 @@ export function EntrarFlow({
                   className={inputClass}
                 />
                 {domainHint && (
-                  <p className="mt-1.5 text-xs text-neutral-500">{domainHint}</p>
+                  <p className="mt-1.5 text-xs text-neutral-600">{domainHint}</p>
                 )}
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium">
+                <label className="mb-1.5 block text-sm font-medium text-neutral-900">
                   {creating ? "Crie uma senha" : "Sua senha"}
                 </label>
                 <input
@@ -366,23 +366,23 @@ export function EntrarFlow({
                   setCreating(!creating);
                   setError(null);
                 }}
-                className="w-full text-center text-sm text-neutral-400 hover:underline"
+                className="w-full text-center text-sm text-neutral-600 hover:underline"
               >
                 {creating
                   ? "Já tenho conta — entrar com senha"
                   : "Primeira vez aqui? Criar conta"}
               </button>
 
-              <div className="flex items-center gap-3 text-xs text-neutral-600">
-                <div className="h-px flex-1 bg-neutral-800" />
+              <div className="flex items-center gap-3 text-xs text-neutral-500">
+                <div className="h-px flex-1 bg-neutral-200" />
                 ou
-                <div className="h-px flex-1 bg-neutral-800" />
+                <div className="h-px flex-1 bg-neutral-200" />
               </div>
 
               <button
                 onClick={sendCode}
                 disabled={busy}
-                className="w-full rounded-lg border border-neutral-700 py-2.5 text-sm font-semibold transition hover:bg-neutral-800 disabled:opacity-40"
+                className="w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-40"
               >
                 Esqueci a senha — entrar com código
               </button>
@@ -391,7 +391,7 @@ export function EntrarFlow({
                 <button
                   onClick={signInWithGoogle}
                   disabled={busy}
-                  className="w-full rounded-lg border border-neutral-700 py-2.5 text-sm font-semibold transition hover:bg-neutral-800 disabled:opacity-40"
+                  className="w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-40"
                 >
                   Continuar com Google
                 </button>
@@ -401,9 +401,9 @@ export function EntrarFlow({
 
           {step === "codigo" && (
             <div className="space-y-4">
-              <p className="text-sm text-neutral-300">
+              <p className="text-sm text-neutral-700">
                 Enviamos um e-mail para{" "}
-                <span className="font-semibold">{email}</span> com o seu{" "}
+                <span className="font-semibold text-neutral-900">{email}</span> com o seu{" "}
                 <strong>código de acesso</strong>. Digite-o abaixo, ou clique no
                 link do e-mail.
               </p>
@@ -414,7 +414,7 @@ export function EntrarFlow({
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 onKeyDown={(e) => e.key === "Enter" && verifyCode()}
                 placeholder="········"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none placeholder:text-neutral-700 focus:border-sky-500"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-3 text-center font-mono text-2xl tracking-[0.3em] text-neutral-900 outline-none placeholder:text-neutral-300 focus:border-[var(--brand,#0284c7)] focus:ring-2 focus:ring-[var(--brand,#0284c7)]/20"
               />
               <button
                 onClick={verifyCode}
@@ -425,7 +425,7 @@ export function EntrarFlow({
               </button>
               <button
                 onClick={() => setStep("credenciais")}
-                className="w-full text-center text-xs text-neutral-500 hover:underline"
+                className="w-full text-center text-xs text-neutral-600 hover:underline"
               >
                 Voltar
               </button>
@@ -435,8 +435,8 @@ export function EntrarFlow({
           {step === "cadastro" && (
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Nome completo <span className="text-red-400">*</span>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-900">
+                  Nome completo <span className="text-red-600">*</span>
                 </label>
                 <input
                   value={fullName}
@@ -448,9 +448,9 @@ export function EntrarFlow({
 
               {fields.map((field) => (
                 <div key={field.id}>
-                  <label className="mb-1.5 block text-sm font-medium">
+                  <label className="mb-1.5 block text-sm font-medium text-neutral-900">
                     {field.label}{" "}
-                    {field.required && <span className="text-red-400">*</span>}
+                    {field.required && <span className="text-red-600">*</span>}
                   </label>
                   {field.field_type === "select" ? (
                     <select
@@ -468,7 +468,7 @@ export function EntrarFlow({
                       ))}
                     </select>
                   ) : field.field_type === "checkbox" ? (
-                    <label className="flex items-center gap-2 text-sm text-neutral-300">
+                    <label className="flex items-center gap-2 text-sm text-neutral-700">
                       <input
                         type="checkbox"
                         checked={answers[field.id] === "sim"}
@@ -478,7 +478,7 @@ export function EntrarFlow({
                             [field.id]: e.target.checked ? "sim" : "",
                           }))
                         }
-                        className="h-4 w-4 accent-sky-500"
+                        className="h-4 w-4 accent-[var(--brand,#0284c7)]"
                       />
                       Sim
                     </label>
@@ -495,12 +495,12 @@ export function EntrarFlow({
               ))}
 
               {event.consent_text && (
-                <label className="flex items-start gap-2 text-sm text-neutral-300">
+                <label className="flex items-start gap-2 text-sm text-neutral-700">
                   <input
                     type="checkbox"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 accent-sky-500"
+                    className="mt-0.5 h-4 w-4 accent-[var(--brand,#0284c7)]"
                   />
                   {event.consent_text}
                 </label>
@@ -522,9 +522,9 @@ export function EntrarFlow({
 
           {step === "aguardando" && (
             <div className="space-y-3 py-4 text-center">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-neutral-700 border-t-[var(--brand,#0284c7)]" />
-              <h2 className="font-semibold">Inscrição enviada!</h2>
-              <p className="text-sm text-neutral-400">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-neutral-200 border-t-[var(--brand,#0284c7)]" />
+              <h2 className="font-semibold text-neutral-900">Inscrição enviada!</h2>
+              <p className="text-sm text-neutral-600">
                 Sua participação está aguardando aprovação do organizador. Esta
                 página atualiza sozinha assim que você for aprovado.
               </p>
@@ -533,8 +533,8 @@ export function EntrarFlow({
 
           {step === "bloqueado" && (
             <div className="space-y-2 py-4 text-center">
-              <h2 className="font-semibold text-red-400">Acesso não autorizado</h2>
-              <p className="text-sm text-neutral-400">
+              <h2 className="font-semibold text-red-600">Acesso não autorizado</h2>
+              <p className="text-sm text-neutral-600">
                 Sua inscrição neste evento não foi aprovada. Em caso de dúvida,
                 fale com o organizador.
               </p>
@@ -544,7 +544,7 @@ export function EntrarFlow({
 
         {event.sponsor_logos.length > 0 && (
           <div className="mt-8">
-            <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-neutral-500">
+            <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-widest text-neutral-600">
               Apoio
             </p>
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3">

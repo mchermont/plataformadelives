@@ -83,6 +83,13 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   `getClientChain` de `src/lib/admin/chains.ts` (memoizados por request)
   em vez de buscar `events`/`clients` direto — layout e página reaproveitam
   a mesma busca.
+- **Tema por tela**: só `[clientSlug]/page.tsx` (vitrine) e `EntrarFlow.tsx`
+  (cadastro/login do participante) são claros — usam `bg-white`/
+  `text-neutral-900`/`border-neutral-200` com a cor da marca do **cliente
+  ou evento** (`--brand`) carregando CTA/foco/hover, não os tokens onix da
+  plataforma. Login do organizador (`/login`, `/senha/nova`), sala, Diretor
+  e telão continuam onix — são superfícies de staff/plataforma, não vitrine
+  do cliente final.
 
 ## Estado (19/07/2026)
 
@@ -93,9 +100,10 @@ H (sorteios auditáveis no Diretor + telão), I (player YouTube white-label —
 `YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Revisão de
 UX/UI completa (`/impeccable critique`) nas 3 telas centrais — ver ROADMAP.
 Reestruturação de navegação (`/impeccable shape`, ver `web/PRODUCT.md`):
-Fases A (shell com sidebar + breadcrumb + tokens onix) e B (paleta onix em
-toda a app + emoji→lucide-react no chrome) concluídas; Fase C (vitrine
-clara) pendente. Próxima fase de produto: J (streaming próprio). Pendências
+Fases A (shell com sidebar + breadcrumb + tokens onix), B (paleta onix em
+toda a app + emoji→lucide-react no chrome) e C (vitrine pública clara —
+`[clientSlug]/page.tsx` + `EntrarFlow.tsx`) concluídas — reestruturação
+completa. Próxima fase de produto: J (streaming próprio). Pendências
 avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.
