@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { LiveEvent } from "@/lib/types";
+import { getEventChain } from "@/lib/admin/chains";
 import { LiveControlRoom } from "@/components/admin/LiveControlRoom";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +16,8 @@ export default async function DiretorDeLivePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: event }, { data: profile }] = await Promise.all([
-    supabase.from("events").select("*").eq("id", id).single<LiveEvent>(),
+  const [{ event }, { data: profile }] = await Promise.all([
+    getEventChain(id),
     supabase
       .from("profiles")
       .select("is_platform_admin, full_name")
@@ -27,14 +27,11 @@ export default async function DiretorDeLivePage({
   if (!event) notFound();
 
   return (
-    // full-bleed: escapa do max-w-5xl do layout /admin para aproveitar a tela
-    <div className="relative left-1/2 w-screen -translate-x-1/2 px-6">
-      <LiveControlRoom
-        initialEvent={event}
-        userId={user!.id}
-        userName={profile?.full_name || "Equipe"}
-        isAdmin={profile?.is_platform_admin ?? false}
-      />
-    </div>
+    <LiveControlRoom
+      initialEvent={event}
+      userId={user!.id}
+      userName={profile?.full_name || "Equipe"}
+      isAdmin={profile?.is_platform_admin ?? false}
+    />
   );
 }

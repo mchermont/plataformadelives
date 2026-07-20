@@ -5,6 +5,7 @@ import type { Agency, Client } from "@/lib/types";
 import { FOLDER_VISIBILITY_LABELS } from "@/lib/types";
 import { NewClientButton } from "@/components/admin/NewClientButton";
 import { OrgTeam } from "@/components/admin/OrgTeam";
+import { Breadcrumb } from "@/components/admin/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -50,17 +51,12 @@ export default async function AgencyDetailPage({
   const list = (clients as Client[]) ?? [];
 
   return (
-    <div className="space-y-10">
+    <div className="max-w-5xl space-y-10">
       <div>
-        <Link href="/admin/agencias" className="text-sm text-neutral-500 hover:underline">
-          ← Agências
-        </Link>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="rounded-full bg-purple-500/15 px-2.5 py-0.5 text-xs font-medium text-purple-300">
-            Agência
-          </span>
-          <h1 className="text-xl font-bold">{agency.name}</h1>
-        </div>
+        <Breadcrumb items={[{ label: "Agências", href: "/admin/agencias" }, { label: agency.name }]} />
+        <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
+          Agência
+        </span>
       </div>
 
       <section>

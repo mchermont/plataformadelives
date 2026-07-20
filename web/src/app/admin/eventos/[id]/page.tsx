@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { EventAllowlistEntry, EventField, LiveEvent } from "@/lib/types";
+import type { EventAllowlistEntry, EventField } from "@/lib/types";
+import { getEventChain } from "@/lib/admin/chains";
 import { EventForm } from "@/components/admin/EventForm";
 import { EventTeam } from "@/components/admin/EventTeam";
 import { MaterialsManager } from "@/components/admin/MaterialsManager";
@@ -19,8 +20,8 @@ export default async function EditarEventoPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const [{ data: event }, { data: fields }, { data: allowlist }] = await Promise.all([
-    supabase.from("events").select("*").eq("id", id).single<LiveEvent>(),
+  const [{ event }, { data: fields }, { data: allowlist }] = await Promise.all([
+    getEventChain(id),
     supabase
       .from("event_fields")
       .select("*")
@@ -32,7 +33,6 @@ export default async function EditarEventoPage({
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-bold">Editar evento</h1>
       <EventForm
         event={event}
         fields={(fields as EventField[]) ?? []}

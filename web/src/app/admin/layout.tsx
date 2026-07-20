@@ -40,40 +40,55 @@ export default async function AdminLayout({
     isAdmin || (profile?.is_moderator ?? false) || isClientMember || isAgencyMember;
   if (!isStaff) redirect("/");
 
+  const navItems = [
+    { label: "Clientes", href: "/admin" },
+    ...(isAdmin || isAgencyMember ? [{ label: "Agências", href: "/admin/agencias" }] : []),
+    ...(isAdmin ? [{ label: "Equipe da plataforma", href: "/admin/equipe" }] : []),
+  ];
+
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-3">
-        <div className="flex items-center gap-6">
-          <Link href="/admin" className="font-semibold tracking-tight">
-            Painel · Plataforma de Lives
+    <div className="flex min-h-dvh bg-bg text-ink">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border-c bg-surface/40 sm:flex">
+        <div className="border-b border-border-c px-5 py-4">
+          <Link href="/admin" className="font-semibold tracking-tight text-ink">
+            Plataforma de Lives
           </Link>
-          <nav className="flex gap-4 text-sm text-neutral-400">
-            <Link href="/admin" className="hover:text-white">
-              Clientes
-            </Link>
-            {(isAdmin || isAgencyMember) && (
-              <Link href="/admin/agencias" className="hover:text-white">
-                Agências
-              </Link>
-            )}
-            {isAdmin && (
-              <Link href="/admin/equipe" className="hover:text-white">
-                Equipe da plataforma
-              </Link>
-            )}
-          </nav>
+          <p className="mt-0.5 text-xs text-muted">Painel</p>
         </div>
-        <div className="flex items-center gap-3 text-sm text-neutral-500">
-          <span>{profile?.full_name || user.email}</span>
-          {isAdmin ? (
-            <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-xs text-sky-400">
+        <nav className="flex-1 space-y-0.5 p-3">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-surface hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="border-t border-border-c p-3 text-sm text-muted">
+          <p className="truncate px-3">{profile?.full_name || user.email}</p>
+          {isAdmin && (
+            <span className="ml-3 mt-1 inline-block rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">
               Admin
             </span>
-          ) : null}
-          <SignOutButton />
+          )}
+          <div className="px-3 pt-2">
+            <SignOutButton />
+          </div>
         </div>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">{children}</main>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* nav compacta no mobile (sidebar só aparece em sm+) */}
+        <header className="flex items-center justify-between border-b border-border-c px-4 py-3 sm:hidden">
+          <Link href="/admin" className="font-semibold tracking-tight text-ink">
+            Plataforma de Lives
+          </Link>
+          <SignOutButton />
+        </header>
+        <main className="min-w-0 flex-1 px-6 py-8">{children}</main>
+      </div>
     </div>
   );
 }

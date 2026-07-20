@@ -10,6 +10,52 @@ agências/clientes num painel multi-tenant.
 
 ---
 
+## Reestruturação de navegação e sistema visual — /impeccable shape
+
+Brief completo em `web/PRODUCT.md` (registro, personalidade, princípios de
+design, paleta onix aprovada). Implementação em 3 fases:
+
+### Fase A — Shell de navegação compartilhado ✅ (19/07/2026)
+
+- [x] Tokens de cor onix (`--bg`, `--surface`, `--border-c`, `--ink`,
+      `--muted`, `--accent`) em `globals.css`, expostos como utilities
+      Tailwind (`bg-bg`, `text-ink`, `text-muted`, `bg-accent` etc.) — zero
+      matiz saturada própria da plataforma, todo o "orçamento de cor" fica
+      com a marca do cliente (`--brand`, já existente)
+- [x] `src/lib/admin/chains.ts`: `getClientChain`/`getEventChain`
+      memoizados por request (React `cache()`) — evento/cliente/agência
+      buscados uma vez só, reaproveitados entre layout e página
+- [x] Breadcrumb (`Breadcrumb.tsx`) Agência→Cliente→Evento em toda a árvore
+      `/admin`, via layouts aninhados `clientes/[id]/layout.tsx` e
+      `eventos/[id]/layout.tsx` (elimina headers duplicados por página)
+- [x] `EventSectionNav.tsx`: abas Configuração/Ao vivo/Inscrições/Relatório
+      consistentes nas 4 subpáginas do evento
+- [x] `AdminLayout` reescrito com sidebar (antes: 3 links soltos no topo);
+      `<main>` sem `max-w` ambiente — a página decide sua própria largura
+      (formulários se auto-limitam, tabelas/Diretor usam a largura toda)
+- [x] Removido o hack de full-bleed (`w-screen`/`translateX`) do painel
+      Diretor — sem `max-w` ambiente, não precisa mais escapar de nada;
+      testado lado a lado com a sidebar sem sobreposição
+- Verificado em navegador (dev server + login real): Clientes → Cliente →
+  4 abas do evento (Diretor com dados reais de chat/vídeo ao vivo) →
+  Agências → Agência. Teste de viewport mobile não confirmável nesta
+  sessão (limitação da ferramenta de resize), mas usa o mesmo padrão
+  responsivo (`hidden sm:flex`/`sm:hidden`) já validado em outras telas.
+
+### Fase B — Sistema visual (pendente)
+
+Retrofit de cor/tipografia/ícones no restante do app (hoje só o shell novo
+usa os tokens onix; o resto ainda tem `sky-600`/`neutral-800` ad hoc);
+trocar emoji-como-ícone por `lucide-react` no chrome de interface
+(emoji permanece só em reações/celebração).
+
+### Fase C — Vitrine pública clara (pendente)
+
+Tema claro em `/[clientSlug]` e páginas pré-entrada (`/entrar`) — vitrine
+do evento antes do login, com a cor do cliente carregando a identidade.
+
+---
+
 ## Revisão de UX/UI — /impeccable critique ✅ (19/07/2026, migração 0021)
 
 Crítica dual-agent (design review + detector/scan manual) nas três telas

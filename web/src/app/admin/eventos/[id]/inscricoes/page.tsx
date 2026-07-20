@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { EventField, LiveEvent } from "@/lib/types";
+import type { EventField } from "@/lib/types";
+import { getEventChain } from "@/lib/admin/chains";
 import { RegistrationList } from "@/components/admin/RegistrationList";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,8 @@ export default async function InscricoesPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: event }, { data: fields }] = await Promise.all([
-    supabase.from("events").select("*").eq("id", id).single<LiveEvent>(),
+  const [{ event }, { data: fields }] = await Promise.all([
+    getEventChain(id),
     supabase
       .from("event_fields")
       .select("*")
@@ -23,11 +24,5 @@ export default async function InscricoesPage({
   ]);
   if (!event) notFound();
 
-  return (
-    <div>
-      <h1 className="mb-1 text-xl font-bold">Inscrições</h1>
-      <p className="mb-6 text-sm text-neutral-400">{event.title}</p>
-      <RegistrationList eventId={event.id} fields={(fields as EventField[]) ?? []} />
-    </div>
-  );
+  return <RegistrationList eventId={event.id} fields={(fields as EventField[]) ?? []} />;
 }

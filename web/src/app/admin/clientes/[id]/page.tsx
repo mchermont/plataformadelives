@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Client, LiveEvent } from "@/lib/types";
+import type { LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
+import { getClientChain } from "@/lib/admin/chains";
 import { OrgTeam } from "@/components/admin/OrgTeam";
 import { ClientForm } from "@/components/admin/ClientForm";
 
@@ -19,11 +20,7 @@ export default async function ClientDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("id", id)
-    .single<Client>();
+  const { client } = await getClientChain(id);
   if (!client) notFound();
 
   const [{ data: events }, { data: membership }, { data: profile }] = await Promise.all([
@@ -50,32 +47,7 @@ export default async function ClientDetailPage({
   const list = (events as LiveEvent[]) ?? [];
 
   return (
-    <div className="space-y-10">
-      <div>
-        <Link href="/admin" className="text-sm text-neutral-500 hover:underline">
-          ← Clientes
-        </Link>
-        <div className="mt-2 flex items-center gap-3">
-          {client.brand_logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={client.brand_logo_url} alt="" className="h-9 w-9 rounded object-contain" />
-          ) : (
-            <span
-              className="flex h-9 w-9 items-center justify-center rounded font-bold text-white"
-              style={{ background: client.brand_color }}
-            >
-              {client.name.charAt(0).toUpperCase()}
-            </span>
-          )}
-          <div>
-            <h1 className="text-xl font-bold">{client.name}</h1>
-            <p className="text-xs text-neutral-500">
-              Página pública: lives.propanofilmes.com.br/{client.slug}
-            </p>
-          </div>
-        </div>
-      </div>
-
+    <div className="max-w-5xl space-y-10">
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">

@@ -69,6 +69,14 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   em 19/07/2026; qualquer exclusão nova segue o mesmo padrão.
 - Erros técnicos do Supabase/Postgres passam por `src/lib/friendlyError.ts`
   antes de chegar à UI (não expor `err.message` cru a usuário/operador).
+- **Design tokens onix** (`globals.css`): `bg-bg`/`bg-surface`/`text-ink`/
+  `text-muted`/`bg-accent`/`border-border-c` — usar nesses em vez de
+  `neutral-800`/`sky-600` ad hoc em qualquer tela nova ou retrofit (Fase B
+  ainda não migrou o app inteiro, ver ROADMAP).
+- **Dados de evento/cliente no admin**: usar `getEventChain`/
+  `getClientChain` de `src/lib/admin/chains.ts` (memoizados por request)
+  em vez de buscar `events`/`clients` direto — layout e página reaproveitam
+  a mesma busca.
 
 ## Estado (19/07/2026)
 
@@ -78,6 +86,9 @@ obrigatória, materiais p/ download — buckets `gallery` e `materials`),
 H (sorteios auditáveis no Diretor + telão), I (player YouTube white-label —
 `YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Revisão de
 UX/UI completa (`/impeccable critique`) nas 3 telas centrais — ver ROADMAP.
-Próxima fase: J (streaming próprio). Pendências avulsas:
+Reestruturação de navegação (`/impeccable shape`, ver `web/PRODUCT.md`):
+Fase A (shell com sidebar + breadcrumb + tokens onix) concluída; Fases B
+(sistema visual) e C (vitrine clara) pendentes. Próxima fase de produto:
+J (streaming próprio). Pendências avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.
