@@ -97,8 +97,12 @@
     janela de tempo e inscrição aprovada no banco.
   - Controle ao vivo por RPCs de admin: `open_question`, `close_question`,
     `reveal_question`.
-- Ranking (`quiz_leaderboard`): view agregada por evento — acerto vale 1000 +
+- Ranking: view `quiz_leaderboard` agregada por evento — acerto vale 1000 +
   bônus de velocidade (até 500), contando perguntas fechadas/reveladas.
+  Exposta só via RPC `get_quiz_leaderboard` (checa `has_event_role`
+  'quiz'/'reports'); acesso direto à view é revogado de anon/authenticated
+  (migração 0022) — view sem RLS própria roda como o dono, então select
+  direto vazaria ranking entre eventos/clientes.
 
 ## Segurança
 

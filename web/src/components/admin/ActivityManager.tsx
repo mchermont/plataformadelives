@@ -496,9 +496,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     }
     if (activity.type === "quiz_ranking") {
       const { data } = await supabase
-        .from("quiz_leaderboard")
-        .select("*")
-        .eq("event_id", eventId)
+        .rpc("get_quiz_leaderboard", { p_event_id: eventId })
         .order("score", { ascending: false });
       downloadCsv(`ranking-geral-${eventId.slice(0, 8)}.csv`, [
         ["Posição", "Nome", "Acertos", "Pontuação"],

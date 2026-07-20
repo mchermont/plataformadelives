@@ -333,7 +333,13 @@ início como "Fase 2"; decidido: provedor sob demanda, não self-hosted.)
 
 - [ ] Google OAuth (aguarda credencial no Google Cloud do usuário)
 - [ ] Upload de planilha (.txt/.csv) para allowlist — colar e-mails já atende
-- [ ] Revisar view `quiz_leaderboard` (roda com privilégio do owner)
+- [x] Revisar view `quiz_leaderboard` (roda com privilégio do owner) ✅
+      (20/07/2026, migração 0022) — view rodava sem RLS própria (dono
+      bypassa RLS), então qualquer autenticado lia ranking de qualquer
+      evento/cliente via REST direto. Acesso direto revogado de
+      anon/authenticated; `ReportView`/`ActivityManager` passam a chamar a
+      RPC `get_quiz_leaderboard` (security definer, exige
+      `has_event_role('quiz'|'reports')`)
 - [ ] Evento-piloto completo em produção (allowlist + consentimento + artes)
 
 ---

@@ -79,9 +79,7 @@ export function ReportView({
         .eq("event_id", event.id)
         .order("first_joined_at", { ascending: true }),
       supabase
-        .from("quiz_leaderboard")
-        .select("*")
-        .eq("event_id", event.id)
+        .rpc("get_quiz_leaderboard", { p_event_id: event.id })
         .order("score", { ascending: false }),
     ]);
     setRegistrations((regs as RegistrationRow[]) ?? []);
