@@ -103,7 +103,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   `EventForm.tsx`'s `extraTabs` para injetar abas de componentes irmãos
   (Materiais, Equipe) só quando fazem sentido (evento já existe).
 
-## Estado (19/07/2026)
+## Estado (20/07/2026)
 
 Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
 F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
@@ -112,10 +112,11 @@ H (sorteios auditáveis no Diretor + telão), I (player YouTube white-label —
 `YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Revisão de
 UX/UI completa (`/impeccable critique`) nas 3 telas centrais — ver ROADMAP.
 Reestruturação de navegação (`/impeccable shape`, ver `web/PRODUCT.md`):
-Fases A (shell com sidebar + breadcrumb + tokens onix), B (paleta onix em
-toda a app + emoji→lucide-react no chrome) e C (vitrine pública clara —
-`[clientSlug]/page.tsx` + `EntrarFlow.tsx`) concluídas — reestruturação
-completa. Próxima fase de produto: J (streaming próprio). Pendências
-avulsas:
-Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
-view `quiz_leaderboard` (roda como owner), evento-piloto em produção.
+Fases A–D concluídas (shell + tokens onix, paleta onix + lucide-react,
+vitrine pública clara, abas na Configuração), mais D.1 — revisão pós-
+feedback: aba Interações com `enabled_activity_types`, Q&A com aprovação
+sempre obrigatória, sidebar lateral trocada por navbar superior,
+zoneamento visual em cartões, logos maiores nos pontos de entrada — ver
+ROADMAP. Próxima fase de produto: J (streaming próprio). Pendências
+avulsas: Google OAuth (falta credencial), upload de planilha p/ allowlist,
+evento-piloto em produção.
