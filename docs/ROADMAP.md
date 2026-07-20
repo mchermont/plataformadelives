@@ -111,6 +111,42 @@ Botão Salvar/Cancelar só aparece nas 3 abas nativas (Materiais/Equipe já
 salvam sozinhos, inline). Verificado: `tsc --noEmit` + `next build`
 limpos; as 5 abas + o fluxo de criação (só 3 abas) conferidos no navegador.
 
+### Fase D.1 — Revisão pós-feedback ✅ (20/07/2026, migração 0023)
+
+Feedback do Marcelo depois de ver a Fase D em produção:
+
+- **Interações vira aba própria**: Chat/Q&A/Galeria (que estavam dentro de
+  "Controle de acesso e cadastro") + o toggle de Quiz (que não gateava nada
+  em runtime, só existia no formulário) saem de lá. Quiz é substituído por
+  `enabled_activity_types` — 7 checkboxes (nuvem de palavras, enquete,
+  quiz, escalas, respostas abertas, ordenação, matrix 2×2) que controlam de
+  fato quais tipos aparecem pra criar na Sala de produção (RLS de
+  `activities` também valida, não só a UI).
+- **Q&A**: aprovação deixa de ser opcional — toda pergunta nasce `pending`
+  (RPC `submit_question`); upvote vira configurável por evento
+  (`qa_upvote_enabled`, gate em `toggle_question_vote`).
+- Menu Cliente/Agência/Equipe: sidebar lateral vira navbar superior
+  (`admin/layout.tsx`) — a lateral reservava ~14rem fixos pra 3-4 links.
+- Submenu de abas do EventForm/EventSectionNav: voltou a quebrar em 2
+  linhas depois da aba nova — rótulos encurtados (Controle de acesso e
+  cadastro→Acesso e cadastro, Identidade e vínculo→Identidade, Materiais
+  para download→Materiais, Equipe e funções→Equipe) + nav vira pills numa
+  barra só, sem `flex-wrap`/scroll.
+- **Zoneamento visual** (referência: estúdio de transmissão do Vimeo): cada
+  seção do EventForm e as colunas do painel da Sala de produção (Prévias/
+  Atividades) ganham cartão próprio (`bg-neutral-900/40` + borda) — antes
+  flutuavam soltas no fundo da página, sem separação visual clara entre
+  "página" e "painel". Abas de nível superior (EventForm, EventSectionNav)
+  passam de sublinhado pra pill preenchida no estado ativo.
+- Paleta: roxo (badge "Agência") ganha hue próprio (290) — antes convergia
+  pro mesmo tom do azul (68), ficavam idênticos.
+- Cadastro: campos "Nome completo" único vira "Nome" + "Sobrenome"
+  (concatenados em `full_name`); login por código força definir senha nova
+  em seguida (participante e organizador).
+- Entrada do evento: remove rótulo interno vazando pra UI ("Cadastro
+  simples/..."); nome do cliente na vitrine some quando já há logo (evitava
+  repetir); logos maiores nos pontos de entrada.
+
 ---
 
 ## Revisão de UX/UI — /impeccable critique ✅ (19/07/2026, migração 0021)

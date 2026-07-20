@@ -18,17 +18,17 @@ export function EventSectionNav({ eventId }: { eventId: string }) {
   const tabs = tabsFor(eventId);
 
   return (
-    <nav className="mb-6 flex flex-wrap gap-x-1 gap-y-0.5 border-b border-border-c">
+    <nav className="mb-6 flex gap-1 rounded-xl border border-border-c bg-surface/40 p-1">
       {tabs.map((tab) => {
         const active = pathname === tab.href;
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
+            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
               active
-                ? "border-accent text-ink"
-                : "border-transparent text-muted hover:text-ink"
+                ? "bg-accent text-ink"
+                : "text-muted hover:bg-bg hover:text-ink"
             }`}
           >
             {tab.label}

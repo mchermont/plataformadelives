@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0022.
+  a última aplicada é a 0023.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -47,6 +47,13 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   perguntas; ranking geral é botão dentro do quiz), scale, open_text
   (spotlight no telão), ordering, matrix. Inserts só via RPCs
   (`submit_activity_response`, `answer_question`, `submit_question`).
+  `events.enabled_activity_types` (migração 0023) controla quais tipos o
+  evento pode usar — configurado na aba Interações do EventForm, filtra o
+  que aparece pra criar no Diretor; RLS de `activities` também exige o tipo
+  habilitado (defesa em profundidade, não só filtro de UI).
+- **Q&A**: aprovação é sempre obrigatória (não é mais opcional) — toda
+  pergunta nasce `pending` e só fica pública quando o colaborador aprova
+  (`can_chat`); upvote é configurável por evento (`qa_upvote_enabled`).
 - Blocklist de texto livre: tabela `banned_words` (match por palavra inteira).
 - **Sorteios** (tabela `raffles`, permissão `can_quiz`): só via RPC
   `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log

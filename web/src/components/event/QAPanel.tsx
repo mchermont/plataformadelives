@@ -68,9 +68,7 @@ export function QAPanel({ event, userId }: QAPanelProps) {
       else setFeedback(`Não foi possível enviar (${msg}).`);
     } else {
       setText("");
-      if (event.qa_moderation) {
-        setFeedback("Pergunta enviada! Ela aparece depois que a moderação aprovar.");
-      }
+      setFeedback("Pergunta enviada! Ela aparece depois que a moderação aprovar.");
       await load();
     }
     setBusy(false);
@@ -127,19 +125,21 @@ export function QAPanel({ event, userId }: QAPanelProps) {
                   : "border-neutral-800"
               } ${isMinePending ? "opacity-60" : ""}`}
             >
-              <button
-                onClick={() => vote(q)}
-                disabled={isMinePending}
-                aria-label={voted ? "Retirar voto" : "Votar nesta pergunta"}
-                className={`flex shrink-0 flex-col items-center rounded-lg border px-2 py-1 text-xs transition ${
-                  voted
-                    ? "border-[var(--brand,#0284c7)] bg-[var(--brand,#0284c7)]/20 text-white"
-                    : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
-                }`}
-              >
-                <ChevronUp className="size-3.5" />
-                <span className="font-mono tabular-nums">{q.votes_count}</span>
-              </button>
+              {event.qa_upvote_enabled && (
+                <button
+                  onClick={() => vote(q)}
+                  disabled={isMinePending}
+                  aria-label={voted ? "Retirar voto" : "Votar nesta pergunta"}
+                  className={`flex shrink-0 flex-col items-center rounded-lg border px-2 py-1 text-xs transition ${
+                    voted
+                      ? "border-[var(--brand,#0284c7)] bg-[var(--brand,#0284c7)]/20 text-white"
+                      : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
+                  }`}
+                >
+                  <ChevronUp className="size-3.5" />
+                  <span className="font-mono tabular-nums">{q.votes_count}</span>
+                </button>
+              )}
               <div className="min-w-0">
                 <p className="break-words text-[13px] leading-snug text-neutral-200">
                   {q.content}

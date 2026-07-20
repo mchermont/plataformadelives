@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type {
+  ActivityType,
   EventAllowlistEntry,
   EventField,
   EventStatus,
@@ -13,6 +14,7 @@ import type {
   StreamProvider,
 } from "@/lib/types";
 import {
+  ACTIVITY_TYPE_LABELS,
   EVENT_STATUS_LABELS,
   PROVIDER_LABELS,
   REGISTRATION_MODE_LABELS,
@@ -36,11 +38,22 @@ interface EventFormProps {
 }
 
 const FORM_TABS = [
-  { key: "info", label: "Informações básicas" },
+  { key: "info", label: "Informações" },
   { key: "interacoes", label: "Interações" },
-  { key: "acesso", label: "Controle de acesso e cadastro" },
-  { key: "identidade", label: "Identidade e vínculo" },
+  { key: "acesso", label: "Acesso e cadastro" },
+  { key: "identidade", label: "Identidade" },
 ] as const;
+
+/** Tipos de atividade que o evento pode habilitar (Ranking geral não é criável direto). */
+const TOGGLABLE_ACTIVITY_TYPES: ActivityType[] = [
+  "word_cloud",
+  "poll",
+  "quiz",
+  "scale",
+  "open_text",
+  "ordering",
+  "matrix",
+];
 
 type ImageKind = "logo" | "bg" | "bgMobile" | "card" | "sponsor";
 
@@ -62,6 +75,8 @@ interface DraftField {
 const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 const labelClass = "mb-1.5 block text-sm font-medium";
+/** Cada seção de aba vira um painel próprio — separa visualmente do fundo da página. */
+const cardTab = "space-y-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5";
 
 const STREAM_PLACEHOLDERS: Record<StreamProvider, string> = {
   youtube: "Link do vídeo/live do YouTube (ex.: https://youtube.com/watch?v=... ou o ID)",
@@ -93,11 +108,11 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
     capacity: event?.capacity ?? 1000,
     chat_enabled: event?.chat_enabled ?? true,
     chat_moderation: event?.chat_moderation ?? false,
-    quiz_enabled: event?.quiz_enabled ?? true,
+    enabled_activity_types: event?.enabled_activity_types ?? [...TOGGLABLE_ACTIVITY_TYPES],
     qa_enabled: event?.qa_enabled ?? false,
     gallery_enabled: event?.gallery_enabled ?? false,
     qa_allow_anonymous: event?.qa_allow_anonymous ?? true,
-    qa_moderation: event?.qa_moderation ?? false,
+    qa_upvote_enabled: event?.qa_upvote_enabled ?? true,
     brand_color: event?.brand_color ?? "#0284c7",
     brand_logo_url: event?.brand_logo_url ?? "",
     bg_image_url: event?.bg_image_url ?? "",
@@ -189,11 +204,11 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
       capacity: form.capacity,
       chat_enabled: form.chat_enabled,
       chat_moderation: form.chat_moderation,
-      quiz_enabled: form.quiz_enabled,
+      enabled_activity_types: form.enabled_activity_types,
       qa_enabled: form.qa_enabled,
       gallery_enabled: form.gallery_enabled,
       qa_allow_anonymous: form.qa_allow_anonymous,
-      qa_moderation: form.qa_moderation,
+      qa_upvote_enabled: form.qa_upvote_enabled,
       brand_color: form.brand_color,
       brand_logo_url: form.brand_logo_url || null,
       bg_image_url: form.bg_image_url || null,
@@ -349,16 +364,16 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </p>
       )}
 
-      <nav className="flex flex-wrap gap-x-1 gap-y-0.5 border-b border-neutral-800">
+      <nav className="flex gap-1 rounded-xl border border-neutral-800 bg-neutral-900/40 p-1">
         {[...FORM_TABS, ...(extraTabs ?? [])].map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
+            className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-medium transition ${
               tab === t.key
-                ? "border-sky-500 text-white"
-                : "border-transparent text-neutral-400 hover:text-white"
+                ? "bg-sky-600 text-white"
+                : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
             }`}
           >
             {t.label}
@@ -366,7 +381,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         ))}
       </nav>
 
-      <section className={tab === "info" ? "space-y-4" : "hidden"}>
+      <section className={tab === "info" ? cardTab : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Informações básicas
         </h2>
@@ -431,7 +446,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </div>
       </section>
 
-      <section className={tab === "info" ? "space-y-4" : "hidden"}>
+      <section className={tab === "info" ? cardTab : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Vídeo
         </h2>
@@ -464,22 +479,37 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </div>
       </section>
 
-      <section className={tab === "interacoes" ? "space-y-4" : "hidden"}>
+      <section className={tab === "interacoes" ? cardTab : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Interações
         </h2>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.quiz_enabled}
-            onChange={(e) => set("quiz_enabled", e.target.checked)}
-            className="h-4 w-4 accent-sky-500"
-          />
-          Quiz
-        </label>
-        <p className="-mt-3 ml-6 text-xs text-neutral-500">
-          Rodadas, enquetes e ranking são controlados ao vivo na Sala de produção.
-        </p>
+        <div>
+          <p className="mb-2 text-sm font-medium">Atividades interativas</p>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+            {TOGGLABLE_ACTIVITY_TYPES.map((t) => (
+              <label key={t} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.enabled_activity_types.includes(t)}
+                  onChange={(e) =>
+                    set(
+                      "enabled_activity_types",
+                      e.target.checked
+                        ? [...form.enabled_activity_types, t]
+                        : form.enabled_activity_types.filter((x) => x !== t),
+                    )
+                  }
+                  className="h-4 w-4 accent-sky-500"
+                />
+                {ACTIVITY_TYPE_LABELS[t]}
+              </label>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-neutral-500">
+            Define quais tipos ficam disponíveis pra criar na Sala de produção.
+            Abrir, fechar e exibir resultado é sempre controlado ao vivo por lá.
+          </p>
+        </div>
         <div className="space-y-1.5 text-sm">
           <label className="flex items-center gap-2">
             <input
@@ -513,31 +543,33 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
             Perguntas do público (Q&amp;A)
           </label>
           {form.qa_enabled && (
-            <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-neutral-300">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.qa_allow_anonymous}
-                  onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
-                  className="h-4 w-4 accent-sky-500"
-                />
-                Permitir perguntas anônimas
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.qa_moderation}
-                  onChange={(e) => set("qa_moderation", e.target.checked)}
-                  className="h-4 w-4 accent-sky-500"
-                />
-                Aprovar perguntas antes de exibir
-              </label>
-            </div>
+            <>
+              <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-neutral-300">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.qa_allow_anonymous}
+                    onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
+                    className="h-4 w-4 accent-sky-500"
+                  />
+                  Permitir perguntas anônimas
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={form.qa_upvote_enabled}
+                    onChange={(e) => set("qa_upvote_enabled", e.target.checked)}
+                    className="h-4 w-4 accent-sky-500"
+                  />
+                  Permitir votar nas perguntas (upvote)
+                </label>
+              </div>
+              <p className="ml-6 text-xs text-neutral-500">
+                Toda pergunta passa pela aprovação do colaborador antes de
+                aparecer — pra ser respondida ao vivo ou depois.
+              </p>
+            </>
           )}
-          <p className="ml-6 text-xs text-neutral-500">
-            Sem moderação prévia, as perguntas já aparecem ordenadas pelas mais
-            votadas — o público prioriza sozinho o que quer ver respondido.
-          </p>
         </div>
         <label className="flex items-center gap-2 text-sm">
           <input
@@ -550,7 +582,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </label>
       </section>
 
-      <section className={tab === "acesso" ? "space-y-4" : "hidden"}>
+      <section className={tab === "acesso" ? cardTab : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Controle de acesso
         </h2>
@@ -686,7 +718,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
       </section>
 
       {belongsToClient && (
-        <section className={tab === "identidade" ? "space-y-4" : "hidden"}>
+        <section className={tab === "identidade" ? cardTab : "hidden"}>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Vínculo com o cliente
           </h2>
@@ -711,7 +743,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </section>
       )}
 
-      <section className={tab === "identidade" ? "space-y-4" : "hidden"}>
+      <section className={tab === "identidade" ? cardTab : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Identidade visual (white-label)
         </h2>
@@ -873,7 +905,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </div>
       </section>
 
-      <section className={tab === "acesso" ? "space-y-4" : "hidden"}>
+      <section className={tab === "acesso" ? cardTab : "hidden"}>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Campos do cadastro

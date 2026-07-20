@@ -40,12 +40,12 @@ export default async function EditarEventoPage({
       extraTabs={[
         {
           key: "materiais",
-          label: "Materiais para download",
+          label: "Materiais",
           content: <MaterialsManager eventId={event.id} userId={user.id} />,
         },
         {
           key: "equipe",
-          label: "Equipe e funções",
+          label: "Equipe",
           content: <EventTeam eventId={event.id} clientId={event.client_id} />,
         },
       ]}

@@ -127,7 +127,14 @@ function downloadCsv(filename: string, rows: string[][]) {
 type Action = "open" | "close" | "publish" | "unpublish" | "clear";
 
 /** Bloco "Atividades interativas" do painel Diretor (Fase E.1). */
-export function ActivityManager({ eventId }: { eventId: string }) {
+export function ActivityManager({
+  eventId,
+  enabledTypes,
+}: {
+  eventId: string;
+  enabledTypes: ActivityType[];
+}) {
+  const availableTypes = CREATABLE_TYPES.filter((t) => enabledTypes.includes(t));
   const supabase = useMemo(() => createClient(), []);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [results, setResults] = useState<Record<string, ActivityResults>>({});
@@ -145,7 +152,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
 
   // formulário de nova atividade
   const [showForm, setShowForm] = useState(false);
-  const [type, setType] = useState<ActivityType>("word_cloud");
+  const [type, setType] = useState<ActivityType>(availableTypes[0] ?? "word_cloud");
   const [title, setTitle] = useState("");
   const [optionsText, setOptionsText] = useState("");
   const [statementsText, setStatementsText] = useState("");
@@ -562,12 +569,18 @@ export function ActivityManager({ eventId }: { eventId: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="rounded-lg bg-sky-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-sky-500"
-          >
-            {showForm ? "Fechar" : "+ Nova atividade"}
-          </button>
+          {availableTypes.length > 0 ? (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="rounded-lg bg-sky-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-sky-500"
+            >
+              {showForm ? "Fechar" : "+ Nova atividade"}
+            </button>
+          ) : (
+            <p className="text-sm text-neutral-500">
+              Nenhum tipo de atividade habilitado — ative em Configuração › Interações.
+            </p>
+          )}
         </div>
         <a
           href={`/telao/${eventId}`}
@@ -583,7 +596,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
       {showForm && (
         <div className="max-w-2xl space-y-3 rounded-xl border border-neutral-800 p-4">
           <div className="flex flex-wrap gap-2">
-            {CREATABLE_TYPES.map((t) => (
+            {availableTypes.map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}

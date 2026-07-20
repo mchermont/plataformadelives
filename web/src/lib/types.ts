@@ -114,7 +114,8 @@ export interface LiveEvent {
   google_login_enabled: boolean;
   capacity: number;
   chat_enabled: boolean;
-  quiz_enabled: boolean;
+  /** tipos de atividade habilitados para uso neste evento (migração 0023) */
+  enabled_activity_types: ActivityType[];
   brand_logo_url: string | null;
   brand_color: string;
   created_by: string;
@@ -131,10 +132,10 @@ export interface LiveEvent {
   bg_image_mobile_url: string | null;
   card_image_url: string | null;
   sponsor_logos: string[];
-  // Q&A (migração 0014)
+  // Q&A (migração 0014) — moderação é sempre obrigatória (migração 0023)
   qa_enabled: boolean;
   qa_allow_anonymous: boolean;
-  qa_moderation: boolean;
+  qa_upvote_enabled: boolean;
   /** chat pré-moderado (migração 0015): mensagem só publica após aprovação */
   chat_moderation: boolean;
   /** galeria de fotos dos participantes (migração 0016), moderação obrigatória */

@@ -178,7 +178,7 @@ export function LiveControlRoom({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[400px_minmax(0,1fr)_400px]">
         {/* Prévias: lado a lado no lg (linha inteira), coluna própria no xl */}
-        <section className="lg:col-span-2 xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
+        <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 lg:col-span-2 xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Prévias · o que o público está vendo
           </h2>
@@ -234,11 +234,11 @@ export function LiveControlRoom({
           </div>
         </section>
 
-        <section>
+        <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Atividades interativas · quiz, enquete, nuvem
           </h2>
-          <ActivityManager eventId={event.id} />
+          <ActivityManager eventId={event.id} enabledTypes={event.enabled_activity_types} />
           <RaffleManager eventId={event.id} />
         </section>
 
