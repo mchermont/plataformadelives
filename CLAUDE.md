@@ -83,12 +83,13 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   `getClientChain` de `src/lib/admin/chains.ts` (memoizados por request)
   em vez de buscar `events`/`clients` direto — layout e página reaproveitam
   a mesma busca.
-- **Tema por tela**: só `[clientSlug]/page.tsx` (vitrine) e `EntrarFlow.tsx`
-  (cadastro/login do participante) são claros — usam `bg-white`/
-  `text-neutral-900`/`border-neutral-200` com a cor da marca do **cliente
-  ou evento** (`--brand`) carregando CTA/foco/hover, não os tokens onix da
-  plataforma. Login do organizador (`/login`, `/senha/nova`), sala, Diretor
-  e telão continuam onix — são superfícies de staff/plataforma, não vitrine
+- **Tema por tela**: só `[clientSlug]/page.tsx` (vitrine, escolha de evento)
+  é clara — usa `bg-white`/`text-neutral-900`/`border-neutral-200` com a
+  cor da marca do cliente (`--brand`) carregando CTA/foco/hover. A partir
+  daí (`EntrarFlow.tsx`, login do organizador, sala, Diretor, telão) tudo é
+  onix — decisão revisada na Fase C: tema claro só na "capa" de navegação
+  entre eventos, nunca dentro do fluxo de entrada/participação em si (ficava
+  destoante entrar claro pra cair numa sala escura logo em seguida)
   do cliente final.
 
 ## Estado (19/07/2026)

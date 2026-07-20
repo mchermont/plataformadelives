@@ -65,12 +65,17 @@ design, paleta onix aprovada). Implementação em 3 fases:
 
 ### Fase C — Vitrine pública clara ✅ (19/07/2026)
 
-Tema claro em `/[clientSlug]` (vitrine do cliente) e no fluxo de
-cadastro/login do participante (`EntrarFlow.tsx`, compartilhado por
-`/[clientSlug]/[eventSlug]/entrar` e pela rota legada `/e/[slug]/entrar`) —
-única superfície verdadeiramente pública/participante antes da sala. Login
-do organizador (`/login`, `/senha/nova`) e a sala/Diretor/telão permanecem
-onix (mesmo público de admin/staff, sem mudança de tema).
+Tema claro só em `/[clientSlug]` (vitrine do cliente, a "capa" antes de
+escolher um evento). `EntrarFlow.tsx` (cadastro/login do participante,
+compartilhado por `/[clientSlug]/[eventSlug]/entrar` e pela rota legada
+`/e/[slug]/entrar`) **voltou pro onix** — feedback do Marcelo após ver ao
+vivo: tema claro ali destoava da sala escura que vem logo depois no mesmo
+fluxo (login → sala sem transição de tema fazia mais sentido). Decisão
+revisada: só a vitrine (navegação entre eventos, "primeira impressão" da
+marca do cliente) é clara; o gate de entrada de um evento específico já é
+parte da experiência ao vivo (mesmo tema da sala/Diretor/telão) — variação
+de tema fica reservada à fronteira "escolher evento" → "entrar num evento",
+não dentro do próprio fluxo de entrada.
 
 - [x] `[clientSlug]/page.tsx`: banner de imagem de fundo do cliente (quando
       houver) com gradiente até o branco sólido; grid de eventos em cards
@@ -78,18 +83,12 @@ onix (mesmo público de admin/staff, sem mudança de tema).
       da marca do cliente); badge "Em breve"/"Encerrado" em pílula
       translúcida (`bg-white/90 backdrop-blur-sm`) legível sobre qualquer
       thumbnail; miniatura sem capa usa tinta suave da marca (`${brand}12`)
-- [x] `EntrarFlow.tsx`: mesmo tratamento nos 5 passos (credenciais, código,
-      cadastro, aguardando, bloqueado) — card branco, inputs com borda
-      neutra clara e foco/CTA na cor da marca do evento (`--brand`, sem mais
-      `sky-600` fixo), mensagens de erro/sucesso em tons claros
-      (`bg-red-50`/`text-red-700`), texto secundário em `neutral-600`/`700`
-      para manter contraste AA em fundo branco
+- [x] `EntrarFlow.tsx`: revertido para onix (era o estado antes desta fase);
+      login do organizador (`/login`, `/senha/nova`), sala, Diretor e telão
+      continuam onix sem mudança
 - Verificado: `tsc --noEmit` + `next build` limpos; conferência visual da
   vitrine (com foto de capa + fallback sem capa, estado "AO VIVO", hover do
-  card) via dev server. Fluxo `EntrarFlow` confirmado por revisão de código
-  (mesmo padrão já validado na vitrine) — não verificado ao vivo no
-  navegador porque a sessão de teste está autenticada como admin, que pula
-  `/entrar` direto para a sala.
+  card) via dev server.
 
 ---
 
