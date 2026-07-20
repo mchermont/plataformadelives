@@ -83,8 +83,9 @@ export default function LoginPage() {
     if (error) {
       setError("Código inválido ou expirado.");
     } else {
-      router.push(next);
-      router.refresh();
+      // Entrar com código não deixa senha definida — força já em seguida
+      // pra não deixar a conta sem senha pra próxima vez.
+      router.push("/senha/nova");
     }
     setBusy(false);
   }

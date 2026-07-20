@@ -31,11 +31,12 @@ export default async function ClientPage({
         className="flex min-h-dvh flex-col items-center justify-center bg-white px-4 text-center text-neutral-900"
         style={{ "--brand": client.brand_color } as React.CSSProperties}
       >
-        {client.brand_logo_url && (
+        {client.brand_logo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={client.brand_logo_url} alt="" className="mb-6 h-14 object-contain" />
+          <img src={client.brand_logo_url} alt={client.name} className="mb-6 h-20 object-contain" />
+        ) : (
+          <h1 className="mb-1 text-2xl font-bold tracking-tight">{client.name}</h1>
         )}
-        <h1 className="text-2xl font-bold tracking-tight">{client.name}</h1>
         <p className="mt-3 max-w-sm text-sm text-neutral-600">
           Esta página é restrita. Se você já participou de um evento, entre com
           a sua conta; senão, use o link direto enviado pelo organizador.
@@ -96,15 +97,16 @@ export default async function ClientPage({
 
       <div className={`mx-auto max-w-4xl px-4 pb-16 ${hasBg ? "-mt-10" : "pt-16"}`}>
         <header className="relative mb-10 text-center">
-          {client.brand_logo_url && (
+          {client.brand_logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={client.brand_logo_url}
-              alt=""
-              className="mx-auto mb-5 h-16 object-contain"
+              alt={client.name}
+              className="mx-auto h-24 object-contain"
             />
+          ) : (
+            <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
           )}
-          <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
         </header>
 
         {list.length === 0 ? (

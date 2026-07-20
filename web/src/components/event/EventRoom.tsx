@@ -170,12 +170,12 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
         </div>
 
         <aside className="flex h-[60dvh] w-full flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:h-auto lg:min-h-0 lg:w-96">
-          {/* até 5 abas cabem esticando; em telas estreitas rola em vez de espremer/truncar texto */}
-          <div className="flex overflow-x-auto border-b border-neutral-800">
+          {/* até 5 abas: fonte/padding encolhem no mobile pra caber sem scroll nem truncar texto */}
+          <div className="flex border-b border-neutral-800">
             {event.chat_enabled && (
               <button
                 onClick={() => setTab("chat")}
-                className={`min-w-[5.5rem] flex-1 shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition ${
+                className={`min-w-0 flex-1 whitespace-nowrap px-1.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm ${
                   tab === "chat"
                     ? "border-b-2 border-[var(--brand)] text-white"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -187,7 +187,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             {event.qa_enabled && (
               <button
                 onClick={() => setTab("perguntas")}
-                className={`min-w-[5.5rem] flex-1 shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition ${
+                className={`min-w-0 flex-1 whitespace-nowrap px-1.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm ${
                   tab === "perguntas"
                     ? "border-b-2 border-[var(--brand)] text-white"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -199,7 +199,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             {event.gallery_enabled && (
               <button
                 onClick={() => setTab("fotos")}
-                className={`min-w-[5.5rem] flex-1 shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition ${
+                className={`min-w-0 flex-1 whitespace-nowrap px-1.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm ${
                   tab === "fotos"
                     ? "border-b-2 border-[var(--brand)] text-white"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -211,7 +211,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             {materials.length > 0 && (
               <button
                 onClick={() => setTab("materiais")}
-                className={`min-w-[5.5rem] flex-1 shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition ${
+                className={`min-w-0 flex-1 whitespace-nowrap px-1.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm ${
                   tab === "materiais"
                     ? "border-b-2 border-[var(--brand)] text-white"
                     : "text-neutral-400 hover:text-neutral-200"
@@ -226,7 +226,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                   setTab("interacao");
                   activities.clearAlert();
                 }}
-                className={`min-w-[5.5rem] flex-1 shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition ${
+                className={`min-w-0 flex-1 whitespace-nowrap px-1.5 py-2 text-[11px] font-medium transition sm:px-3 sm:py-2.5 sm:text-sm ${
                   tab === "interacao"
                     ? "border-b-2 border-[var(--brand)] text-white"
                     : "text-neutral-400 hover:text-neutral-200"

@@ -37,10 +37,10 @@ interface EventFormProps {
 
 const FORM_TABS = [
   { key: "info", label: "Informações básicas" },
+  { key: "interacoes", label: "Interações" },
   { key: "acesso", label: "Controle de acesso e cadastro" },
   { key: "identidade", label: "Identidade e vínculo" },
 ] as const;
-type FormTabKey = (typeof FORM_TABS)[number]["key"];
 
 type ImageKind = "logo" | "bg" | "bgMobile" | "card" | "sponsor";
 
@@ -349,13 +349,13 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </p>
       )}
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-neutral-800">
+      <nav className="flex flex-wrap gap-x-1 gap-y-0.5 border-b border-neutral-800">
         {[...FORM_TABS, ...(extraTabs ?? [])].map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
+            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
               tab === t.key
                 ? "border-sky-500 text-white"
                 : "border-transparent text-neutral-400 hover:text-white"
@@ -464,6 +464,92 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </div>
       </section>
 
+      <section className={tab === "interacoes" ? "space-y-4" : "hidden"}>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          Interações
+        </h2>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.quiz_enabled}
+            onChange={(e) => set("quiz_enabled", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Quiz
+        </label>
+        <p className="-mt-3 ml-6 text-xs text-neutral-500">
+          Rodadas, enquetes e ranking são controlados ao vivo na Sala de produção.
+        </p>
+        <div className="space-y-1.5 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.chat_enabled}
+              onChange={(e) => set("chat_enabled", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Chat
+          </label>
+          {form.chat_enabled && (
+            <label className="ml-6 flex items-center gap-2 text-neutral-300">
+              <input
+                type="checkbox"
+                checked={form.chat_moderation}
+                onChange={(e) => set("chat_moderation", e.target.checked)}
+                className="h-4 w-4 accent-sky-500"
+              />
+              Aprovar mensagens do chat antes de publicar
+            </label>
+          )}
+        </div>
+        <div className="space-y-1.5 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.qa_enabled}
+              onChange={(e) => set("qa_enabled", e.target.checked)}
+              className="h-4 w-4 accent-sky-500"
+            />
+            Perguntas do público (Q&amp;A)
+          </label>
+          {form.qa_enabled && (
+            <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-neutral-300">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.qa_allow_anonymous}
+                  onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Permitir perguntas anônimas
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.qa_moderation}
+                  onChange={(e) => set("qa_moderation", e.target.checked)}
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Aprovar perguntas antes de exibir
+              </label>
+            </div>
+          )}
+          <p className="ml-6 text-xs text-neutral-500">
+            Sem moderação prévia, as perguntas já aparecem ordenadas pelas mais
+            votadas — o público prioriza sozinho o que quer ver respondido.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.gallery_enabled}
+            onChange={(e) => set("gallery_enabled", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Galeria de fotos (moderação obrigatória)
+        </label>
+      </section>
+
       <section className={tab === "acesso" ? "space-y-4" : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Controle de acesso
@@ -563,90 +649,14 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
           />
           Toda inscrição precisa de aprovação manual do organizador
         </label>
-        <div className="flex flex-wrap gap-6 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.google_login_enabled}
-              onChange={(e) => set("google_login_enabled", e.target.checked)}
-              className="h-4 w-4 accent-sky-500"
-            />
-            Permitir login com Google
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.quiz_enabled}
-              onChange={(e) => set("quiz_enabled", e.target.checked)}
-              className="h-4 w-4 accent-sky-500"
-            />
-            Quiz
-          </label>
-        </div>
-        {/* cada recurso com suas sub-opções logo abaixo (hierarquia clara) */}
-        <div className="space-y-1.5 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.chat_enabled}
-              onChange={(e) => set("chat_enabled", e.target.checked)}
-              className="h-4 w-4 accent-sky-500"
-            />
-            Chat
-          </label>
-          {form.chat_enabled && (
-            <label className="ml-6 flex items-center gap-2 text-neutral-300">
-              <input
-                type="checkbox"
-                checked={form.chat_moderation}
-                onChange={(e) => set("chat_moderation", e.target.checked)}
-                className="h-4 w-4 accent-sky-500"
-              />
-              Aprovar mensagens do chat antes de publicar
-            </label>
-          )}
-        </div>
-        <div className="space-y-1.5 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.qa_enabled}
-              onChange={(e) => set("qa_enabled", e.target.checked)}
-              className="h-4 w-4 accent-sky-500"
-            />
-            Perguntas do público (Q&amp;A)
-          </label>
-          {form.qa_enabled && (
-            <div className="ml-6 flex flex-wrap gap-x-5 gap-y-2 text-neutral-300">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.qa_allow_anonymous}
-                  onChange={(e) => set("qa_allow_anonymous", e.target.checked)}
-                  className="h-4 w-4 accent-sky-500"
-                />
-                Permitir perguntas anônimas
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.qa_moderation}
-                  onChange={(e) => set("qa_moderation", e.target.checked)}
-                  className="h-4 w-4 accent-sky-500"
-                />
-                Aprovar perguntas antes de exibir
-              </label>
-            </div>
-          )}
-        </div>
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
-            checked={form.gallery_enabled}
-            onChange={(e) => set("gallery_enabled", e.target.checked)}
+            checked={form.google_login_enabled}
+            onChange={(e) => set("google_login_enabled", e.target.checked)}
             className="h-4 w-4 accent-sky-500"
           />
-          Galeria de fotos (moderação obrigatória)
+          Permitir login com Google
         </label>
         <div>
           <label className={labelClass} htmlFor="ev-capacity">Capacidade</label>

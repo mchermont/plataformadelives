@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Monitor, Square, Tv, X } from "lucide-react";
+import { ExternalLink, Info, Monitor, Square, Tv, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventStatus, LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
@@ -114,9 +114,9 @@ export function LiveControlRoom({
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-neutral-800 p-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold">{event.title}</h1>
+          <h1 className="text-lg font-bold">{event.title}</h1>
           <span
             className={
               isLive
@@ -128,55 +128,57 @@ export function LiveControlRoom({
           </span>
           <PresenceBadge eventId={event.id} userId={userId} userName={userName} />
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/e/${event.slug}`}
-            target="_blank"
-            className="flex items-center gap-1.5 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
-          >
-            Ver como participante <ExternalLink className="size-3.5" />
-          </Link>
-        </div>
-      </div>
 
-      {isAdmin && (
-        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-neutral-800 p-3">
-          <span className="mr-2 text-sm text-neutral-400">Transmissão:</span>
-          {event.status !== "live" ? (
-            <button
-              onClick={() => setStatus("live")}
-              disabled={busy}
-              className="rounded-lg bg-red-600 px-5 py-2 text-sm font-bold text-white transition hover:bg-red-500 disabled:opacity-40"
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-neutral-400">Transmissão:</span>
+            {event.status !== "live" ? (
+              <button
+                onClick={() => setStatus("live")}
+                disabled={busy}
+                className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-bold text-white transition hover:bg-red-500 disabled:opacity-40"
+              >
+                ● ENTRAR NO AR
+              </button>
+            ) : (
+              <button
+                onClick={() => setStatus("ended")}
+                disabled={busy}
+                className="flex items-center gap-1.5 rounded-lg border border-red-900 px-4 py-1.5 text-sm font-bold text-red-400 transition hover:bg-red-950 disabled:opacity-40"
+              >
+                <Square className="size-3.5 fill-current" /> Encerrar transmissão
+              </button>
+            )}
+            {event.status === "ended" && (
+              <button
+                onClick={() => setStatus("scheduled")}
+                disabled={busy}
+                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-40"
+              >
+                Reagendar
+              </button>
+            )}
+            <span
+              title="O player e o chat dos participantes reagem na hora, sem recarregar."
+              className="text-neutral-500"
             >
-              ● ENTRAR NO AR
-            </button>
-          ) : (
-            <button
-              onClick={() => setStatus("ended")}
-              disabled={busy}
-              className="flex items-center gap-1.5 rounded-lg border border-red-900 px-5 py-2 text-sm font-bold text-red-400 transition hover:bg-red-950 disabled:opacity-40"
-            >
-              <Square className="size-3.5 fill-current" /> Encerrar transmissão
-            </button>
-          )}
-          {event.status === "ended" && (
-            <button
-              onClick={() => setStatus("scheduled")}
-              disabled={busy}
-              className="rounded-lg border border-neutral-700 px-4 py-2 text-sm hover:bg-neutral-800 disabled:opacity-40"
-            >
-              Reagendar
-            </button>
-          )}
-          <span className="ml-auto text-xs text-neutral-500">
-            O player e o chat dos participantes reagem na hora, sem recarregar.
-          </span>
-        </div>
-      )}
+              <Info className="size-4" />
+            </span>
+          </div>
+        )}
+
+        <Link
+          href={`/e/${event.slug}`}
+          target="_blank"
+          className="ml-auto flex items-center gap-1.5 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
+        >
+          Ver como participante <ExternalLink className="size-3.5" />
+        </Link>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[400px_minmax(0,1fr)_400px]">
         {/* Prévias: lado a lado no lg (linha inteira), coluna própria no xl */}
-        <section className="lg:col-span-2 xl:col-span-1">
+        <section className="lg:col-span-2 xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Prévias · o que o público está vendo
           </h2>

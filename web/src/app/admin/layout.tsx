@@ -47,48 +47,50 @@ export default async function AdminLayout({
   ];
 
   return (
-    <div className="flex min-h-dvh bg-bg text-ink">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border-c bg-surface/40 sm:flex">
-        <div className="border-b border-border-c px-5 py-4">
-          <Link href="/admin" className="font-semibold tracking-tight text-ink">
-            Plataforma de Lives
+    <div className="flex min-h-dvh flex-col bg-bg text-ink">
+      <header className="sticky top-0 z-20 border-b border-border-c bg-surface/90 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Link href="/admin" className="flex shrink-0 items-baseline gap-2">
+            <span className="font-semibold tracking-tight text-ink">Plataforma de Lives</span>
+            <span className="hidden text-xs text-muted sm:inline">Painel</span>
           </Link>
-          <p className="mt-0.5 text-xs text-muted">Painel</p>
+          <nav className="hidden items-center gap-1 sm:flex">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-lg px-3 py-1.5 text-sm text-muted transition hover:bg-bg hover:text-ink"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="hidden max-w-[10rem] truncate text-sm text-muted md:inline">
+              {profile?.full_name || user.email}
+            </span>
+            {isAdmin && (
+              <span className="hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent sm:inline-block">
+                Admin
+              </span>
+            )}
+            <SignOutButton />
+          </div>
         </div>
-        <nav className="flex-1 space-y-0.5 p-3">
+        <nav className="flex items-center gap-1 overflow-x-auto border-t border-border-c px-4 py-1.5 sm:hidden">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-surface hover:text-ink"
+              className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-muted transition hover:bg-bg hover:text-ink"
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="border-t border-border-c p-3 text-sm text-muted">
-          <p className="truncate px-3">{profile?.full_name || user.email}</p>
-          {isAdmin && (
-            <span className="ml-3 mt-1 inline-block rounded-full bg-accent/15 px-2 py-0.5 text-xs text-accent">
-              Admin
-            </span>
-          )}
-          <div className="px-3 pt-2">
-            <SignOutButton />
-          </div>
-        </div>
-      </aside>
+      </header>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* nav compacta no mobile (sidebar só aparece em sm+) */}
-        <header className="flex items-center justify-between border-b border-border-c px-4 py-3 sm:hidden">
-          <Link href="/admin" className="font-semibold tracking-tight text-ink">
-            Plataforma de Lives
-          </Link>
-          <SignOutButton />
-        </header>
-        <main className="min-w-0 flex-1 px-6 py-8">{children}</main>
-      </div>
+      <main className="min-w-0 flex-1 px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }

@@ -55,9 +55,11 @@
   --color-sky-900: oklch(0.28 0.02 68);
   --color-sky-950: oklch(0.20 0.015 68);
 
-  /* purple-* só era usado no badge "Agência" — mesmo tratamento */
-  --color-purple-300: oklch(0.80 0.03 68);
-  --color-purple-500: oklch(0.55 0.03 68);
+  /* purple-* (badge "Agência") — hue diferente do sky-* (290 = violeta frio
+     vs 68 = âmbar quente) pra diferenciar categorias; mesma chroma baixa,
+     continua onix/dessaturado, não vira cor de marca própria */
+  --color-purple-300: oklch(0.80 0.035 290);
+  --color-purple-500: oklch(0.55 0.035 290);
 }
 
 body {

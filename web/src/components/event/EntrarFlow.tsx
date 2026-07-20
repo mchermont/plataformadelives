@@ -9,7 +9,6 @@ import type {
   Profile,
   Registration,
 } from "@/lib/types";
-import { REGISTRATION_MODE_LABELS } from "@/lib/types";
 
 interface EntrarFlowProps {
   event: LiveEvent;
@@ -21,7 +20,7 @@ interface EntrarFlowProps {
   basePath?: string;
 }
 
-type Step = "credenciais" | "codigo" | "cadastro" | "aguardando" | "bloqueado";
+type Step = "credenciais" | "codigo" | "senha" | "cadastro" | "aguardando" | "bloqueado";
 
 const inputClass =
   "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
@@ -52,7 +51,14 @@ export function EntrarFlow({
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [code, setCode] = useState("");
-  const [fullName, setFullName] = useState(profile?.full_name ?? "");
+  const [firstName, setFirstName] = useState(
+    profile?.full_name?.trim().split(/\s+/)[0] ?? "",
+  );
+  const [lastName, setLastName] = useState(
+    profile?.full_name?.trim().split(/\s+/).slice(1).join(" ") ?? "",
+  );
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>(
     registration?.answers ?? {},
   );
@@ -175,9 +181,30 @@ export function EntrarFlow({
     if (error) {
       setError("Código inválido ou expirado. Tente novamente.");
     } else {
-      setStep("cadastro");
-      router.refresh();
+      setStep("senha");
     }
+    setBusy(false);
+  }
+
+  async function savePassword() {
+    setError(null);
+    if (newPassword.length < 8) {
+      setError("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setError("As senhas não conferem.");
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setError("Não foi possível salvar a senha. Tente novamente.");
+      setBusy(false);
+      return;
+    }
+    setStep("cadastro");
+    router.refresh();
     setBusy(false);
   }
 
@@ -202,8 +229,8 @@ export function EntrarFlow({
         return;
       }
     }
-    if (!fullName.trim()) {
-      setError("Informe seu nome.");
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Informe seu nome e sobrenome.");
       setBusy(false);
       return;
     }
@@ -213,7 +240,8 @@ export function EntrarFlow({
       return;
     }
 
-    await supabase.from("profiles").update({ full_name: fullName.trim() }).eq("id", user?.id ?? "");
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
+    await supabase.from("profiles").update({ full_name: fullName }).eq("id", user?.id ?? "");
 
     const { data, error } = await supabase.rpc("register_for_event", {
       p_event_id: event.id,
@@ -286,12 +314,9 @@ export function EntrarFlow({
             <img
               src={event.brand_logo_url}
               alt=""
-              className="mx-auto mb-4 h-14 object-contain"
+              className="mx-auto mb-5 h-20 object-contain"
             />
           )}
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[var(--brand,#38bdf8)]">
-            {REGISTRATION_MODE_LABELS[event.registration_mode]}
-          </p>
           <h1 className="text-2xl font-bold tracking-tight">{event.title}</h1>
           {event.starts_at && (
             <p className="mt-2 text-sm text-neutral-400">
@@ -432,18 +457,61 @@ export function EntrarFlow({
             </div>
           )}
 
+          {step === "senha" && (
+            <div className="space-y-4">
+              <p className="text-sm text-neutral-300">
+                Antes de continuar, defina uma senha — assim você não precisa de
+                um novo código toda vez que entrar.
+              </p>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nova senha (mín. 8 caracteres)"
+                className={inputClass}
+              />
+              <input
+                type="password"
+                value={newPasswordConfirm}
+                onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && savePassword()}
+                placeholder="Repita a nova senha"
+                className={inputClass}
+              />
+              <button
+                onClick={savePassword}
+                disabled={busy || newPassword.length === 0 || newPasswordConfirm.length === 0}
+                className="w-full rounded-lg bg-[var(--brand,#0284c7)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+              >
+                {busy ? "Salvando…" : "Salvar senha e continuar"}
+              </button>
+            </div>
+          )}
+
           {step === "cadastro" && (
             <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">
-                  Nome completo <span className="text-red-400">*</span>
-                </label>
-                <input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Como você quer aparecer no chat"
-                  className={inputClass}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    Nome <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Como você quer aparecer no chat"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    Sobrenome <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
               </div>
 
               {fields.map((field) => (

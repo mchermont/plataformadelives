@@ -99,7 +99,7 @@ export default async function ClientDetailPage({
                     <td className="px-4 py-3">
                       <div className="flex gap-3 text-sky-400">
                         <Link href={`/admin/eventos/${event.id}/live`} className="flex items-center gap-1 font-semibold hover:underline">
-                          <MonitorPlay className="size-3.5" /> Diretor
+                          <MonitorPlay className="size-3.5" /> Sala de produção
                         </Link>
                         {isClientAdmin && (
                           <Link href={`/admin/eventos/${event.id}`} className="hover:underline">
