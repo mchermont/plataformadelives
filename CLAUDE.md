@@ -89,8 +89,12 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   daí (`EntrarFlow.tsx`, login do organizador, sala, Diretor, telão) tudo é
   onix — decisão revisada na Fase C: tema claro só na "capa" de navegação
   entre eventos, nunca dentro do fluxo de entrada/participação em si (ficava
-  destoante entrar claro pra cair numa sala escura logo em seguida)
-  do cliente final.
+  destoante entrar claro pra cair numa sala escura logo em seguida).
+- **Abas dentro de uma tela** (sem mudar de URL, ex.: Configuração do
+  evento): estado local (`useState`) + classe `hidden` pra alternar — nunca
+  desmontar o conteúdo da aba (perde estado não salvo). Ver
+  `EventForm.tsx`'s `extraTabs` para injetar abas de componentes irmãos
+  (Materiais, Equipe) só quando fazem sentido (evento já existe).
 
 ## Estado (19/07/2026)
 

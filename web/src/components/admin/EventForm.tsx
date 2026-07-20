@@ -19,13 +19,28 @@ import {
 } from "@/lib/types";
 import { friendlyError } from "@/lib/friendlyError";
 
+interface ExtraTab {
+  key: string;
+  label: string;
+  content: React.ReactNode;
+}
+
 interface EventFormProps {
   event?: LiveEvent;
   fields?: EventField[];
   allowlist?: EventAllowlistEntry[];
   userId: string;
   clientId?: string;
+  /** Abas adicionais (Materiais, Equipe) — só existem com o evento já criado. */
+  extraTabs?: ExtraTab[];
 }
+
+const FORM_TABS = [
+  { key: "info", label: "Informações básicas" },
+  { key: "acesso", label: "Controle de acesso e cadastro" },
+  { key: "identidade", label: "Identidade e vínculo" },
+] as const;
+type FormTabKey = (typeof FORM_TABS)[number]["key"];
 
 type ImageKind = "logo" | "bg" | "bgMobile" | "card" | "sponsor";
 
@@ -55,9 +70,11 @@ const STREAM_PLACEHOLDERS: Record<StreamProvider, string> = {
   hls: "URL do stream HLS (.m3u8) — disponível na Fase J (streaming próprio)",
 };
 
-export function EventForm({ event, fields, allowlist, userId, clientId }: EventFormProps) {
+export function EventForm({ event, fields, allowlist, userId, clientId, extraTabs }: EventFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const [tab, setTab] = useState<string>("info");
+  const isFormTab = FORM_TABS.some((t) => t.key === tab);
 
   const [form, setForm] = useState({
     title: event?.title ?? "",
@@ -332,7 +349,24 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </p>
       )}
 
-      <section className="space-y-4">
+      <nav className="flex gap-1 overflow-x-auto border-b border-neutral-800">
+        {[...FORM_TABS, ...(extraTabs ?? [])].map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
+              tab === t.key
+                ? "border-sky-500 text-white"
+                : "border-transparent text-neutral-400 hover:text-white"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      <section className={tab === "info" ? "space-y-4" : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Informações básicas
         </h2>
@@ -397,7 +431,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className={tab === "info" ? "space-y-4" : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Vídeo
         </h2>
@@ -430,7 +464,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className={tab === "acesso" ? "space-y-4" : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Controle de acesso
         </h2>
@@ -642,7 +676,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
       </section>
 
       {belongsToClient && (
-        <section className="space-y-4">
+        <section className={tab === "identidade" ? "space-y-4" : "hidden"}>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Vínculo com o cliente
           </h2>
@@ -667,7 +701,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </section>
       )}
 
-      <section className="space-y-4">
+      <section className={tab === "identidade" ? "space-y-4" : "hidden"}>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
           Identidade visual (white-label)
         </h2>
@@ -829,7 +863,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         </div>
       </section>
 
-      <section className="space-y-4">
+      <section className={tab === "acesso" ? "space-y-4" : "hidden"}>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Campos do cadastro
@@ -933,21 +967,29 @@ export function EventForm({ event, fields, allowlist, userId, clientId }: EventF
         ))}
       </section>
 
-      <div className="flex gap-3">
-        <button
-          onClick={save}
-          disabled={busy || !form.title.trim()}
-          className="rounded-lg bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-40"
-        >
-          {busy ? "Salvando…" : event ? "Salvar alterações" : "Criar evento"}
-        </button>
-        <button
-          onClick={cancel}
-          className="rounded-lg border border-neutral-700 px-6 py-2.5 text-sm font-semibold transition hover:bg-neutral-800"
-        >
-          Cancelar
-        </button>
-      </div>
+      {(extraTabs ?? []).map((t) => (
+        <div key={t.key} className={tab === t.key ? "" : "hidden"}>
+          {t.content}
+        </div>
+      ))}
+
+      {isFormTab && (
+        <div className="flex gap-3">
+          <button
+            onClick={save}
+            disabled={busy || !form.title.trim()}
+            className="rounded-lg bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-40"
+          >
+            {busy ? "Salvando…" : event ? "Salvar alterações" : "Criar evento"}
+          </button>
+          <button
+            onClick={cancel}
+            className="rounded-lg border border-neutral-700 px-6 py-2.5 text-sm font-semibold transition hover:bg-neutral-800"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

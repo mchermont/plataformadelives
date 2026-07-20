@@ -90,6 +90,27 @@ não dentro do próprio fluxo de entrada.
   vitrine (com foto de capa + fallback sem capa, estado "AO VIVO", hover do
   card) via dev server.
 
+### Fase D — Abas na tela de Configuração do evento ✅ (19/07/2026)
+
+Página "Configuração" do evento tinha ficado comprida demais (todas as
+seções empilhadas verticalmente + Materiais + Equipe soltos depois).
+`EventForm.tsx` ganhou uma barra de abas interna (mesmo padrão visual do
+`EventSectionNav`, mas em estado local — sem mudar de URL) com 3 abas
+nativas: **Informações básicas** (título/slug/início/descrição/status +
+Vídeo), **Controle de acesso e cadastro** (modo de inscrição/allowlist/
+aprovação/recursos habilitados + Campos do cadastro) e **Identidade e
+vínculo** (vínculo com o cliente + identidade visual white-label). Nova
+prop `extraTabs` permite injetar abas adicionais só quando o evento já
+existe — a tela de edição (`eventos/[id]/page.tsx`) passa **Materiais para
+download** (`MaterialsManager`) e **Equipe e funções** (`EventTeam`) como
+abas extras; o fluxo de criação (`eventos/novo`) continua só com as 3
+nativas (evento ainda não existe, não há o que gerenciar ali). Trocar de
+aba só alterna `hidden`/visível via CSS — nenhum componente desmonta, então
+alterações não salvas em qualquer aba sobrevivem à navegação entre elas.
+Botão Salvar/Cancelar só aparece nas 3 abas nativas (Materiais/Equipe já
+salvam sozinhos, inline). Verificado: `tsc --noEmit` + `next build`
+limpos; as 5 abas + o fluxo de criação (só 3 abas) conferidos no navegador.
+
 ---
 
 ## Revisão de UX/UI — /impeccable critique ✅ (19/07/2026, migração 0021)
