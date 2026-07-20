@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Camera, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventPhoto } from "@/lib/types";
 import { Lightbox } from "./Lightbox";
@@ -111,9 +112,9 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="rounded-lg bg-[var(--brand,#0284c7)] px-3.5 py-1.5 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg bg-[var(--brand,#0284c7)] px-3.5 py-1.5 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
           >
-            {busy ? "Enviando…" : "📷 Enviar foto"}
+            <Camera className="size-4" /> {busy ? "Enviando…" : "Enviar foto"}
           </button>
           <span className="text-[11px] text-neutral-500">
             As fotos passam por aprovação antes de aparecer.
@@ -160,9 +161,9 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
                     onClick={() => removeOwn(p)}
                     title="Remover minha foto"
                     aria-label="Remover minha foto"
-                    className="absolute right-1 top-1 hidden rounded bg-black/70 px-1.5 text-xs text-white group-hover:block group-focus-within:block"
+                    className="absolute right-1 top-1 hidden rounded bg-black/70 p-1 text-white group-hover:block group-focus-within:block"
                   >
-                    ✕
+                    <X className="size-3.5" />
                   </button>
                 )}
               </div>

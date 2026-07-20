@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { isVimeoLiveEvent, vimeoId } from "./StreamPlayer";
 
 interface VimeoPlayerInstance {
@@ -197,10 +198,10 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
             />
           )}
           <span
-            className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full pl-1 text-2xl text-white shadow-2xl transition group-hover:scale-110 sm:h-20 sm:w-20 sm:text-3xl"
+            className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full pl-1 text-white shadow-2xl transition group-hover:scale-110 sm:h-20 sm:w-20"
             style={{ background: "var(--brand, #0284c7)" }}
           >
-            ▶
+            <Play className="size-7 fill-current sm:size-9" />
           </span>
           {!coverUrl && (
             <span className="absolute bottom-4 left-4 right-4 z-10 truncate text-left text-sm text-neutral-300">
@@ -222,16 +223,16 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
           <button
             onClick={pause}
             aria-label="Pausar"
-            className="text-lg text-white hover:opacity-80"
+            className="text-white hover:opacity-80"
           >
-            ⏸
+            <Pause className="size-5 fill-current" />
           </button>
           <button
             onClick={toggleMute}
             aria-label={muted ? "Ativar som" : "Silenciar"}
-            className="text-lg text-white hover:opacity-80"
+            className="text-white hover:opacity-80"
           >
-            {muted || volume === 0 ? "🔇" : "🔊"}
+            {muted || volume === 0 ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
           </button>
           <input
             type="range"
@@ -248,9 +249,9 @@ export function VimeoPlayer({ streamRef, title, coverUrl }: VimeoPlayerProps) {
           <button
             onClick={toggleFullscreen}
             aria-label="Tela cheia"
-            className="text-lg text-white hover:opacity-80"
+            className="text-white hover:opacity-80"
           >
-            ⛶
+            <Maximize className="size-4" />
           </button>
         </div>
       )}

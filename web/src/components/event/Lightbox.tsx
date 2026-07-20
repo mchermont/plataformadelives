@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 /** Popup de imagem em tela cheia (sem abrir nova aba). Esc ou clique fecha. */
 export function Lightbox({
@@ -37,9 +38,9 @@ export function Lightbox({
       <button
         onClick={onClose}
         aria-label="Fechar"
-        className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white hover:bg-black/80"
+        className="absolute right-4 top-4 rounded-full bg-black/60 p-2 text-white hover:bg-black/80"
       >
-        ✕
+        <X className="size-4" />
       </button>
     </div>
   );

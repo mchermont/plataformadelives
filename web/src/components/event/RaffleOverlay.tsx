@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Dices, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { RaffleWinner, ScreenRaffle } from "@/lib/types";
 
@@ -61,11 +62,13 @@ export function RaffleOverlay({ raffle }: { raffle: ScreenRaffle | null }) {
         <button
           onClick={() => setDismissedId(raffle.id)}
           aria-label="Fechar"
-          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-800 text-sm text-neutral-300 hover:bg-neutral-700"
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
         >
-          ✕
+          <X className="size-3.5" />
         </button>
-        <h3 className="text-balance text-lg font-bold">🎲 {raffle.title}</h3>
+        <h3 className="flex items-center justify-center gap-1.5 text-balance text-lg font-bold">
+          <Dices className="size-5 shrink-0" /> {raffle.title}
+        </h3>
 
         {count > 0 ? (
           <>

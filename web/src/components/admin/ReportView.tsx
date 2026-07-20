@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type {
   Attendance,
@@ -174,9 +175,9 @@ export function ReportView({
           <button
             onClick={exportAttendance}
             disabled={attendance.length === 0}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-800 disabled:opacity-40"
+            className="flex items-center gap-1 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-800 disabled:opacity-40"
           >
-            ⬇ Exportar CSV
+            <Download className="size-3.5" /> Exportar CSV
           </button>
         </div>
         {attendance.length === 0 ? (
@@ -230,9 +231,9 @@ export function ReportView({
           <button
             onClick={exportRegistrations}
             disabled={registrations.length === 0}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-800 disabled:opacity-40"
+            className="flex items-center gap-1 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-800 disabled:opacity-40"
           >
-            ⬇ Exportar CSV
+            <Download className="size-3.5" /> Exportar CSV
           </button>
         </div>
         <p className="text-sm text-neutral-500">
@@ -249,9 +250,9 @@ export function ReportView({
           <button
             onClick={exportQuiz}
             disabled={leaderboard.length === 0}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-800 disabled:opacity-40"
+            className="flex items-center gap-1 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs font-semibold hover:bg-neutral-800 disabled:opacity-40"
           >
-            ⬇ Exportar CSV
+            <Download className="size-3.5" /> Exportar CSV
           </button>
         </div>
         {leaderboard.length === 0 ? (

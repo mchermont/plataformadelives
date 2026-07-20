@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventPhoto } from "@/lib/types";
 import { Lightbox } from "@/components/event/Lightbox";
@@ -91,15 +92,15 @@ export function GalleryManager({ eventId }: { eventId: string }) {
                   <div className="mt-1 flex gap-1.5">
                     <button
                       onClick={() => setStatus(p, "approved")}
-                      className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
+                      className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
                     >
-                      ✓ Aprovar
+                      <Check className="size-3" /> Aprovar
                     </button>
                     <button
                       onClick={() => setStatus(p, "rejected")}
-                      className="rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
+                      className="flex items-center gap-1 rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
                     >
-                      ✕ Rejeitar
+                      <X className="size-3" /> Rejeitar
                     </button>
                   </div>
                 </div>
@@ -143,9 +144,9 @@ export function GalleryManager({ eventId }: { eventId: string }) {
                   onClick={() => remove(p)}
                   title="Apagar foto"
                   aria-label="Apagar foto"
-                  className="absolute right-1 top-1 hidden rounded bg-black/70 px-1.5 text-xs text-white group-hover:block"
+                  className="absolute right-1 top-1 hidden rounded bg-black/70 p-1 text-white group-hover:block group-focus-within:block"
                 >
-                  🗑
+                  <Trash2 className="size-3.5" />
                 </button>
               </div>
             ))}

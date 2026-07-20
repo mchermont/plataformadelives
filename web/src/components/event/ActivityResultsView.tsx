@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import type { Activity, ActivityResults, RankingRow } from "@/lib/types";
 
 interface ActivityResultsViewProps {
@@ -103,8 +104,8 @@ export function ActivityResultsView({
                         screen ? "text-xl" : "text-xs"
                       } ${isCorrect ? "font-semibold text-emerald-400" : ""}`}
                     >
-                      <span>
-                        {isCorrect && "✓ "}
+                      <span className="inline-flex items-center gap-1">
+                        {isCorrect && <Check className="size-3.5 shrink-0" />}
                         {option}
                       </span>
                       <span className="shrink-0 font-mono tabular-nums text-neutral-400">

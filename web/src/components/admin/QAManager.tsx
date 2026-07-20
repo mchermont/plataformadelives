@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ChevronUp, Download, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventQuestion } from "@/lib/types";
 
@@ -116,9 +117,9 @@ export function QAManager({ eventId }: { eventId: string }) {
         <button
           onClick={exportCsv}
           disabled={questions.length === 0}
-          className="rounded-lg border border-neutral-700 px-2.5 py-1 text-xs hover:bg-neutral-800 disabled:opacity-40"
+          className="flex items-center gap-1 rounded-lg border border-neutral-700 px-2.5 py-1 text-xs hover:bg-neutral-800 disabled:opacity-40"
         >
-          ⬇ CSV
+          <Download className="size-3.5" /> CSV
         </button>
       </div>
 
@@ -139,15 +140,15 @@ export function QAManager({ eventId }: { eventId: string }) {
                     </span>
                     <button
                       onClick={() => setStatus(q, "visible")}
-                      className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
+                      className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
                     >
-                      ✓ Aprovar
+                      <Check className="size-3" /> Aprovar
                     </button>
                     <button
                       onClick={() => setStatus(q, "rejected")}
-                      className="rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
+                      className="flex items-center gap-1 rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
                     >
-                      ✕ Rejeitar
+                      <X className="size-3" /> Rejeitar
                     </button>
                   </div>
                 </div>
@@ -172,8 +173,8 @@ export function QAManager({ eventId }: { eventId: string }) {
             }`}
           >
             <div className="flex items-start gap-2.5">
-              <span className="shrink-0 rounded-lg border border-neutral-700 px-2 py-1 text-center text-xs text-neutral-300">
-                ▲<br />
+              <span className="flex shrink-0 flex-col items-center rounded-lg border border-neutral-700 px-2 py-1 text-center text-xs text-neutral-300">
+                <ChevronUp className="size-3.5" />
                 <span className="font-mono tabular-nums">{q.votes_count}</span>
               </span>
               <div className="min-w-0 flex-1">
@@ -196,9 +197,9 @@ export function QAManager({ eventId }: { eventId: string }) {
               {q.status === "visible" ? (
                 <button
                   onClick={() => setStatus(q, "answered")}
-                  className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
+                  className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
                 >
-                  ✓ Respondida
+                  <Check className="size-3" /> Respondida
                 </button>
               ) : (
                 <button
@@ -210,9 +211,9 @@ export function QAManager({ eventId }: { eventId: string }) {
               )}
               <button
                 onClick={() => remove(q)}
-                className="rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
+                className="flex items-center gap-1 rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
               >
-                🗑 Apagar
+                <Trash2 className="size-3" /> Apagar
               </button>
             </div>
           </div>

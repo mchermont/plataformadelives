@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventMaterial } from "@/lib/types";
 import { fileIcon, formatSize } from "@/components/event/Materials";
@@ -124,12 +125,14 @@ export function MaterialsManager({ eventId, userId }: { eventId: string; userId:
         </p>
       ) : (
         <ul className="space-y-1.5">
-          {materials.map((m) => (
+          {materials.map((m) => {
+            const Icon = fileIcon(m.mime_type, m.file_name);
+            return (
             <li
               key={m.id}
               className="flex items-center gap-3 rounded-lg border border-neutral-800 px-3 py-2"
             >
-              <span className="text-xl">{fileIcon(m.mime_type, m.file_name)}</span>
+              <Icon className="size-5 shrink-0 text-neutral-400" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-neutral-200">
                   {m.title}
@@ -157,19 +160,22 @@ export function MaterialsManager({ eventId, userId }: { eventId: string; userId:
               <button
                 onClick={() => rename(m)}
                 title="Renomear"
-                className="shrink-0 rounded-lg border border-neutral-700 px-2.5 py-1 text-xs hover:bg-neutral-800"
+                aria-label="Renomear material"
+                className="shrink-0 rounded-lg border border-neutral-700 p-1.5 hover:bg-neutral-800"
               >
-                ✏️
+                <Pencil className="size-3.5" />
               </button>
               <button
                 onClick={() => remove(m)}
                 title="Apagar"
-                className="shrink-0 rounded-lg border border-red-900 px-2.5 py-1 text-xs text-red-400 hover:bg-red-950"
+                aria-label="Apagar material"
+                className="shrink-0 rounded-lg border border-red-900 p-1.5 text-red-400 hover:bg-red-950"
               >
-                🗑
+                <Trash2 className="size-3.5" />
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>

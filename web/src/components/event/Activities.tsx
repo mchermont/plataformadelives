@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type {
   Activity,
@@ -291,8 +292,8 @@ function ActivityCard({
                 <p className="mb-2 text-sm font-medium">{q.prompt}</p>
                 {revealed ? (
                   <div className="space-y-1 text-sm">
-                    <p className="text-emerald-400">
-                      ✓ Correta: {q.options[q.revealed_correct_index!]}
+                    <p className="flex items-center gap-1 text-emerald-400">
+                      <Check className="size-3.5" /> Correta: {q.options[q.revealed_correct_index!]}
                     </p>
                     {answered && (
                       <p
@@ -345,7 +346,7 @@ function ActivityCard({
                       disabled={pageIndex === 0}
                       className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
                     >
-                      ← Anterior
+                      <ChevronLeft className="inline size-4" /> Anterior
                     </button>
                     <button
                       onClick={() => setPage(pageIndex + 1)}
@@ -356,7 +357,7 @@ function ActivityCard({
                           : "border border-neutral-700 text-neutral-300 hover:bg-neutral-800"
                       }`}
                     >
-                      Próxima →
+                      Próxima <ChevronRight className="inline size-4" />
                     </button>
                   </div>
                 )}
@@ -419,7 +420,7 @@ function ActivityCard({
                         disabled={i === 0}
                         className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
                       >
-                        ← Anterior
+                        <ChevronLeft className="inline size-4" /> Anterior
                       </button>
                       {isLast ? (
                         <button
@@ -434,7 +435,7 @@ function ActivityCard({
                           onClick={() => setScalePage(i + 1)}
                           className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-1.5 text-sm font-semibold text-white"
                         >
-                          Próxima →
+                          Próxima <ChevronRight className="inline size-4" />
                         </button>
                       )}
                     </div>
@@ -542,7 +543,7 @@ function ActivityCard({
                         disabled={i === 0}
                         className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
                       >
-                        ← Anterior
+                        <ChevronLeft className="inline size-4" /> Anterior
                       </button>
                       {isLast ? (
                         <button
@@ -557,7 +558,7 @@ function ActivityCard({
                           onClick={() => setScalePage(i + 1)}
                           className="rounded-lg bg-[var(--brand,#0284c7)] px-4 py-1.5 text-sm font-semibold text-white"
                         >
-                          Próxima →
+                          Próxima <ChevronRight className="inline size-4" />
                         </button>
                       )}
                     </div>
@@ -591,7 +592,7 @@ function ActivityCard({
                     aria-label="Subir"
                     className="rounded px-2 py-0.5 text-neutral-400 hover:bg-neutral-800 hover:text-white disabled:opacity-30"
                   >
-                    ↑
+                    <ChevronUp className="size-4" />
                   </button>
                   <button
                     onClick={() => moveItem(pos, 1)}
@@ -599,7 +600,7 @@ function ActivityCard({
                     aria-label="Descer"
                     className="rounded px-2 py-0.5 text-neutral-400 hover:bg-neutral-800 hover:text-white disabled:opacity-30"
                   >
-                    ↓
+                    <ChevronDown className="size-4" />
                   </button>
                 </div>
               ))}
@@ -730,7 +731,7 @@ export function InteractionPanel({ state }: { state: ActivitiesState }) {
             aria-label="Atividade anterior"
             className="rounded-lg border border-neutral-700 px-2.5 py-1 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
           >
-            ←
+            <ChevronLeft className="size-4" />
           </button>
           <span className="text-xs text-neutral-500">
             Atividade {idx + 1} de {acts.length}
@@ -741,7 +742,7 @@ export function InteractionPanel({ state }: { state: ActivitiesState }) {
             aria-label="Próxima atividade"
             className="rounded-lg border border-neutral-700 px-2.5 py-1 text-sm text-neutral-300 hover:bg-neutral-800 disabled:opacity-30"
           >
-            →
+            <ChevronRight className="size-4" />
           </button>
         </div>
       )}
@@ -763,9 +764,9 @@ export function ActivityOverlay({ state }: { state: ActivitiesState }) {
         <button
           onClick={() => setDismissedId(open.id)}
           aria-label="Fechar"
-          className="absolute -top-2 -right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-800 text-sm text-neutral-300 hover:bg-neutral-700"
+          className="absolute -top-2 -right-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
         >
-          ✕
+          <X className="size-3.5" />
         </button>
         <div className="max-h-[70vh] overflow-y-auto rounded-xl bg-neutral-950/90 shadow-2xl">
           <ActivityCard activity={open} state={state} />

@@ -7,10 +7,17 @@
  * Todo o orçamento de cor real fica reservado à marca do cliente
  * (--brand, definido por evento). --accent é só um "sussurro" de calor
  * pra diferenciar clicável de estático, não uma cor de marca.
+ *
+ * Fase B: em vez de editar cor em dezenas de arquivos que já usavam
+ * neutral-800/900/950 e sky-400..700 como paleta de fato, sobrescrevemos
+ * essas paradas do Tailwind direto aqui — todo `bg-neutral-900`,
+ * `border-neutral-800`, `bg-sky-600` etc no app inteiro já nasce onix.
+ * Os tons de texto (300/400/500/600) do neutral ficam no padrão do
+ * Tailwind (já é cinza puro, sem necessidade de ajuste).
  */
 :root {
-  --background: #0a0a0c;
-  --foreground: #f2f2f0;
+  --background: var(--bg);
+  --foreground: var(--ink);
   --bg: oklch(0.07 0 0);
   --surface: oklch(0.14 0 0);
   --border-c: oklch(0.24 0 0);
@@ -30,6 +37,27 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-archivo);
   --font-mono: var(--font-spline-mono);
+
+  /* estrutura (bg/card/borda) recolorida pra onix verdadeiro */
+  --color-neutral-950: oklch(0.07 0 0);
+  --color-neutral-900: oklch(0.13 0 0);
+  --color-neutral-800: oklch(0.22 0 0);
+
+  /* sky-* era o azul genérico do Tailwind usado como "cor de marca" em
+     todo o app (botões, links, foco, checkboxes) — vira o mesmo grafite
+     quente do --accent, mesma progressão de luminosidade do original */
+  --color-sky-300: oklch(0.80 0.03 68);
+  --color-sky-400: oklch(0.71 0.035 68);
+  --color-sky-500: oklch(0.62 0.035 68);
+  --color-sky-600: oklch(0.55 0.03 68);
+  --color-sky-700: oklch(0.45 0.03 68);
+  --color-sky-800: oklch(0.36 0.025 68);
+  --color-sky-900: oklch(0.28 0.02 68);
+  --color-sky-950: oklch(0.20 0.015 68);
+
+  /* purple-* só era usado no badge "Agência" — mesmo tratamento */
+  --color-purple-300: oklch(0.80 0.03 68);
+  --color-purple-500: oklch(0.55 0.03 68);
 }
 
 body {

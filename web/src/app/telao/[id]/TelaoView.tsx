@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Dices } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { RaffleWinner, ScreenRaffle, ScreenState } from "@/lib/types";
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
@@ -39,10 +40,10 @@ function RaffleScreen({ raffle }: { raffle: ScreenRaffle }) {
   return (
     <div className="w-full max-w-6xl text-center">
       <h1
-        className="mb-[4vh] text-balance font-bold leading-tight"
+        className="mb-[4vh] flex items-center justify-center gap-3 text-balance font-bold leading-tight"
         style={{ fontSize: "min(4.5vw, 3.5rem)" }}
       >
-        🎲 {raffle.title}
+        <Dices className="shrink-0" style={{ width: "0.85em", height: "0.85em" }} /> {raffle.title}
       </h1>
 
       {!revealed && raffle.visual === "wheel" && (

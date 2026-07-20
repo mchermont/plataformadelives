@@ -70,9 +70,15 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - Erros técnicos do Supabase/Postgres passam por `src/lib/friendlyError.ts`
   antes de chegar à UI (não expor `err.message` cru a usuário/operador).
 - **Design tokens onix** (`globals.css`): `bg-bg`/`bg-surface`/`text-ink`/
-  `text-muted`/`bg-accent`/`border-border-c` — usar nesses em vez de
-  `neutral-800`/`sky-600` ad hoc em qualquer tela nova ou retrofit (Fase B
-  ainda não migrou o app inteiro, ver ROADMAP).
+  `text-muted`/`bg-accent`/`border-border-c`, além da paleta Tailwind
+  (`neutral-800`/`sky-600`/`purple-500` etc.) sobrescrita centralmente em
+  OKLCH onix + grafite quente — qualquer uso desses tons já herda o sistema
+  novo automaticamente, não precisa trocar por token custom.
+- **Ícones**: `lucide-react` no chrome de interface inteiro (botões, badges,
+  categorias, paginação, check/x/fechar). Emoji só em celebração de verdade:
+  `Reactions.tsx`, revelação de ganhador de sorteio (telão/overlay/
+  `RaffleManager`), medalhas do ranking. O "●" do badge "AO VIVO" é
+  convenção de status, não ícone — mantido como glyph.
 - **Dados de evento/cliente no admin**: usar `getEventChain`/
   `getClientChain` de `src/lib/admin/chains.ts` (memoizados por request)
   em vez de buscar `events`/`clients` direto — layout e página reaproveitam
@@ -87,8 +93,9 @@ H (sorteios auditáveis no Diretor + telão), I (player YouTube white-label —
 `YouTubePlayer.tsx`, IFrame API, capa própria, sem migração). Revisão de
 UX/UI completa (`/impeccable critique`) nas 3 telas centrais — ver ROADMAP.
 Reestruturação de navegação (`/impeccable shape`, ver `web/PRODUCT.md`):
-Fase A (shell com sidebar + breadcrumb + tokens onix) concluída; Fases B
-(sistema visual) e C (vitrine clara) pendentes. Próxima fase de produto:
-J (streaming próprio). Pendências avulsas:
+Fases A (shell com sidebar + breadcrumb + tokens onix) e B (paleta onix em
+toda a app + emoji→lucide-react no chrome) concluídas; Fase C (vitrine
+clara) pendente. Próxima fase de produto: J (streaming próprio). Pendências
+avulsas:
 Google OAuth (falta credencial), upload de planilha p/ allowlist, revisar
 view `quiz_leaderboard` (roda como owner), evento-piloto em produção.

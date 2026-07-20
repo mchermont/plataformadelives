@@ -1,6 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  BarChart3,
+  Check,
+  CloudFog,
+  Download,
+  ExternalLink,
+  Grid2x2,
+  ListOrdered,
+  MessageSquare,
+  Monitor,
+  Play,
+  Sliders,
+  Square,
+  Star,
+  Target,
+  Trophy,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type {
   Activity,
@@ -12,16 +31,21 @@ import type {
 import { ACTIVITY_STATUS_LABELS, ACTIVITY_TYPE_LABELS } from "@/lib/types";
 import { friendlyError } from "@/lib/friendlyError";
 
-const TYPE_ICONS: Record<ActivityType, string> = {
-  word_cloud: "☁️",
-  poll: "📊",
-  quiz: "🎯",
-  quiz_ranking: "🏆",
-  scale: "🎚️",
-  open_text: "💬",
-  ordering: "🔀",
-  matrix: "🧭",
+const TYPE_ICONS: Record<ActivityType, LucideIcon> = {
+  word_cloud: CloudFog,
+  poll: BarChart3,
+  quiz: Target,
+  quiz_ranking: Trophy,
+  scale: Sliders,
+  open_text: MessageSquare,
+  ordering: ListOrdered,
+  matrix: Grid2x2,
 };
+
+function TypeIcon({ type, className }: { type: ActivityType; className?: string }) {
+  const Icon = TYPE_ICONS[type];
+  return <Icon className={className ?? "inline size-4"} />;
+}
 
 /** Tipos criáveis na barra (o Ranking geral é um controle dentro do quiz). */
 const CREATABLE_TYPES: ActivityType[] = [
@@ -38,7 +62,7 @@ const CREATABLE_TYPES: ActivityType[] = [
 const TYPE_HELP: Record<ActivityType, string[]> = {
   word_cloud: [
     "Os participantes enviam até 3 palavras (máx. 30 caracteres cada). As mais repetidas crescem na nuvem, em tempo real e sem identificar ninguém.",
-    "Operação: ▶ Abrir libera os envios · ■ Fechar encerra · Limpar apaga tudo e volta a atividade para a fila.",
+    "Operação: Abrir libera os envios · Fechar encerra · Limpar apaga tudo e volta a atividade para a fila.",
     "Palavrões são barrados automaticamente (blocklist). Se marcar \"aprovar antes de exibir\", cada palavra passa pela fila de moderação antes de aparecer.",
     "O CSV identifica quem enviou o quê — só a tela pública é anônima.",
   ],
@@ -49,9 +73,9 @@ const TYPE_HELP: Record<ActivityType, string[]> = {
   ],
   quiz: [
     "Competição com gabarito e pontuação: cada acerto vale 1000 pontos. O gabarito fica escondido até você revelar.",
-    "Funciona em RODADAS: adicione perguntas (elas entram na fila) → ▶ Abrir abre todas as pendentes de uma vez → participantes respondem → ■ Fechar. Depois adicione mais perguntas e abra de novo.",
-    "✓ Exibir resultado revela o gabarito das perguntas fechadas: distribuição por alternativa, \"X de Y acertaram\" e o ranking do quiz.",
-    "No encerramento, use o botão 🏆 Ranking geral para exibir o placar somado de todos os quizzes da live e anunciar o campeão.",
+    "Funciona em RODADAS: adicione perguntas (elas entram na fila), abra pra abrir todas as pendentes de uma vez, participantes respondem, feche a rodada. Depois adicione mais perguntas e abra de novo.",
+    "Exibir resultado revela o gabarito das perguntas fechadas: distribuição por alternativa, \"X de Y acertaram\" e o ranking do quiz.",
+    "No encerramento, use o botão Ranking geral para exibir o placar somado de todos os quizzes da live e anunciar o campeão.",
   ],
   quiz_ranking: [
     "Placar somado de TODOS os quizzes da live (top 10, com pontos e acertos; empate desempata por acertos).",
@@ -65,11 +89,11 @@ const TYPE_HELP: Record<ActivityType, string[]> = {
   ],
   open_text: [
     "Pergunta aberta: cada participante envia até 3 respostas de 200 caracteres, exibidas como cartões anônimos.",
-    "Na prévia do diretor, cada resposta tem um botão ⭐ Destacar: a escolhida vira uma citação grande no telão — ideal para o apresentador comentar ao vivo.",
+    "Na prévia do diretor, cada resposta tem um botão Destacar: a escolhida vira uma citação grande no telão — ideal para o apresentador comentar ao vivo.",
     "Palavrões são barrados automaticamente; com \"aprovar antes de exibir\", tudo passa pela fila de moderação antes de aparecer.",
   ],
   ordering: [
-    "Você lista itens e cada participante os ordena com as setas ↑↓ (funciona bem no celular), enviando uma vez.",
+    "Você lista itens e cada participante os ordena com setas de subir/descer (funciona bem no celular), enviando uma vez.",
     "O resultado é o ranking por posição média: o item com menor média fica no topo — bom para priorização e preferências.",
   ],
   matrix: [
@@ -550,9 +574,9 @@ export function ActivityManager({ eventId }: { eventId: string }) {
         <a
           href={`/telao/${eventId}`}
           target="_blank"
-          className="text-sm text-neutral-400 underline-offset-2 hover:text-white hover:underline"
+          className="flex items-center gap-1.5 text-sm text-neutral-400 underline-offset-2 hover:text-white hover:underline"
         >
-          🖥 Abrir telão (OBS) ↗
+          <Monitor className="size-4" /> Abrir telão (OBS) <ExternalLink className="size-3.5" />
         </a>
       </div>
 
@@ -571,7 +595,7 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                     : "border-neutral-700 text-neutral-400 hover:text-white"
                 }`}
               >
-                {TYPE_ICONS[t]} {ACTIVITY_TYPE_LABELS[t]}
+                <TypeIcon type={t} className="inline size-3.5" /> {ACTIVITY_TYPE_LABELS[t]}
               </button>
             ))}
           </div>
@@ -753,15 +777,15 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                 <span className="flex gap-2">
                   <button
                     onClick={() => moderate(r, true)}
-                    className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
                   >
-                    ✓ Aprovar
+                    <Check className="size-3" /> Aprovar
                   </button>
                   <button
                     onClick={() => moderate(r, false)}
-                    className="rounded-lg border border-red-900 px-3 py-1 text-xs font-semibold text-red-400 hover:bg-red-950"
+                    className="flex items-center gap-1 rounded-lg border border-red-900 px-3 py-1 text-xs font-semibold text-red-400 hover:bg-red-950"
                   >
-                    ✕ Remover
+                    <X className="size-3" /> Remover
                   </button>
                 </span>
               </li>
@@ -792,8 +816,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium">
-                    {TYPE_ICONS[a.type]} {a.title}
+                  <p className="flex items-center gap-1.5 font-medium">
+                    <TypeIcon type={a.type} className="size-4 shrink-0" /> {a.title}
                     <button
                       onClick={() => setHelp(a.type)}
                       aria-label={`Como funciona: ${ACTIVITY_TYPE_LABELS[a.type]}`}
@@ -845,9 +869,9 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                           ? "Adicione perguntas novas antes de abrir outra rodada"
                           : undefined
                       }
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
+                      className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
                     >
-                      ▶ Abrir
+                      <Play className="size-3 fill-current" /> Abrir
                       {a.type === "quiz" && pendingCount > 0
                         ? ` ${pendingCount} pergunta${pendingCount === 1 ? "" : "s"}`
                         : ""}
@@ -856,9 +880,9 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   {a.status === "open" && (
                     <button
                       onClick={() => control(a.id, "close")}
-                      className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500"
+                      className="flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500"
                     >
-                      ■ Fechar
+                      <Square className="size-3 fill-current" /> Fechar
                     </button>
                   )}
                   {a.status !== "pending" &&
@@ -872,9 +896,9 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                     ) : (
                       <button
                         onClick={() => control(a.id, "publish")}
-                        className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
+                        className="flex items-center gap-1 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
                       >
-                        ✓ Exibir resultado
+                        <Check className="size-3.5" /> Exibir resultado
                       </button>
                     ))}
                   {a.status !== "pending" && (
@@ -894,9 +918,9 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                   </button>
                   <button
                     onClick={() => exportCsv(a)}
-                    className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
+                    className="flex items-center gap-1 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
                   >
-                    ⬇ CSV
+                    <Download className="size-3.5" /> CSV
                   </button>
                   <button
                     onClick={() => removeActivity(a)}
@@ -1017,8 +1041,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
 
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-800 p-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium">
-                        🏆 Ranking geral da live
+                      <p className="flex items-center gap-1.5 text-sm font-medium">
+                        <Trophy className="size-4 shrink-0" /> Ranking geral da live
                         <button
                           onClick={() => setHelp("quiz_ranking")}
                           aria-label="Como funciona o ranking geral"
@@ -1037,24 +1061,24 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                       {rankingActivity?.status === "open" ? (
                         <button
                           onClick={toggleRanking}
-                          className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500"
+                          className="flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500"
                         >
-                          ■ Fechar ranking
+                          <Square className="size-3.5 fill-current" /> Fechar ranking
                         </button>
                       ) : (
                         <button
                           onClick={toggleRanking}
-                          className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
+                          className="flex items-center gap-1 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
                         >
-                          🏆 Exibir no telão
+                          <Trophy className="size-3.5" /> Exibir no telão
                         </button>
                       )}
                       {rankingActivity && (
                         <button
                           onClick={() => exportCsv(rankingActivity)}
-                          className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
+                          className="flex items-center gap-1 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
                         >
-                          ⬇ CSV
+                          <Download className="size-3.5" /> CSV
                         </button>
                       )}
                     </div>
@@ -1075,8 +1099,8 @@ export function ActivityManager({ eventId }: { eventId: string }) {
                             key={e.id}
                             className="flex items-center justify-between gap-3 text-sm"
                           >
-                            <span className={`min-w-0 ${spotted ? "font-semibold" : ""}`}>
-                              {spotted && "⭐ "}
+                            <span className={`flex min-w-0 items-center gap-1 ${spotted ? "font-semibold" : ""}`}>
+                              {spotted && <Star className="size-3.5 shrink-0 fill-current" />}
                               {e.text}
                             </span>
                             <button
@@ -1119,15 +1143,15 @@ export function ActivityManager({ eventId }: { eventId: string }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-start justify-between gap-3">
-              <h3 className="font-semibold">
-                {TYPE_ICONS[help]} {ACTIVITY_TYPE_LABELS[help]}
+              <h3 className="flex items-center gap-1.5 font-semibold">
+                <TypeIcon type={help} className="size-4 shrink-0" /> {ACTIVITY_TYPE_LABELS[help]}
               </h3>
               <button
                 onClick={() => setHelp(null)}
                 aria-label="Fechar"
                 className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-800 hover:text-white"
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
             <div className="space-y-2.5 text-sm leading-relaxed text-neutral-300">

@@ -42,12 +42,28 @@ design, paleta onix aprovada). Implementação em 3 fases:
   sessão (limitação da ferramenta de resize), mas usa o mesmo padrão
   responsivo (`hidden sm:flex`/`sm:hidden`) já validado em outras telas.
 
-### Fase B — Sistema visual (pendente)
+### Fase B — Sistema visual ✅ (19/07/2026)
 
-Retrofit de cor/tipografia/ícones no restante do app (hoje só o shell novo
-usa os tokens onix; o resto ainda tem `sky-600`/`neutral-800` ad hoc);
-trocar emoji-como-ícone por `lucide-react` no chrome de interface
-(emoji permanece só em reações/celebração).
+- [x] **B.1** — paleta Tailwind sobrescrita centralmente em `globals.css`
+      (`--color-neutral-950/900/800`, `--color-sky-300..950`,
+      `--color-purple-300/500` → tons onix + grafite quente em OKLCH); todo
+      uso existente de `bg-neutral-800`/`text-sky-400`/`bg-purple-500` passa
+      a herdar a paleta nova sem tocar em cada arquivo
+- [x] **B.2** — `lucide-react` instalado; emoji-como-ícone trocado por SVG em
+      todo o chrome de interface (botões, badges, categorias de atividade,
+      paginação, check/x/fechar) nos componentes de admin, sala, telão e
+      players (YouTube/Vimeo). Emoji mantido só onde é celebração de
+      verdade: `Reactions.tsx` (reações da sala), revelação de
+      ganhador do sorteio (telão + overlay da sala + `RaffleManager`), e
+      medalhas 🥇🥈🥉 do ranking. Setas de rótulo de eixo do gráfico Matrix
+      2×2 também mantidas (não são "ícone", são notação do eixo). Indicador
+      "● AO VIVO"/"● Ao vivo" (badge de transmissão) mantido como glyph —
+      convenção consistente de "dot" de status, não ícone de ação
+- Verificado: `tsc --noEmit` + `next build` limpos; conferência visual no
+  painel Diretor (seletor de tipo de atividade, botão Encerrar
+  transmissão, export CSV do Q&A) via dev server
+
+### Fase C — Vitrine pública clara (pendente)
 
 ### Fase C — Vitrine pública clara (pendente)
 

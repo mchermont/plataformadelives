@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ExternalLink, Monitor, Square, Tv, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventStatus, LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
@@ -115,7 +116,7 @@ export function LiveControlRoom({
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold">🎛 {event.title}</h1>
+          <h1 className="text-xl font-bold">{event.title}</h1>
           <span
             className={
               isLive
@@ -131,9 +132,9 @@ export function LiveControlRoom({
           <Link
             href={`/e/${event.slug}`}
             target="_blank"
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800"
           >
-            Ver como participante ↗
+            Ver como participante <ExternalLink className="size-3.5" />
           </Link>
         </div>
       </div>
@@ -153,9 +154,9 @@ export function LiveControlRoom({
             <button
               onClick={() => setStatus("ended")}
               disabled={busy}
-              className="rounded-lg border border-red-900 px-5 py-2 text-sm font-bold text-red-400 transition hover:bg-red-950 disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-lg border border-red-900 px-5 py-2 text-sm font-bold text-red-400 transition hover:bg-red-950 disabled:opacity-40"
             >
-              ■ Encerrar transmissão
+              <Square className="size-3.5 fill-current" /> Encerrar transmissão
             </button>
           )}
           {event.status === "ended" && (
@@ -199,8 +200,8 @@ export function LiveControlRoom({
                 <ActivityOverlay state={activities} />
                 <RaffleOverlay raffle={raffle} />
               </div>
-              <p className="mt-1.5 text-xs text-neutral-500">
-                🖥 Player da sala (com overlays de atividade e sorteio)
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-neutral-500">
+                <Monitor className="size-3.5" /> Player da sala (com overlays de atividade e sorteio)
               </p>
             </div>
             <div>
@@ -216,13 +217,15 @@ export function LiveControlRoom({
                 />
               </button>
               <p className="mt-1.5 flex items-center justify-between text-xs text-neutral-500">
-                <span>📽 Telão (OBS) ao vivo</span>
+                <span className="flex items-center gap-1.5">
+                  <Tv className="size-3.5" /> Telão (OBS) ao vivo
+                </span>
                 <Link
                   href={`/telao/${event.id}`}
                   target="_blank"
-                  className="underline-offset-2 hover:text-white hover:underline"
+                  className="flex items-center gap-1 underline-offset-2 hover:text-white hover:underline"
                 >
-                  Abrir telão ↗
+                  Abrir telão <ExternalLink className="size-3.5" />
                 </Link>
               </p>
             </div>
@@ -310,7 +313,7 @@ export function LiveControlRoom({
             aria-label="Fechar"
             className="absolute right-6 top-6 flex h-9 w-9 items-center justify-center rounded-full bg-neutral-800 text-white hover:bg-neutral-700"
           >
-            ✕
+            <X className="size-4" />
           </button>
         </div>
       )}

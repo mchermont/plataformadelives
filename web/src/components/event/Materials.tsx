@@ -1,18 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Download,
+  File,
+  FileAudio,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileVideo,
+  Presentation,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventMaterial } from "@/lib/types";
 
+/** Ícone por tipo de arquivo (componente, não string — uso: `<Icon className=... />`). */
 export function fileIcon(mime: string, name: string) {
-  if (mime.startsWith("video/")) return "🎬";
-  if (mime.startsWith("audio/")) return "🎵";
-  if (mime.startsWith("image/")) return "🖼";
-  if (mime.includes("pdf")) return "📄";
-  if (mime.includes("presentation") || /\.pptx?$/i.test(name)) return "📊";
-  if (mime.includes("sheet") || /\.xlsx?$/i.test(name)) return "📈";
-  if (mime.includes("word") || /\.docx?$/i.test(name)) return "📝";
-  return "📁";
+  if (mime.startsWith("video/")) return FileVideo;
+  if (mime.startsWith("audio/")) return FileAudio;
+  if (mime.startsWith("image/")) return FileImage;
+  if (mime.includes("pdf")) return FileText;
+  if (mime.includes("presentation") || /\.pptx?$/i.test(name)) return Presentation;
+  if (mime.includes("sheet") || /\.xlsx?$/i.test(name)) return FileSpreadsheet;
+  if (mime.includes("word") || /\.docx?$/i.test(name)) return FileText;
+  return File;
 }
 
 export function formatSize(bytes: number) {
@@ -69,25 +80,28 @@ export function MaterialsPanel({ materials }: { materials: EventMaterial[] }) {
 
   return (
     <div className="h-full space-y-1.5 overflow-y-auto p-2.5">
-      {materials.map((m) => (
-        <a
-          key={m.id}
-          href={downloadUrl(m)}
-          className="flex items-center gap-2.5 rounded-lg border border-neutral-800 px-3 py-2 transition hover:bg-neutral-800/50"
-        >
-          <span className="text-xl">{fileIcon(m.mime_type, m.file_name)}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium text-neutral-200">
-              {m.title}
+      {materials.map((m) => {
+        const Icon = fileIcon(m.mime_type, m.file_name);
+        return (
+          <a
+            key={m.id}
+            href={downloadUrl(m)}
+            className="flex items-center gap-2.5 rounded-lg border border-neutral-800 px-3 py-2 transition hover:bg-neutral-800/50"
+          >
+            <Icon className="size-5 shrink-0 text-neutral-400" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium text-neutral-200">
+                {m.title}
+              </span>
+              <span className="block text-[11px] text-neutral-500">
+                {m.file_name}
+                {m.file_size > 0 && ` · ${formatSize(m.file_size)}`}
+              </span>
             </span>
-            <span className="block text-[11px] text-neutral-500">
-              {m.file_name}
-              {m.file_size > 0 && ` · ${formatSize(m.file_size)}`}
-            </span>
-          </span>
-          <span className="shrink-0 text-sm text-neutral-400">⬇</span>
-        </a>
-      ))}
+            <Download className="size-4 shrink-0 text-neutral-400" />
+          </a>
+        );
+      })}
       {materials.length === 0 && (
         <p className="pt-8 text-center text-[13px] text-neutral-500">
           Nenhum material disponível.

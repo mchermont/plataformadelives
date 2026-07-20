@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Ban, Check, CornerUpLeft, Pin, Trash2, X, ArrowDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Post } from "@/lib/types";
 
@@ -223,7 +224,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
               key={p.id}
               className="break-words rounded-lg bg-amber-500/10 px-2.5 py-1.5 text-[13px] leading-snug"
             >
-              <span className="mr-1">📌</span>
+              <Pin className="mr-1 inline size-3.5 align-[-2px]" />
               <span className="font-semibold">{p.author_name}:</span> {p.content}
             </div>
           ))}
@@ -251,16 +252,18 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                   <button
                     onClick={() => review(p, true)}
                     title="Aprovar"
+                    aria-label="Aprovar mensagem"
                     className="rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
                   >
-                    ✓
+                    <Check className="size-3" />
                   </button>
                   <button
                     onClick={() => review(p, false)}
                     title="Rejeitar"
+                    aria-label="Rejeitar mensagem"
                     className="rounded border border-red-900 px-2 py-0.5 text-[11px] text-red-400 hover:bg-red-950"
                   >
-                    ✕
+                    <X className="size-3" />
                   </button>
                 </span>
               </div>
@@ -285,7 +288,8 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
               >
                 {quoted && !quoted.deleted_at && (
                   <p className="mb-0.5 truncate rounded bg-neutral-800/60 px-2 py-0.5 text-xs text-neutral-400">
-                    ↩ <span className="font-medium">{quoted.author_name}:</span>{" "}
+                    <CornerUpLeft className="mr-1 inline size-3 align-[-1px]" />
+                    <span className="font-medium">{quoted.author_name}:</span>{" "}
                     {quoted.content}
                   </p>
                 )}
@@ -323,9 +327,9 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                     onClick={() => startReply(post)}
                     title="Responder"
                     aria-label={`Responder a ${post.author_name}`}
-                    className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
+                    className="rounded p-1 text-neutral-400 hover:bg-neutral-700"
                   >
-                    ↩
+                    <CornerUpLeft className="size-3.5" />
                   </button>
                   {isAdmin && (
                     <>
@@ -333,25 +337,25 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
                         onClick={() => moderate(post, "pin")}
                         title={post.pinned ? "Desafixar" : "Fixar"}
                         aria-label={post.pinned ? "Desafixar mensagem" : "Fixar mensagem"}
-                        className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
+                        className="rounded p-1 text-neutral-400 hover:bg-neutral-700"
                       >
-                        📌
+                        <Pin className="size-3.5" />
                       </button>
                       <button
                         onClick={() => moderate(post, "delete")}
                         title="Apagar"
                         aria-label="Apagar mensagem"
-                        className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
+                        className="rounded p-1 text-neutral-400 hover:bg-neutral-700"
                       >
-                        🗑
+                        <Trash2 className="size-3.5" />
                       </button>
                       <button
                         onClick={() => moderate(post, "ban")}
                         title="Banir participante"
                         aria-label={`Banir ${post.author_name || "participante"}`}
-                        className="rounded px-1 text-xs text-neutral-400 hover:bg-neutral-700"
+                        className="rounded p-1 text-neutral-400 hover:bg-neutral-700"
                       >
-                        🚫
+                        <Ban className="size-3.5" />
                       </button>
                     </>
                   )}
@@ -370,9 +374,9 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
         {unread > 0 && (
           <button
             onClick={scrollToBottom}
-            className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand,#0284c7)] px-3 py-1 text-xs font-semibold text-white shadow-lg"
+            className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--brand,#0284c7)] px-3 py-1 text-xs font-semibold text-white shadow-lg"
           >
-            ↓ {unread} nova{unread === 1 ? "" : "s"} mensagen{unread === 1 ? "m" : "s"}
+            <ArrowDown className="size-3.5" /> {unread} nova{unread === 1 ? "" : "s"} mensagen{unread === 1 ? "m" : "s"}
           </button>
         )}
       </div>
@@ -386,8 +390,8 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
         )}
         {replyTo && (
           <div className="mb-1.5 flex items-center justify-between gap-2 rounded-lg bg-neutral-800/60 px-2.5 py-1 text-xs">
-            <span className="min-w-0 truncate text-neutral-400">
-              ↩ Respondendo a{" "}
+            <span className="flex min-w-0 items-center gap-1 truncate text-neutral-400">
+              <CornerUpLeft className="size-3 shrink-0" /> Respondendo a{" "}
               <span className="font-medium text-neutral-200">
                 {replyTo.author_name}
               </span>
@@ -396,9 +400,9 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
             <button
               onClick={() => setReplyTo(null)}
               aria-label="Cancelar resposta"
-              className="shrink-0 rounded px-1 text-neutral-400 hover:bg-neutral-700 hover:text-white"
+              className="shrink-0 rounded p-1 text-neutral-400 hover:bg-neutral-700 hover:text-white"
             >
-              ✕
+              <X className="size-3.5" />
             </button>
           </div>
         )}

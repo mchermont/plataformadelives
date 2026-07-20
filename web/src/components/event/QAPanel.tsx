@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ChevronUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { EventQuestion, LiveEvent } from "@/lib/types";
 
@@ -136,7 +137,7 @@ export function QAPanel({ event, userId }: QAPanelProps) {
                     : "border-neutral-700 text-neutral-400 hover:border-neutral-500"
                 }`}
               >
-                <span>▲</span>
+                <ChevronUp className="size-3.5" />
                 <span className="font-mono tabular-nums">{q.votes_count}</span>
               </button>
               <div className="min-w-0">
@@ -146,7 +147,9 @@ export function QAPanel({ event, userId }: QAPanelProps) {
                 <p className="mt-0.5 text-[11px] text-neutral-500">
                   {q.is_anonymous ? "Anônimo" : q.author_name || "Participante"}
                   {q.status === "answered" && (
-                    <span className="ml-1.5 text-emerald-400">✓ respondida</span>
+                    <span className="ml-1.5 inline-flex items-center gap-0.5 text-emerald-400">
+                      <Check className="size-3" /> respondida
+                    </span>
                   )}
                   {isMinePending && " · aguardando moderação"}
                 </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Dices, Download, Tv } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Raffle, RaffleKind, RaffleSource, RaffleWinner } from "@/lib/types";
 import { RAFFLE_KIND_LABELS } from "@/lib/types";
@@ -93,7 +94,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
       p_visual: kind === "participants" && wheel ? "wheel" : "cards",
     });
     if (err) {
-      setError(err.message);
+      setError(friendlyError(err.message));
     } else {
       setTitle("");
       setShowForm(false);
@@ -154,8 +155,8 @@ export function RaffleManager({ eventId }: { eventId: string }) {
   return (
     <div className="mt-6 rounded-xl border border-neutral-800 p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
-          🎲 Sorteios · auditáveis
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          <Dices className="size-4" /> Sorteios · auditáveis
         </h3>
         <button
           onClick={() => setShowForm((v) => !v)}
@@ -300,9 +301,9 @@ export function RaffleManager({ eventId }: { eventId: string }) {
           <button
             onClick={draw}
             disabled={busy}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-40"
           >
-            {busy ? "Sorteando…" : "🎲 Sortear agora"}
+            <Dices className="size-4" /> {busy ? "Sorteando…" : "Sortear agora"}
           </button>
         </div>
       )}
@@ -328,8 +329,8 @@ export function RaffleManager({ eventId }: { eventId: string }) {
                 {RAFFLE_KIND_LABELS[r.kind]}
               </span>
               {r.displayed && (
-                <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] font-semibold text-sky-400">
-                  📺 Em exibição
+                <span className="flex items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-[11px] font-semibold text-sky-400">
+                  <Tv className="size-3" /> Em exibição
                 </span>
               )}
               <span className="ml-auto text-[11px] text-neutral-500">
@@ -345,19 +346,19 @@ export function RaffleManager({ eventId }: { eventId: string }) {
             <div className="mt-2 flex flex-wrap gap-1.5">
               <button
                 onClick={() => display(r, !r.displayed)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
                   r.displayed
                     ? "border border-neutral-700 hover:bg-neutral-800"
                     : "bg-sky-600 text-white hover:bg-sky-500"
                 }`}
               >
-                {r.displayed ? "Ocultar" : "📺 Exibir (sala + telão)"}
+                {r.displayed ? "Ocultar" : (<><Tv className="size-3.5" /> Exibir (sala + telão)</>)}
               </button>
               <button
                 onClick={() => exportAudit(r)}
-                className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
+                className="flex items-center gap-1.5 rounded-lg border border-neutral-700 px-3 py-1.5 text-xs hover:bg-neutral-800"
               >
-                ⬇ Auditoria (CSV)
+                <Download className="size-3.5" /> Auditoria (CSV)
               </button>
               <button
                 onClick={() => remove(r)}
