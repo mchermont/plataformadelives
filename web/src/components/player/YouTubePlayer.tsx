@@ -96,12 +96,18 @@ interface YouTubePlayerProps {
  * assumido), porque o navegador pode forçar mudo por conta própria.
  *
  * Progresso/voltar e legenda (Fase I.1) usam a mesma API — limites que não
- * são bug daqui: (1) só dá pra voltar no vídeo se o YouTube expuser
+ * são bug daqui: só dá pra voltar no vídeo se o YouTube expuser
  * `getDuration() > 0`, o que depende do DVR da transmissão ao vivo estar
- * habilitado do lado de quem está transmitindo; (2) legenda exige
- * `loadModule("captions")` carregado (feito no `onReady`) pra
- * `getOption("captions","tracklist")` retornar algo, e ligar exige mandar
- * uma faixa real da tracklist — `{}` não liga nada.
+ * habilitado do lado de quem está transmitindo.
+ *
+ * Legenda começa sempre desligada (`cc_load_policy: 0` + `setOption`
+ * limpando a faixa no `onReady` — sem isso o YouTube pode herdar a
+ * preferência de legenda da conta/navegador de quem assiste). Botão só
+ * aparece quando `getOption("captions","tracklist")` tem faixa — checado
+ * por sondagem no intervalo de 500ms (não só no evento `onApiChange`,
+ * que nem sempre dispara depois do `loadModule`), e `captionsOn` também é
+ * sincronizado a partir de `getOption("captions","track")` em vez de
+ * assumido, pro botão nunca dessincronizar do estado real do player.
  *
  * Sem seletor de qualidade: `setPlaybackQuality` é tratado pelo YouTube
  * como sugestão desde 2018 e, na prática, ele ignora o pedido tanto em
@@ -152,6 +158,10 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
           disablekb: 1,
           playsinline: 1,
           iv_load_policy: 3,
+          // sem isso, o YouTube pode herdar a preferência de legenda da
+          // própria conta/navegador de quem está assistindo (cookie do
+          // youtube.com) e exibir legenda sem ninguém ter pedido aqui
+          cc_load_policy: 0,
           fs: 0,
           origin: window.location.origin,
         },
@@ -162,6 +172,9 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
             // nada — o módulo precisa estar carregado pra API expor as
             // faixas disponíveis, mesmo só pra consulta
             playerRef.current?.loadModule("captions");
+            // cc_load_policy:0 não é garantia (o dono do vídeo pode forçar
+            // "sempre exibir legenda") — limpa a faixa ativa de novo aqui
+            playerRef.current?.setOption("captions", "track", {});
           },
           onStateChange: (e) => {
             if (e.data === 1) setPhase("playing");
@@ -225,20 +238,18 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       // fonte da verdade pro mudo: o navegador pode forçar mudo mesmo
       // pedindo `mute: 0` no autoplay — sincroniza em vez de assumir
       setMuted(player.isMuted());
+      // sondagem em vez de depender só de onApiChange: em alguns vídeos
+      // o evento nunca dispara depois do loadModule, e a tracklist só
+      // fica pronta um tempo depois do vídeo carregar
+      const tracks = player.getOption("captions", "tracklist");
+      setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
+      const activeTrack = player.getOption("captions", "track") as
+        | Record<string, unknown>
+        | undefined;
+      setCaptionsOn(Boolean(activeTrack && Object.keys(activeTrack).length > 0));
     }, 500);
     return () => clearInterval(id);
   }, [phase]);
-
-  // Disponibilidade de legenda só existe depois que o YouTube já carregou
-  // algum formato — checa de novo a cada vez que volta a tocar (leitura
-  // idempotente, sem custo perceptível).
-  useEffect(() => {
-    if (!ready || phase !== "playing") return;
-    const player = playerRef.current;
-    if (!player) return;
-    const tracks = player.getOption("captions", "tracklist");
-    setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
-  }, [ready, phase]);
 
   const play = useCallback(() => playerRef.current?.playVideo(), []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);

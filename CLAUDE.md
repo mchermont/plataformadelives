@@ -95,7 +95,14 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   legenda (módulo `captions` da IFrame API — precisa de `loadModule` no
   `onReady` pra `getOption("captions","tracklist")` retornar algo, e ligar
   exige mandar uma faixa real da tracklist, `{}` não liga nada; botão só
-  aparece se o vídeo tiver faixa disponível, via evento `onApiChange`).
+  aparece quando a tracklist tem faixa, checado por sondagem no intervalo
+  de 500ms — não só no evento `onApiChange`, que nem sempre dispara depois
+  do `loadModule`. `captionsOn` também é sincronizado a partir de
+  `getOption("captions","track")`, igual ao `muted`. Legenda começa sempre
+  desligada — `cc_load_policy: 0` + `setOption` limpando a faixa no
+  `onReady`, senão o YouTube pode herdar a preferência de legenda da
+  conta/navegador de quem assiste (cookie do youtube.com) e mostrar
+  legenda sem pedido nenhum daqui).
   **Sem seletor de qualidade** (removido, tinha via `setPlaybackQuality`):
   o YouTube trata isso como sugestão desde 2018 e ignora o pedido tanto em
   live quanto em VOD (testado e confirmado) — não existe forma de forçar
