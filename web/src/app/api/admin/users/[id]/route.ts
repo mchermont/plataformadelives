@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { friendlyError } from "@/lib/friendlyError";
 
 /**
  * Exclui a conta de um usuário (auth.users + profiles em cascata — ver
@@ -45,10 +46,7 @@ export async function DELETE(
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
-    return NextResponse.json(
-      { error: "Não foi possível excluir esta conta. Tente novamente." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: friendlyError(error.message) }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

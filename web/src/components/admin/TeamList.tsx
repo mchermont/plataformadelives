@@ -52,6 +52,10 @@ export function TeamList({ currentUserId }: { currentUserId: string }) {
     await load();
   }
 
+  // Sem busca: só quem já é equipe da plataforma (admin/moderador) — a
+  // tabela profiles tem todo mundo que já logou, participante incluso.
+  // Buscar por nome/e-mail abre pra qualquer pessoa, pra dar pra promover
+  // alguém que ainda não é moderador.
   const term = search.trim().toLowerCase();
   const visible = term
     ? profiles.filter(
@@ -59,7 +63,7 @@ export function TeamList({ currentUserId }: { currentUserId: string }) {
           p.email.toLowerCase().includes(term) ||
           p.full_name.toLowerCase().includes(term),
       )
-    : profiles;
+    : profiles.filter((p) => p.is_platform_admin || p.is_moderator);
 
   return (
     <div>
