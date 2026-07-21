@@ -15,7 +15,7 @@ const IMAGE_FIELD: Record<ImageKind, "brand_logo_url" | "bg_image_url" | "bg_ima
 };
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+  "w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 const labelClass = "mb-1.5 block text-sm font-medium";
 const fileClass =
   "block w-full text-xs text-neutral-400 file:mr-2 file:rounded-lg file:border-0 file:bg-neutral-800 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-neutral-200 hover:file:bg-neutral-700";
@@ -158,7 +158,7 @@ export function ClientForm({ client }: { client: Client }) {
                 type="color"
                 value={form.brand_color}
                 onChange={(e) => set("brand_color", e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border border-neutral-700 bg-neutral-950"
+                className="h-9 w-12 cursor-pointer rounded border border-neutral-800 bg-neutral-950"
               />
               <input
                 value={form.brand_color}

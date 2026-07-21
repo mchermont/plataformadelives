@@ -33,7 +33,7 @@ export default async function AdminHomePage() {
   }
 
   return (
-    <div>
+    <div className="max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold">Clientes</h1>
         {isAdmin && <NewClientButton />}

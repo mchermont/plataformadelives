@@ -18,7 +18,7 @@ export default async function EquipePage() {
   if (!profile?.is_platform_admin) redirect("/admin");
 
   return (
-    <div>
+    <div className="max-w-5xl">
       <h1 className="mb-1 text-xl font-bold">Equipe</h1>
       <p className="mb-6 text-sm text-neutral-400">
         Moderadores podem aprovar inscrições, moderar o chat e operar o quiz ao

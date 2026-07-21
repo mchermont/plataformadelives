@@ -374,7 +374,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
         {unread > 0 && (
           <button
             onClick={scrollToBottom}
-            className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--brand,#0284c7)] px-3 py-1 text-xs font-semibold text-white shadow-lg"
+            className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--brand,var(--accent))] px-3 py-1 text-xs font-semibold text-white shadow-lg"
           >
             <ArrowDown className="size-3.5" /> {unread} nova{unread === 1 ? "" : "s"} mensagen{unread === 1 ? "m" : "s"}
           </button>
@@ -422,7 +422,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
           <button
             onClick={send}
             disabled={sending || !text.trim()}
-            className="rounded-lg bg-[var(--brand,#0284c7)] px-3.5 py-1.5 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
+            className="rounded-lg bg-[var(--brand,var(--accent))] px-3.5 py-1.5 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
           >
             Enviar
           </button>

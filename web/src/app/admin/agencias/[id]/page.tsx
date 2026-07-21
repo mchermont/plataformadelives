@@ -54,7 +54,7 @@ export default async function AgencyDetailPage({
     <div className="max-w-5xl space-y-10">
       <div>
         <Breadcrumb items={[{ label: "Agências", href: "/admin/agencias" }, { label: agency.name }]} />
-        <span className="rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
+        <span className="rounded-full bg-purple-500/15 px-2.5 py-0.5 text-xs font-medium text-purple-300">
           Agência
         </span>
       </div>

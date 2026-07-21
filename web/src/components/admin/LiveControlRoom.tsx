@@ -178,7 +178,7 @@ export function LiveControlRoom({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[400px_minmax(0,1fr)_400px]">
         {/* Prévias: lado a lado no lg (linha inteira), coluna própria no xl */}
-        <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 lg:col-span-2 xl:sticky xl:top-4 xl:col-span-1 xl:self-start">
+        <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 lg:sticky lg:top-4 lg:col-span-2 lg:self-start xl:col-span-1">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Prévias · o que o público está vendo
           </h2>
@@ -242,11 +242,11 @@ export function LiveControlRoom({
           <RaffleManager eventId={event.id} />
         </section>
 
-        <section className="flex flex-col">
+        <section className="flex h-[70dvh] flex-col rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 lg:sticky lg:top-4">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">
             Chat e perguntas · moderação
           </h2>
-          <div className="flex h-[70dvh] flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 lg:sticky lg:top-4">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60">
             {(event.qa_enabled || event.gallery_enabled) && (
               <div className="flex border-b border-neutral-800">
                 {(
@@ -261,7 +261,7 @@ export function LiveControlRoom({
                     onClick={() => setSideTab(t)}
                     className={`relative flex-1 px-4 py-2 text-sm font-medium transition ${
                       sideTab === t
-                        ? "border-b-2 border-sky-500 text-white"
+                        ? "bg-sky-600 text-white"
                         : "text-neutral-400 hover:text-neutral-200"
                     }`}
                   >

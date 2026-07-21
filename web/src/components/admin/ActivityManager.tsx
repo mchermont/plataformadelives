@@ -105,7 +105,7 @@ const TYPE_HELP: Record<ActivityType, string[]> = {
 import { ActivityResultsView } from "@/components/event/ActivityResultsView";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+  "w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
 interface ResponseRow extends ActivityResponse {
   profiles: { full_name: string; email: string } | null;
@@ -788,13 +788,13 @@ export function ActivityManager({
                 <span className="flex gap-2">
                   <button
                     onClick={() => moderate(r, true)}
-                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+                    className="flex items-center gap-1 rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-emerald-500"
                   >
                     <Check className="size-3" /> Aprovar
                   </button>
                   <button
                     onClick={() => moderate(r, false)}
-                    className="flex items-center gap-1 rounded-lg border border-red-900 px-3 py-1 text-xs font-semibold text-red-400 hover:bg-red-950"
+                    className="flex items-center gap-1 rounded border border-red-900 px-2 py-0.5 text-[11px] font-semibold text-red-400 hover:bg-red-950"
                   >
                     <X className="size-3" /> Remover
                   </button>

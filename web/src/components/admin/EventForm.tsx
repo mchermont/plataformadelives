@@ -73,7 +73,7 @@ interface DraftField {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+  "w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 const labelClass = "mb-1.5 block text-sm font-medium";
 /** Cada seção de aba vira um painel próprio — separa visualmente do fundo da página. */
 const cardTab = "space-y-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5";
@@ -364,7 +364,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
         </p>
       )}
 
-      <nav className="flex gap-1 rounded-xl border border-neutral-800 bg-neutral-900/40 p-1">
+      <nav className="flex gap-1 overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-900/40 p-1">
         {[...FORM_TABS, ...(extraTabs ?? [])].map((t) => (
           <button
             key={t.key}
@@ -756,7 +756,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
                 aria-label="Selecionar cor da marca"
                 value={form.brand_color}
                 onChange={(e) => set("brand_color", e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border border-neutral-700 bg-neutral-950"
+                className="h-9 w-12 cursor-pointer rounded border border-neutral-800 bg-neutral-950"
               />
               <input
                 id="ev-brand-color"

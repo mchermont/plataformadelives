@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { authInputClass as inputClass, authOtpInputClass } from "@/lib/authInputClass";
 import type {
   EventField,
   LiveEvent,
@@ -21,9 +22,6 @@ interface EntrarFlowProps {
 }
 
 type Step = "credenciais" | "codigo" | "senha" | "cadastro" | "aguardando" | "bloqueado";
-
-const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
 export function EntrarFlow({
   event,
@@ -439,7 +437,7 @@ export function EntrarFlow({
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 onKeyDown={(e) => e.key === "Enter" && verifyCode()}
                 placeholder="········"
-                className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none placeholder:text-neutral-700 focus:border-sky-500"
+                className={authOtpInputClass}
               />
               <button
                 onClick={verifyCode}

@@ -56,7 +56,7 @@ export function TeamList({ currentUserId }: { currentUserId: string }) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Buscar por nome ou e-mail…"
-        className="mb-4 w-full max-w-sm rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500"
+        className="mb-4 w-full max-w-sm rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500"
       />
 
       <div className="space-y-2">
@@ -102,7 +102,9 @@ export function TeamList({ currentUserId }: { currentUserId: string }) {
           </div>
         ))}
         {visible.length === 0 && (
-          <p className="text-sm text-neutral-500">Nenhum usuário encontrado.</p>
+          <p className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
+            Nenhum usuário encontrado.
+          </p>
         )}
       </div>
     </div>

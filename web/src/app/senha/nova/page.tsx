@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+import { authInputClass as inputClass, authOtpInputClass } from "@/lib/authInputClass";
 
 export default function NovaSenhaPage() {
   const router = useRouter();
@@ -69,7 +67,7 @@ export default function NovaSenhaPage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
         <h1 className="mb-2 text-center text-xl font-bold">Definir nova senha</h1>
         <p className="mb-6 text-center text-sm text-neutral-400">
           {hasSession
@@ -98,8 +96,8 @@ export default function NovaSenhaPage() {
                 maxLength={10}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="Código do e-mail"
-                className={`${inputClass} text-center font-mono tracking-[0.3em]`}
+                placeholder="········"
+                className={authOtpInputClass}
               />
             </>
           )}

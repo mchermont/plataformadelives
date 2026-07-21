@@ -89,7 +89,7 @@ export function NewClientButton({ agencyId }: { agencyId?: string }) {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+    "w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -117,7 +117,7 @@ export function NewClientButton({ agencyId }: { agencyId?: string }) {
             <label className="mb-1.5 block text-sm font-medium">
               Endereço da pasta
             </label>
-            <div className="flex items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-950 px-3">
+            <div className="flex items-center gap-1 rounded-lg border border-neutral-800 bg-neutral-950 px-3">
               <span className="text-sm text-neutral-500">/</span>
               <input
                 value={slug}

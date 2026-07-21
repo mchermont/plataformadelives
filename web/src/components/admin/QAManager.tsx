@@ -106,7 +106,7 @@ export function QAManager({ eventId }: { eventId: string }) {
               onClick={() => setSort(s)}
               className={`rounded-lg px-2.5 py-1 text-xs ${
                 sort === s
-                  ? "bg-neutral-800 font-semibold text-white"
+                  ? "bg-sky-600 font-semibold text-white"
                   : "text-neutral-400 hover:text-white"
               }`}
             >

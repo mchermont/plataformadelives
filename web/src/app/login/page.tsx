@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { authInputClass, authOtpInputClass } from "@/lib/authInputClass";
 
 type Step = "credenciais" | "codigo";
 
@@ -109,12 +110,11 @@ export default function LoginPage() {
     router.push(`/senha/nova?email=${encodeURIComponent(email.trim().toLowerCase())}`);
   }
 
-  const inputClass =
-    "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+  const inputClass = authInputClass;
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
+      <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6">
         <h1 className="mb-1 text-center text-xl font-bold">Área do organizador</h1>
         <p className="mb-6 text-center text-sm text-neutral-400">
           Acesso para a equipe que cria e opera os eventos.
@@ -201,7 +201,7 @@ export default function LoginPage() {
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => e.key === "Enter" && verifyCode()}
               placeholder="········"
-              className="w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none placeholder:text-neutral-700 focus:border-sky-500"
+              className={authOtpInputClass}
             />
             <button
               onClick={verifyCode}
@@ -220,7 +220,7 @@ export default function LoginPage() {
         )}
       </div>
 
-      <p className="mt-4 w-full max-w-sm rounded-xl border border-neutral-800/60 bg-neutral-900/40 px-4 py-3 text-center text-xs leading-relaxed text-neutral-400">
+      <p className="mt-4 w-full max-w-md rounded-xl border border-neutral-800/60 bg-neutral-900/40 px-4 py-3 text-center text-xs leading-relaxed text-neutral-400">
         <strong className="text-neutral-300">Participa de um evento?</strong>{" "}
         Seu acesso é pela página exclusiva do evento — o cadastro acontece lá.
         Use o link enviado pelo organizador.

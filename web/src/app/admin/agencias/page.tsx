@@ -29,7 +29,7 @@ export default async function AgenciesPage() {
   if (!isAdmin && list.length === 0) redirect("/admin");
 
   return (
-    <div>
+    <div className="max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold">Agências / Produtoras</h1>
         {isAdmin && <NewAgencyButton />}

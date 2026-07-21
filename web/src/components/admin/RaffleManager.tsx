@@ -8,7 +8,7 @@ import { RAFFLE_KIND_LABELS } from "@/lib/types";
 import { friendlyError } from "@/lib/friendlyError";
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+  "w-full rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
 /** CSV compatível com Excel pt-BR (separador ; e BOM UTF-8). */
 function downloadCsv(filename: string, rows: string[][]) {
@@ -198,7 +198,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
                 <select
                   value={source}
                   onChange={(e) => setSource(e.target.value as RaffleSource)}
-                  className="rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                  className="rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm"
                 >
                   <option value="registrations">Inscritos aprovados</option>
                   <option value="attendance">Presentes na sala agora</option>
@@ -210,7 +210,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
                   min={1}
                   value={winners}
                   onChange={(e) => setWinners(Math.max(1, Number(e.target.value) || 1))}
-                  className="w-16 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                  className="w-16 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm"
                 />
               </div>
               {source === "list" && (
@@ -263,14 +263,14 @@ export function RaffleManager({ eventId }: { eventId: string }) {
                 type="number"
                 value={min}
                 onChange={(e) => setMin(Number(e.target.value) || 1)}
-                className="w-20 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                className="w-20 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm"
               />
               <label className="text-neutral-400">a</label>
               <input
                 type="number"
                 value={max}
                 onChange={(e) => setMax(Number(e.target.value) || 100)}
-                className="w-20 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                className="w-20 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm"
               />
               <label className="text-neutral-400">Quantidade:</label>
               <input
@@ -278,7 +278,7 @@ export function RaffleManager({ eventId }: { eventId: string }) {
                 min={1}
                 value={count}
                 onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
-                className="w-16 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-sm"
+                className="w-16 rounded-lg border border-neutral-800 bg-neutral-950 px-2 py-1.5 text-sm"
               />
               <label className="flex items-center gap-2 text-neutral-300">
                 <input

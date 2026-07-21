@@ -117,7 +117,7 @@ export function OrgTeam({
   }
 
   const inputClass =
-    "rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
+    "rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 text-sm outline-none placeholder:text-neutral-600 focus:border-sky-500";
 
   return (
     <section>
@@ -224,7 +224,7 @@ export function OrgTeam({
         ))}
 
         {members.length === 0 && invites.length === 0 && (
-          <p className="text-sm text-neutral-500">
+          <p className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
             Nenhum membro ainda. Convide alguém pelo e-mail acima.
           </p>
         )}

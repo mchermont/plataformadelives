@@ -7,6 +7,7 @@ import { EVENT_STATUS_LABELS } from "@/lib/types";
 import { getClientChain } from "@/lib/admin/chains";
 import { OrgTeam } from "@/components/admin/OrgTeam";
 import { ClientForm } from "@/components/admin/ClientForm";
+import { Breadcrumb } from "@/components/admin/Breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function ClientDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { client } = await getClientChain(id);
+  const { client, agency } = await getClientChain(id);
   if (!client) notFound();
 
   const [{ data: events }, { data: membership }, { data: profile }] = await Promise.all([
@@ -49,6 +50,20 @@ export default async function ClientDetailPage({
 
   return (
     <div className="max-w-5xl space-y-10">
+      <div>
+        <Breadcrumb
+          items={
+            agency
+              ? [
+                  { label: "Agências", href: "/admin/agencias" },
+                  { label: agency.name, href: `/admin/agencias/${agency.id}` },
+                  { label: client.name },
+                ]
+              : [{ label: "Clientes", href: "/admin" }, { label: client.name }]
+          }
+        />
+      </div>
+
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">
@@ -65,7 +80,7 @@ export default async function ClientDetailPage({
         </div>
 
         {list.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-neutral-800 p-8 text-center text-sm text-neutral-500">
+          <p className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-neutral-400">
             Nenhum evento criado para este cliente ainda.
           </p>
         ) : (
