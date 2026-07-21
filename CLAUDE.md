@@ -93,20 +93,25 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   transmissão tiver DVR habilitado; arrasto usa estado local — só chama
   `seekTo` ao soltar, não a cada tique, senão dispara buffer repetido) e
   legenda (módulo `captions` da IFrame API — precisa de `loadModule` no
-  `onReady` pra `getOption("captions","tracklist")` retornar algo, e ligar
-  exige mandar uma faixa real da tracklist, `{}` não liga nada, prioriza
-  faixa no idioma do navegador (`navigator.language`); botão aparece assim
-  que a tracklist tem faixa, checado por sondagem própria a partir do
-  `onReady` — testado que a tracklist fica pronta bem antes do vídeo
-  começar a tocar, não espera a fase "playing". `captionsOn` é só estado
-  local (o que o usuário pediu no botão) — `getOption("captions","track")`
-  sempre retorna uma faixa "preferida" mesmo com a legenda de fato
-  desligada, então **não** dá pra usar como fonte da verdade (testado).
-  Legenda começa sempre desligada — `cc_load_policy: 0` + `setOption`
-  limpando a faixa no `onReady`, verificado visualmente que funciona; se
-  ainda assim aparecer legenda pro participante, é preferência pessoal da
-  conta/navegador do YouTube dele (configuração de acessibilidade do
-  Google, não é algo que o embed consiga sobrescrever).
+  `onReady` pra `getOption("captions","tracklist")`/`"track"` retornarem
+  algo). Testado com print de tela num vídeo real de produção (legenda
+  automática/ASR): (1) `getOption("captions","tracklist")` fica **vazia**
+  pra legenda automática — só aparece via `getOption("captions","track")`,
+  mesmo sem ninguém ter ativado nada, então a checagem de disponibilidade
+  do botão usa os dois; (2) `cc_load_policy: 0` + limpar a faixa **uma vez**
+  no `onReady` não é suficiente — o YouTube reaplica a legenda automática
+  preferida do espectador (conta/navegador dele) depois que o vídeo
+  realmente começa a tocar, não só no carregamento inicial, então o
+  intervalo de 500ms (o mesmo que já sincroniza `muted`/tempo) também
+  reforça a limpeza a cada tique enquanto `captionsOn` for false —
+  confirmado visualmente que só essa sondagem contínua remove a legenda de
+  verdade da tela, o clear único não removia; (3) `getOption("captions",
+  "track")` nunca reflete `setOption` (sempre retorna a faixa "preferida",
+  ligada ou não), então **não** dá pra usar como fonte da verdade do botão
+  — `captionsOn` é só estado local (o que o usuário pediu). Se mesmo com
+  tudo isso a legenda ainda aparecer, é preferência pessoal da conta/
+  navegador do YouTube do espectador (configuração de acessibilidade do
+  Google), fora do alcance do embed.
   **Sem seletor de qualidade** (removido, tinha via `setPlaybackQuality`):
   o YouTube trata isso como sugestão desde 2018 e ignora o pedido tanto em
   live quanto em VOD (testado e confirmado) — não existe forma de forçar

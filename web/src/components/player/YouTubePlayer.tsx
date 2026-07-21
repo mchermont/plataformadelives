@@ -45,6 +45,10 @@ interface YTNamespace {
   ) => YTPlayer;
 }
 
+function hasKeys(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && Object.keys(value as object).length > 0;
+}
+
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
@@ -100,19 +104,22 @@ interface YouTubePlayerProps {
  * `getDuration() > 0`, o que depende do DVR da transmissão ao vivo estar
  * habilitado do lado de quem está transmitindo.
  *
- * Legenda começa sempre desligada (`cc_load_policy: 0` + `setOption`
- * limpando a faixa no `onReady`), verificado manualmente que isso some com
- * a legenda visível no vídeo. Se ainda assim o participante vir legenda,
- * é a preferência pessoal da própria conta/navegador do YouTube dele (uma
- * configuração de acessibilidade do Google, separada do embed) — não tem
- * como o site sobrescrever isso. Botão aparece assim que
- * `getOption("captions","tracklist")` tiver faixa — checado por sondagem
- * própria a partir do `onReady` (não espera a fase "playing": testado que
- * a tracklist fica pronta bem antes do vídeo começar a tocar). `captionsOn`
- * é estado local (o que o usuário pediu no botão), não deriva de
- * `getOption("captions","track")` — esse option sempre retorna uma faixa
- * "preferida" mesmo com a legenda de fato desligada, então usá-lo como
- * fonte da verdade fazia o botão mostrar "ligado" o tempo todo.
+ * Legenda: testado num vídeo real em produção (print de tela) que
+ * `cc_load_policy: 0` + limpar a faixa uma vez no `onReady` **não é
+ * suficiente** — o YouTube reaplica a legenda automática (ASR) preferida
+ * do espectador (conta/navegador dele) depois que o vídeo realmente começa
+ * a tocar, não só no carregamento inicial. Por isso o intervalo de 500ms
+ * (mesmo que já sincroniza `muted`/tempo) também reforça a limpeza a cada
+ * tique enquanto `captionsOn` (intenção do usuário) for false — se ainda
+ * assim aparecer legenda, não tem mais o que o embed consiga fazer, é
+ * preferência de conta pessoal do Google do espectador.
+ * Disponibilidade do botão: legenda automática/ASR **não aparece** em
+ * `getOption("captions","tracklist")` (fica vazia), só em
+ * `getOption("captions","track")`, mesmo sem nunca ter sido ativada por
+ * ninguém — então a checagem usa os dois. `captionsOn` é estado local (o
+ * que o usuário pediu no botão), não deriva de "track" — esse option
+ * sempre retorna uma faixa "preferida" mesmo quando a legenda está
+ * desligada de verdade.
  *
  * Sem seletor de qualidade: `setPlaybackQuality` é tratado pelo YouTube
  * como sugestão desde 2018 e, na prática, ele ignora o pedido tanto em
@@ -142,6 +149,9 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
   const [currentTime, setCurrentTime] = useState(0);
   const [captionsAvailable, setCaptionsAvailable] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(false);
+  // espelha captionsOn pro intervalo de 500ms ler sem precisar recriar o
+  // setInterval a cada toggle (fecharia sobre um valor desatualizado)
+  const captionsOnRef = useRef(false);
   // valor local durante o arraste da barra de progresso — só chama seekTo
   // no YouTube quando o usuário solta, em vez de a cada tique do drag
   const [seekPreview, setSeekPreview] = useState<number | null>(null);
@@ -188,8 +198,13 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
             else if (e.data === 0) setPhase("cover"); // fim → capa (sem tela do YouTube)
           },
           onApiChange: () => {
-            const tracks = playerRef.current?.getOption("captions", "tracklist");
-            if (Array.isArray(tracks) && tracks.length > 0) setCaptionsAvailable(true);
+            const player = playerRef.current;
+            if (!player) return;
+            const tracks = player.getOption("captions", "tracklist");
+            const active = player.getOption("captions", "track");
+            if ((Array.isArray(tracks) && tracks.length > 0) || hasKeys(active)) {
+              setCaptionsAvailable(true);
+            }
           },
         },
       });
@@ -208,17 +223,21 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  // A tracklist de legenda fica pronta bem antes do vídeo começar a tocar
-  // (testado: chega em ~500ms-2s só com o player pronto, sem depender de
-  // "playing") — sondagem própria em vez de esperar a fase "playing" pra
-  // não atrasar o botão aparecer.
+  // A disponibilidade de legenda fica pronta bem antes do vídeo começar a
+  // tocar (testado: chega em ~500ms-2s só com o player pronto, sem
+  // depender de "playing") — sondagem própria em vez de esperar a fase
+  // "playing" pra não atrasar o botão aparecer. Checa tracklist (faixas
+  // enviadas/traduzidas) E track (testado: legenda automática/ASR não
+  // aparece na tracklist, só via getOption("captions","track"), mesmo
+  // sem nunca ter sido ativada por ninguém).
   useEffect(() => {
     if (!ready || captionsAvailable) return;
     const player = playerRef.current;
     if (!player) return;
     const id = setInterval(() => {
       const tracks = player.getOption("captions", "tracklist");
-      if (Array.isArray(tracks) && tracks.length > 0) {
+      const active = player.getOption("captions", "track");
+      if ((Array.isArray(tracks) && tracks.length > 0) || hasKeys(active)) {
         setCaptionsAvailable(true);
         clearInterval(id);
       }
@@ -261,6 +280,13 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       // fonte da verdade pro mudo: o navegador pode forçar mudo mesmo
       // pedindo `mute: 0` no autoplay — sincroniza em vez de assumir
       setMuted(player.isMuted());
+      // cc_load_policy:0 + limpar no onReady não é suficiente: testado que
+      // o YouTube reaplica a legenda automática (ASR) da conta/navegador
+      // do espectador depois que o vídeo começa a tocar de verdade — sem
+      // reforçar aqui a cada tique, ela reaparece sozinha por conta própria
+      if (!captionsOnRef.current && hasKeys(player.getOption("captions", "track"))) {
+        player.setOption("captions", "track", {});
+      }
     }, 500);
     return () => clearInterval(id);
   }, [phase]);
@@ -282,20 +308,31 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       // limpa a faixa em vez de descarregar o módulo — unloadModule some
       // com o tracklist, e o botão não voltava a funcionar depois
       player.setOption("captions", "track", {});
+      captionsOnRef.current = false;
       setCaptionsOn(false);
     } else {
       // setOption("captions","track", {}) pra LIGAR não faz nada — precisa
-      // de uma faixa real (languageCode) da tracklist
+      // de uma faixa real. Prioriza a tracklist (faixas enviadas/
+      // traduzidas); se estiver vazia (comum com legenda só automática/
+      // ASR — testado que não aparece na tracklist), usa a faixa
+      // "preferida" que o próprio YouTube já expõe em "track".
       const tracks = player.getOption("captions", "tracklist") as
         | { languageCode: string }[]
         | undefined;
-      if (!tracks || tracks.length === 0) return;
-      const lang = navigator.language?.toLowerCase() ?? "";
-      const match =
-        tracks.find((t) => t.languageCode.toLowerCase() === lang) ??
-        tracks.find((t) => lang.startsWith(t.languageCode.toLowerCase().split("-")[0])) ??
-        tracks[0];
-      player.setOption("captions", "track", match);
+      let target: { languageCode: string } | undefined;
+      if (Array.isArray(tracks) && tracks.length > 0) {
+        const lang = navigator.language?.toLowerCase() ?? "";
+        target =
+          tracks.find((t) => t.languageCode.toLowerCase() === lang) ??
+          tracks.find((t) => lang.startsWith(t.languageCode.toLowerCase().split("-")[0])) ??
+          tracks[0];
+      } else {
+        const current = player.getOption("captions", "track");
+        if (hasKeys(current)) target = current as { languageCode: string };
+      }
+      if (!target) return;
+      player.setOption("captions", "track", target);
+      captionsOnRef.current = true;
       setCaptionsOn(true);
     }
   }
