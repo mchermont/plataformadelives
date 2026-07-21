@@ -94,15 +94,19 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   `seekTo` ao soltar, não a cada tique, senão dispara buffer repetido) e
   legenda (módulo `captions` da IFrame API — precisa de `loadModule` no
   `onReady` pra `getOption("captions","tracklist")` retornar algo, e ligar
-  exige mandar uma faixa real da tracklist, `{}` não liga nada; botão só
-  aparece quando a tracklist tem faixa, checado por sondagem no intervalo
-  de 500ms — não só no evento `onApiChange`, que nem sempre dispara depois
-  do `loadModule`. `captionsOn` também é sincronizado a partir de
-  `getOption("captions","track")`, igual ao `muted`. Legenda começa sempre
-  desligada — `cc_load_policy: 0` + `setOption` limpando a faixa no
-  `onReady`, senão o YouTube pode herdar a preferência de legenda da
-  conta/navegador de quem assiste (cookie do youtube.com) e mostrar
-  legenda sem pedido nenhum daqui).
+  exige mandar uma faixa real da tracklist, `{}` não liga nada, prioriza
+  faixa no idioma do navegador (`navigator.language`); botão aparece assim
+  que a tracklist tem faixa, checado por sondagem própria a partir do
+  `onReady` — testado que a tracklist fica pronta bem antes do vídeo
+  começar a tocar, não espera a fase "playing". `captionsOn` é só estado
+  local (o que o usuário pediu no botão) — `getOption("captions","track")`
+  sempre retorna uma faixa "preferida" mesmo com a legenda de fato
+  desligada, então **não** dá pra usar como fonte da verdade (testado).
+  Legenda começa sempre desligada — `cc_load_policy: 0` + `setOption`
+  limpando a faixa no `onReady`, verificado visualmente que funciona; se
+  ainda assim aparecer legenda pro participante, é preferência pessoal da
+  conta/navegador do YouTube dele (configuração de acessibilidade do
+  Google, não é algo que o embed consiga sobrescrever).
   **Sem seletor de qualidade** (removido, tinha via `setPlaybackQuality`):
   o YouTube trata isso como sugestão desde 2018 e ignora o pedido tanto em
   live quanto em VOD (testado e confirmado) — não existe forma de forçar

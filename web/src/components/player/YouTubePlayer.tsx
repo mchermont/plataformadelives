@@ -101,13 +101,18 @@ interface YouTubePlayerProps {
  * habilitado do lado de quem está transmitindo.
  *
  * Legenda começa sempre desligada (`cc_load_policy: 0` + `setOption`
- * limpando a faixa no `onReady` — sem isso o YouTube pode herdar a
- * preferência de legenda da conta/navegador de quem assiste). Botão só
- * aparece quando `getOption("captions","tracklist")` tem faixa — checado
- * por sondagem no intervalo de 500ms (não só no evento `onApiChange`,
- * que nem sempre dispara depois do `loadModule`), e `captionsOn` também é
- * sincronizado a partir de `getOption("captions","track")` em vez de
- * assumido, pro botão nunca dessincronizar do estado real do player.
+ * limpando a faixa no `onReady`), verificado manualmente que isso some com
+ * a legenda visível no vídeo. Se ainda assim o participante vir legenda,
+ * é a preferência pessoal da própria conta/navegador do YouTube dele (uma
+ * configuração de acessibilidade do Google, separada do embed) — não tem
+ * como o site sobrescrever isso. Botão aparece assim que
+ * `getOption("captions","tracklist")` tiver faixa — checado por sondagem
+ * própria a partir do `onReady` (não espera a fase "playing": testado que
+ * a tracklist fica pronta bem antes do vídeo começar a tocar). `captionsOn`
+ * é estado local (o que o usuário pediu no botão), não deriva de
+ * `getOption("captions","track")` — esse option sempre retorna uma faixa
+ * "preferida" mesmo com a legenda de fato desligada, então usá-lo como
+ * fonte da verdade fazia o botão mostrar "ligado" o tempo todo.
  *
  * Sem seletor de qualidade: `setPlaybackQuality` é tratado pelo YouTube
  * como sugestão desde 2018 e, na prática, ele ignora o pedido tanto em
@@ -184,7 +189,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
           },
           onApiChange: () => {
             const tracks = playerRef.current?.getOption("captions", "tracklist");
-            setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
+            if (Array.isArray(tracks) && tracks.length > 0) setCaptionsAvailable(true);
           },
         },
       });
@@ -202,6 +207,24 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
+
+  // A tracklist de legenda fica pronta bem antes do vídeo começar a tocar
+  // (testado: chega em ~500ms-2s só com o player pronto, sem depender de
+  // "playing") — sondagem própria em vez de esperar a fase "playing" pra
+  // não atrasar o botão aparecer.
+  useEffect(() => {
+    if (!ready || captionsAvailable) return;
+    const player = playerRef.current;
+    if (!player) return;
+    const id = setInterval(() => {
+      const tracks = player.getOption("captions", "tracklist");
+      if (Array.isArray(tracks) && tracks.length > 0) {
+        setCaptionsAvailable(true);
+        clearInterval(id);
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [ready, captionsAvailable]);
 
   // Se o autoplay travar (bloqueado pelo navegador), some o spinner e volta
   // pro botão de play manual em vez de carregar pra sempre.
@@ -238,15 +261,6 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       // fonte da verdade pro mudo: o navegador pode forçar mudo mesmo
       // pedindo `mute: 0` no autoplay — sincroniza em vez de assumir
       setMuted(player.isMuted());
-      // sondagem em vez de depender só de onApiChange: em alguns vídeos
-      // o evento nunca dispara depois do loadModule, e a tracklist só
-      // fica pronta um tempo depois do vídeo carregar
-      const tracks = player.getOption("captions", "tracklist");
-      setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
-      const activeTrack = player.getOption("captions", "track") as
-        | Record<string, unknown>
-        | undefined;
-      setCaptionsOn(Boolean(activeTrack && Object.keys(activeTrack).length > 0));
     }, 500);
     return () => clearInterval(id);
   }, [phase]);
@@ -276,7 +290,12 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         | { languageCode: string }[]
         | undefined;
       if (!tracks || tracks.length === 0) return;
-      player.setOption("captions", "track", tracks[0]);
+      const lang = navigator.language?.toLowerCase() ?? "";
+      const match =
+        tracks.find((t) => t.languageCode.toLowerCase() === lang) ??
+        tracks.find((t) => lang.startsWith(t.languageCode.toLowerCase().split("-")[0])) ??
+        tracks[0];
+      player.setOption("captions", "track", match);
       setCaptionsOn(true);
     }
   }
