@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import {
+  Captions,
+  CaptionsOff,
+  Maximize,
+  Pause,
+  Play,
+  Settings,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 
 interface YTPlayer {
   playVideo(): void;
@@ -10,6 +19,16 @@ interface YTPlayer {
   unMute(): void;
   setVolume(volume: number): void;
   destroy(): void;
+  getAvailableQualityLevels(): string[];
+  getPlaybackQuality(): string;
+  setPlaybackQuality(suggestedQuality: string): void;
+  getCurrentTime(): number;
+  getDuration(): number;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
+  loadModule(module: string): void;
+  unloadModule(module: string): void;
+  setOption(module: string, option: string, value: unknown): void;
+  getOption(module: string, option: string): unknown;
 }
 
 interface YTNamespace {
@@ -23,9 +42,31 @@ interface YTNamespace {
       events: {
         onReady: () => void;
         onStateChange: (e: { data: number }) => void;
+        onPlaybackQualityChange?: (e: { data: string }) => void;
       };
     },
   ) => YTPlayer;
+}
+
+/** Rótulos pt-BR pros níveis de qualidade do YouTube (mais recentes primeiro). */
+const QUALITY_LABELS: Record<string, string> = {
+  highres: "Máxima",
+  hd2160: "2160p",
+  hd1440: "1440p",
+  hd1080: "1080p",
+  hd720: "720p",
+  large: "480p",
+  medium: "360p",
+  small: "240p",
+  tiny: "144p",
+  auto: "Automática",
+};
+
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 declare global {
@@ -64,6 +105,13 @@ interface YouTubePlayerProps {
  * tela de "Carregando vídeo" (desfoque) durante buffer/pausa/fim — sem
  * cortar a imagem. Limite conhecido: os termos do YouTube não permitem
  * remover 100% a marca.
+ *
+ * Qualidade, progresso/voltar e legenda (Fase I.1) usam a mesma API —
+ * dois limites que não são bug daqui: (1) o YouTube pode ignorar
+ * `setPlaybackQuality` e manter o ajuste automático por conta própria,
+ * dependendo do vídeo; (2) só dá pra voltar no vídeo se o YouTube expuser
+ * `getDuration() > 0`, o que depende do DVR da transmissão ao vivo estar
+ * habilitado do lado de quem está transmitindo.
  */
 export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -79,6 +127,15 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
   // player já está tocando, mas o YouTube ainda pode mostrar logo/"mais
   // vídeos" por alguns segundos — só revela de verdade depois da folga
   const [revealed, setRevealed] = useState(false);
+  const [quality, setQuality] = useState("auto");
+  const [availableQualities, setAvailableQualities] = useState<string[]>([]);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  // duration > 0 só quando o YouTube permite voltar no vídeo (DVR da
+  // transmissão) — se a live não permitir, fica 0 e a barra some sozinha
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [captionsAvailable, setCaptionsAvailable] = useState(false);
+  const [captionsOn, setCaptionsOn] = useState(false);
 
   useEffect(() => {
     let disposed = false;
@@ -108,6 +165,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
             else if (e.data === 3) setPhase("loading"); // carregando/buffer
             else if (e.data === 0) setPhase("cover"); // fim → capa (sem tela do YouTube)
           },
+          onPlaybackQualityChange: (e) => setQuality(e.data),
         },
       });
     });
@@ -148,8 +206,60 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     return () => clearTimeout(t);
   }, [phase]);
 
+  // Progresso: só o YouTube sabe se essa transmissão permite voltar
+  // (janela de DVR) — a barra some sozinha quando duration vem 0.
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const player = playerRef.current;
+    if (!player) return;
+    const id = setInterval(() => {
+      setCurrentTime(player.getCurrentTime());
+      setDuration(player.getDuration());
+    }, 500);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // Níveis de qualidade e disponibilidade de legenda só existem depois que
+  // o YouTube já carregou algum formato — checa de novo a cada vez que volta
+  // a tocar (leitura idempotente, sem custo perceptível).
+  useEffect(() => {
+    if (!ready || phase !== "playing") return;
+    const player = playerRef.current;
+    if (!player) return;
+    const levels = player.getAvailableQualityLevels();
+    if (levels.length > 0) setAvailableQualities(levels);
+    const q = player.getPlaybackQuality();
+    if (q) setQuality(q);
+    const tracks = player.getOption("captions", "tracklist");
+    setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
+  }, [ready, phase]);
+
   const play = useCallback(() => playerRef.current?.playVideo(), []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
+
+  function seek(seconds: number) {
+    playerRef.current?.seekTo(seconds, true);
+    setCurrentTime(seconds);
+  }
+
+  function setQualityLevel(level: string) {
+    playerRef.current?.setPlaybackQuality(level);
+    setQuality(level);
+    setShowQualityMenu(false);
+  }
+
+  function toggleCaptions() {
+    const player = playerRef.current;
+    if (!player) return;
+    if (captionsOn) {
+      player.unloadModule("captions");
+      setCaptionsOn(false);
+    } else {
+      player.loadModule("captions");
+      player.setOption("captions", "track", {});
+      setCaptionsOn(true);
+    }
+  }
 
   function toggleMute() {
     if (muted) {
@@ -192,7 +302,10 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       {/* bloqueia cliques na UI do YouTube (logo, título, sugestões) */}
       <div
         className="absolute inset-0 z-10"
-        onClick={phase === "playing" ? pause : play}
+        onClick={() => {
+          setShowQualityMenu(false);
+          (phase === "playing" ? pause : play)();
+        }}
       />
 
       {(phase === "cover" || phase === "paused") && (
@@ -234,40 +347,102 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       )}
 
       {phase === "playing" && revealed && (
-        <div className="absolute inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 opacity-0 transition group-hover:opacity-100">
-          <button
-            onClick={pause}
-            aria-label="Pausar"
-            className="text-white hover:opacity-80"
-          >
-            <Pause className="size-5 fill-current" />
-          </button>
-          <button
-            onClick={toggleMute}
-            aria-label={muted ? "Ativar som" : "Silenciar"}
-            className="text-white hover:opacity-80"
-          >
-            {muted || volume === 0 ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={muted ? 0 : volume}
-            onChange={(e) => changeVolume(Number(e.target.value))}
-            aria-label="Volume"
-            className="h-1 w-24 accent-[var(--brand,#0284c7)]"
-          />
-          <span className="ml-auto rounded bg-red-600 px-1.5 text-[10px] font-bold uppercase text-white">
-            ● Ao vivo
-          </span>
-          <button
-            onClick={toggleFullscreen}
-            aria-label="Tela cheia"
-            className="text-white hover:opacity-80"
-          >
-            <Maximize className="size-4" />
-          </button>
+        <div className="absolute inset-x-0 bottom-0 z-30 flex flex-col gap-1 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-10 opacity-0 transition group-hover:opacity-100">
+          {duration > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] tabular-nums text-white/80">
+                {formatTime(currentTime)}
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={duration}
+                step={0.1}
+                value={Math.min(currentTime, duration)}
+                onChange={(e) => seek(Number(e.target.value))}
+                aria-label="Progresso do vídeo"
+                className="h-1 w-full accent-[var(--brand,#0284c7)]"
+              />
+              <span className="text-[10px] tabular-nums text-white/80">
+                {formatTime(duration)}
+              </span>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={pause}
+              aria-label="Pausar"
+              className="text-white hover:opacity-80"
+            >
+              <Pause className="size-5 fill-current" />
+            </button>
+            <button
+              onClick={toggleMute}
+              aria-label={muted ? "Ativar som" : "Silenciar"}
+              className="text-white hover:opacity-80"
+            >
+              {muted || volume === 0 ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={muted ? 0 : volume}
+              onChange={(e) => changeVolume(Number(e.target.value))}
+              aria-label="Volume"
+              className="h-1 w-24 accent-[var(--brand,#0284c7)]"
+            />
+            {captionsAvailable && (
+              <button
+                onClick={toggleCaptions}
+                aria-label={captionsOn ? "Desativar legendas" : "Ativar legendas"}
+                aria-pressed={captionsOn}
+                className={captionsOn ? "text-white" : "text-white/70 hover:opacity-80"}
+              >
+                {captionsOn ? <Captions className="size-4" /> : <CaptionsOff className="size-4" />}
+              </button>
+            )}
+            {availableQualities.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowQualityMenu((v) => !v)}
+                  aria-label="Qualidade do vídeo"
+                  aria-expanded={showQualityMenu}
+                  className="flex items-center gap-1 text-white hover:opacity-80"
+                >
+                  <Settings className="size-4" />
+                  <span className="text-[11px] font-medium">
+                    {QUALITY_LABELS[quality] ?? quality}
+                  </span>
+                </button>
+                {showQualityMenu && (
+                  <div className="absolute bottom-full right-0 z-40 mb-2 min-w-28 overflow-hidden rounded-lg bg-neutral-900 py-1 text-sm shadow-2xl ring-1 ring-white/10">
+                    {availableQualities.map((level) => (
+                      <button
+                        key={level}
+                        onClick={() => setQualityLevel(level)}
+                        className={`block w-full px-3 py-1.5 text-left hover:bg-white/10 ${
+                          level === quality ? "font-semibold text-[var(--brand,#0284c7)]" : "text-white"
+                        }`}
+                      >
+                        {QUALITY_LABELS[level] ?? level}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <span className="ml-auto rounded bg-red-600 px-1.5 text-[10px] font-bold uppercase text-white">
+              ● Ao vivo
+            </span>
+            <button
+              onClick={toggleFullscreen}
+              aria-label="Tela cheia"
+              className="text-white hover:opacity-80"
+            >
+              <Maximize className="size-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>

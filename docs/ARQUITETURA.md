@@ -74,7 +74,11 @@
 ### Eventos
 
 - **`events`**: `id`, `slug` (único), `title`, `description`, `cover_url`,
-  `starts_at`/`ends_at`, `status: draft|scheduled|live|ended`,
+  `starts_at`/`ends_at`, `status: draft|scheduled|live|ended|ondemand`
+  (`ondemand`, migração 0026, é setado manualmente pelo Diretor depois de
+  encerrar — mantém o player tocando a gravação com interação travada
+  igual a `ended`; `created_by` vira `null` se o autor for excluído em vez
+  de bloquear, migração 0024),
   `stream_provider: youtube|vimeo|dacast|hls`, `stream_ref`, `client_id`
   (nulo permitido), `listed_on_client_page`, `accept_client_base`.
   - **Inscrição**: `registration_mode: open|allowlist|domain`,
@@ -107,10 +111,14 @@
 
 ### Chat
 
-- **`posts`** — `event_id`, `author_id`, `author_name` (desnormalizado),
-  `content`, `kind: message|announcement`, `pinned`, `deleted_at` (soft
-  delete), `approved` (pré-moderação opcional, migração 0015),
-  `reply_to_id` (resposta a outra mensagem, `on delete set null`).
+- **`posts`** — `event_id`, `author_id` (`on delete set null`, migração
+  0024 — exclusão de conta não apaga nem bloqueia a mensagem histórica),
+  `author_name` (desnormalizado), `content`, `kind: message|announcement`,
+  `pinned`, `deleted_at` (soft delete), `approved` (pré-moderação
+  opcional, migração 0015), `reply_to_id` (resposta a outra mensagem, `on
+  delete set null`). Insert de participante exige `events.status = 'live'`
+  (`posts_insert_participant`, migração 0001) — chat fecha sozinho quando
+  o evento encerra/vira on demand.
 
 ### Quiz
 
@@ -157,8 +165,9 @@ atividade aberta por vez, controlada via RPC `activity_control`
 
 ### Perguntas do público (Q&A)
 
-- **`questions`** — `event_id`, `author_id`, `author_name`
-  (desnormalizado, vazio se anônima), `is_anonymous`, `content`,
+- **`questions`** — `event_id`, `author_id` (`on delete set null`,
+  migração 0024), `author_name` (desnormalizado, vazio se anônima),
+  `is_anonymous`, `content`,
   `status: pending|visible|answered|rejected`, `votes_count`
   (desnormalizado, sincronizado por trigger). **Aprovação é sempre
   obrigatória** (migração 0023) — toda pergunta nasce `pending`, não existe
@@ -168,9 +177,10 @@ atividade aberta por vez, controlada via RPC `activity_control`
 
 ### Galeria de fotos
 
-- **`event_photos`** — `event_id`, `author_id`, `author_name`,
-  `storage_path`, `status: pending|approved|rejected`. Moderação é sempre
-  obrigatória (sem toggle de configuração, diferente de chat/atividades).
+- **`event_photos`** — `event_id`, `author_id` (`on delete set null`,
+  migração 0024), `author_name`, `storage_path`,
+  `status: pending|approved|rejected`. Moderação é sempre obrigatória (sem
+  toggle de configuração, diferente de chat/atividades).
 
 ### Materiais
 
@@ -196,7 +206,10 @@ atividade aberta por vez, controlada via RPC `activity_control`
   `reveal_question` é o único caminho pelo qual o gabarito vira visível.
   `get_quiz_leaderboard(p_event_id)` — wrapper seguro da view (ver abaixo).
 - **Atividades**: `submit_activity_response` (valida por tipo; quiz/
-  quiz_ranking são rejeitados aqui, passam por `answer_question`),
+  quiz_ranking são rejeitados aqui, passam por `answer_question`; migração
+  0025 — rejeita se `events.status <> 'live'`, mesma regra de
+  `answer_question`/`submit_question`/`toggle_question_vote`/
+  `submit_photo`, defesa em profundidade além do filtro de UI),
   `get_activity_results` (liberado pra operadores sempre; pra participante
   só quando a atividade está aberta/fechada e o resultado é ao vivo ou já
   publicado), `activity_control` (a máquina de estados do "slide ativo"),
@@ -216,7 +229,8 @@ atividade aberta por vez, controlada via RPC `activity_control`
 - **Presença**: `touch_attendance` (heartbeat, 60s, clamp 0-300s).
 - **Sala**: `get_room_event(p_event_id)` — evento sem `stream_ref`/
   `stream_provider` a menos que o chamador tenha acesso real E o evento
-  esteja `live` (ver "Padrões de segurança").
+  esteja `live` ou `ondemand` (migração 0027 — sem isso o player nunca
+  tocaria a gravação em on demand; ver "Padrões de segurança").
 - **Multi-tenant**: `invite_to_client`/`invite_to_agency` (convite por
   e-mail, existente ou não), `set_moderator` (só admin da plataforma),
   `get_public_client`/`get_client_slug` (resolução pública sem expor a
@@ -272,7 +286,8 @@ galeria de fotos usa `can_chat`.
   linha (a página de entrada precisa dos metadados), mas `stream_ref`/
   `stream_provider` são removidos do HTML inicial e do broadcast bruto do
   Realtime — a sala consulta `get_room_event()` em vez disso, que só
-  inclui a fonte quando `status = 'live'` e quem pede tem acesso de fato.
+  inclui a fonte quando `status` é `live` ou `ondemand` (migração 0027) e
+  quem pede tem acesso de fato.
   Isso não esconde a requisição ao provedor em si (sempre aparece na aba
   Network) — só tira do payload inicial e do broadcast, que vazavam a
   linha inteira a cada troca de status.
@@ -308,6 +323,32 @@ galeria de fotos usa `can_chat`.
   `event_id`/`user_id` e checar permissão contra isso — a estrutura de
   pasta É a fronteira de autorização (upload em `gallery` exige que o
   segmento de user-id do caminho bata com `auth.uid()`).
+- **Exclusão bloqueada por dependente, nunca em cascata silenciosa**
+  (migração 0024): `agencies`/`clients` não têm `on delete cascade` pros
+  filhos (`clients.agency_id`, `events.client_id`) — excluir uma agência
+  com clientes, ou um cliente com eventos, estoura violação de FK em vez
+  de apagar tudo embaixo. `events` já cascata sozinho pros filhos
+  (inscrições/chat/quiz/fotos/sorteios/atividades — todos com `on delete
+  cascade` desde suas migrações originais), então excluir evento é seguro
+  direto. `friendlyError.ts` traduz a violação de FK genérica numa
+  mensagem pedindo pra excluir os dependentes primeiro.
+- **Trigger de "último admin"** (migração 0024): `client_members`/
+  `agency_members` têm trigger `before delete or update of role` que
+  bloqueia remover ou rebaixar o único admin restante da organização —
+  cobre tanto a remoção manual (`OrgTeam.tsx`) quanto a cascata de excluir
+  a conta de um admin (a linha de `client_members`/`agency_members` seria
+  apagada junto via `on delete cascade` de `user_id`; o trigger intercepta
+  antes).
+- **Exclusão de conta real via Admin API, não RLS** (migração 0024):
+  `auth.users` não é uma tabela comum — não tem RLS, só a Admin API do
+  Supabase (`service_role`) apaga de verdade. Único lugar do sistema que
+  usa a service role key (`src/lib/supabase/admin.ts`, server-only) fora
+  do padrão RLS/RPC — uma Route Handler (`/api/admin/users/[id]`,
+  método DELETE) confere `is_platform_admin` do chamador via cliente
+  normal (cookies) antes de instanciar o cliente admin; bloqueia
+  autoexclusão. `profiles` cascata de `auth.users` (migração 0001), e daí
+  em diante tudo que referencia `profiles(id)` já está coberto pelos
+  padrões acima (cascade ou `set null`).
 
 ## Realtime
 

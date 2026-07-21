@@ -1,6 +1,6 @@
 # Roadmap
 
-> Atualizado em 19/07/2026. Fases concluídas resumidas no fim do arquivo.
+> Atualizado em 21/07/2026. Fases concluídas resumidas no fim do arquivo.
 
 ## Visão
 
@@ -353,6 +353,20 @@ máximo a identidade da origem. Sem migração (só frontend).
   white-label total é a **Fase J (streaming próprio)** — este player é a
   melhor aproximação possível enquanto isso
 
+### I.1 — Controles avançados do player YouTube ✅ (21/07/2026)
+
+- [x] **Qualidade**: botão com o nível atual (`setPlaybackQuality`/
+      `getAvailableQualityLevels`); o YouTube pode ignorar a escolha manual
+      e manter automático dependendo do vídeo — limite da própria API, não
+      bug daqui
+- [x] **Barra de progresso e voltar**: só aparece quando
+      `getDuration() > 0` — depende do DVR da transmissão ao vivo estar
+      habilitado do lado de quem transmite; sem DVR, a barra some sozinha
+- [x] **Legenda**: botão liga/desliga via módulo `captions` da IFrame API;
+      só aparece se o vídeo tiver alguma faixa disponível
+- Vimeo (`VimeoPlayer.tsx`) não recebeu os mesmos controles nesta rodada
+  (API bem diferente — Player.js) — avaliar se pedido depois
+
 ## Fase J — Streaming próprio (sob demanda)
 
 Sem dependência de YouTube/Vimeo — white-label de verdade. (Planejada desde o
@@ -364,6 +378,56 @@ início como "Fase 2"; decidido: provedor sob demanda, não self-hosted.)
 - [ ] Painel: criar transmissão → URL RTMP + stream key para OBS/vMix
 - [ ] Estado da transmissão via webhook; estimativa de custo por live
 - [ ] Gravação/VOD pós-live
+
+## Gestão administrativa e ciclo de vida do evento ✅ (21/07/2026, migrações 0024–0027)
+
+**Exclusão** (pedido do Marcelo: "poder excluir agência/cliente/evento e
+pessoas da equipe, inclusive admins"):
+- [x] Excluir agência/cliente/evento (botão "Zona de risco" nas respectivas
+      páginas do admin) — agência/cliente bloqueiam se ainda tiverem
+      dependentes (erro amigável, sem cascata destrutiva); evento já
+      cascata sozinho no banco (inscrições/chat/quiz/fotos/sorteios)
+- [x] Remover pessoa da equipe de cliente/agência (`OrgTeam.tsx`) já
+      permitia remover admin — faltava `confirm()` (adicionado) e proteção
+      de não deixar a organização sem nenhum admin (trigger
+      `enforce_last_{client,agency}_admin`, bloqueia remoção/rebaixamento)
+- [x] Excluir conta de usuário de verdade (auth + profile), inclusive quem
+      é admin de plataforma, só na tela `/admin/equipe` — rota
+      `/api/admin/users/[id]` usa a Admin API do Supabase (service role,
+      server-only) porque `auth.users` não tem RLS. `posts`/`questions`/
+      `event_photos.author_id` e `events.created_by` viram `null` em vez
+      de bloquear a exclusão (nome já denormalizado em `author_name`)
+- [x] `/admin/equipe` filtrado pra mostrar só quem já é admin geral ou
+      moderador (antes listava todo profile já criado, participante
+      incluso) — buscar por nome/e-mail ainda abre pra qualquer pessoa,
+      pra dar pra promover alguém novo. Equipe de cliente/agência já vive
+      na página de cada um; participante de evento já vive em Inscrições
+      (conferido, sem sobreposição)
+
+**Evento encerrado / on demand:**
+- [x] Banner "EVENTO ENCERRADO" explícito **dentro da área do player**
+      (mesmo lugar do aviso de evento agendado, nunca uma barra solta no
+      topo) quando `status = 'ended'`
+- [x] Chat (input some, histórico continua, sem exceção pra quem entra
+      como staff pela Sala do evento — o Diretor é outro componente),
+      Q&A (form some, voto desabilita), fotos (upload some, grade
+      continua) e atividades (aba Interação/overlay somem) travados
+      quando o evento não está mais `'live'`
+- [x] Defesa em profundidade: RPCs de escrita
+      (`submit_activity_response`, `answer_question`, `submit_question`,
+      `toggle_question_vote`, `submit_photo`) rejeitam se
+      `events.status <> 'live'` — chat já tinha essa trava via RLS desde
+      a migração 0001
+- [x] Status **`'ondemand'`**: botão "Deixar on demand" no Diretor
+      (só aparece depois de encerrar) — mantém o player tocando o mesmo
+      `stream_ref` (vira VOD sozinho no provedor) com interação travada
+      igual a `'ended'`; `get_room_event` libera a fonte do vídeo pra
+      `'live'` e `'ondemand'`; badge "Disponível on demand" na vitrine
+
+**Bugfix:** `EventForm.tsx` mostrava o horário de início em UTC como se já
+fosse local (`<input type="datetime-local">` não converte fuso sozinho) —
+admin via 20:20, horário real (e o que a sala já mostrava certo) era
+17:20. Corrigido com `toLocalDatetimeInputValue()`.
 
 ## Pendências avulsas (encaixar entre fases)
 

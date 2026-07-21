@@ -51,6 +51,12 @@ cd web
 # NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
+`SUPABASE_SERVICE_ROLE_KEY` (mesma tela, chave **`service_role`/secret** —
+nunca a `anon`) é opcional pro app rodar, mas necessária pra excluir conta
+de usuário de verdade em `/admin/equipe` (rota `/api/admin/users/[id]`,
+ver `ARQUITETURA.md`). Ignora RLS por completo — trate como senha, nunca
+comite, nunca exponha `NEXT_PUBLIC_`.
+
 ## 5. Criar o primeiro admin
 
 1. Rode o app (`npm run dev`), acesse `/login` e entre com seu e-mail
@@ -88,7 +94,8 @@ where email = 'seu-email@dominio.com';
 2. [Railway](https://railway.app) → New Project → Deploy from GitHub repo →
    configure o **root directory como `web`** e as env vars
    (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `NEXT_PUBLIC_SITE_URL`). Cada push na `main` builda e publica sozinho.
+   `NEXT_PUBLIC_SITE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). Cada push na
+   `main` builda e publica sozinho.
 3. Atualize a Site URL/Redirect URLs no Supabase com o domínio de produção.
 
 ## Custos estimados

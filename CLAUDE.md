@@ -77,9 +77,15 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   `'live'` e `'ondemand'`, só esconde pra `'draft'/'scheduled'/'ended'`.
 - **Player white-label** (`YouTubePlayer.tsx`/`VimeoPlayer.tsx`): sem
   controles/logo/título nativos (sem zoom/crop — cortava imagem, removido),
-  autoplay mudo. `stream_ref` não vai no HTML inicial nem no Realtime bruto
-  da tabela `events` (vazava a linha inteira) — a sala usa `get_room_event`
-  (RPC, polling autenticado) que só inclui a fonte quando `status = 'live'`.
+  autoplay mudo. Controles próprios: play/pause, volume, tela cheia,
+  qualidade (`YouTubePlayer.tsx`, via `setPlaybackQuality` — o YouTube pode
+  ignorar e manter automática, não é bug daqui), barra de progresso/voltar
+  (só aparece se `getDuration() > 0`, ou seja, se a transmissão tiver DVR
+  habilitado) e legenda (módulo `captions` da IFrame API, só aparece botão
+  se o vídeo tiver faixa disponível). `stream_ref` não vai no HTML inicial
+  nem no Realtime bruto da tabela `events` (vazava a linha inteira) — a
+  sala usa `get_room_event` (RPC, polling autenticado) que só inclui a
+  fonte quando `status` é `'live'` ou `'ondemand'`.
   `DisableInspect.tsx` bloqueia clique-direito e atalhos comuns (F12,
   Ctrl+Shift+I/J/C, Ctrl+U) na sala e no telão — **best-effort, não é
   segurança real**: o navegador reserva F12/menu de DevTools independente
