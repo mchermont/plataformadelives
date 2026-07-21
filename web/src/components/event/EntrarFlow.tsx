@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { authInputClass as inputClass, authOtpInputClass } from "@/lib/authInputClass";
@@ -63,6 +63,28 @@ export function EntrarFlow({
   const [consent, setConsent] = useState(Boolean(registration?.consent_accepted_at));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoRegisterAttempted = useRef(false);
+
+  function canAutoRegister() {
+    return fields.length === 0 && !event.consent_text && Boolean(firstName.trim()) && Boolean(lastName.trim());
+  }
+
+  // Nome/sobrenome já foram pedidos na criação da conta (ou vieram do
+  // Google) — se o evento não tem campo extra nem termo de consentimento,
+  // a etapa de "cadastro" não tem mais nada a perguntar, então nem aparece:
+  // registra direto e segue pra sala, sem piscar o formulário de nome.
+  const [autoRegistering, setAutoRegistering] = useState(
+    () => initialStep === "cadastro" && canAutoRegister(),
+  );
+
+  useEffect(() => {
+    if (step === "cadastro" && !autoRegisterAttempted.current && canAutoRegister()) {
+      autoRegisterAttempted.current = true;
+      setAutoRegistering(true);
+      register();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // Enquanto aguarda aprovação, escuta a própria inscrição em tempo real
   useEffect(() => {
@@ -120,6 +142,10 @@ export function EntrarFlow({
   }
 
   async function signUp() {
+    if (!firstName.trim() || !lastName.trim()) {
+      setError("Informe seu nome e sobrenome.");
+      return;
+    }
     if (password.length < 8) {
       setError("Crie uma senha com pelo menos 8 caracteres.");
       return;
@@ -201,6 +227,19 @@ export function EntrarFlow({
       setBusy(false);
       return;
     }
+    // nome/sobrenome só foram coletados aqui quando vieram da criação de
+    // conta (fluxo "esqueci a senha" não pede nome, já vem em branco)
+    if (firstName.trim() && lastName.trim()) {
+      const {
+        data: { user: authedUser },
+      } = await supabase.auth.getUser();
+      if (authedUser) {
+        await supabase
+          .from("profiles")
+          .update({ full_name: `${firstName.trim()} ${lastName.trim()}` })
+          .eq("id", authedUser.id);
+      }
+    }
     setStep("cadastro");
     router.refresh();
     setBusy(false);
@@ -248,6 +287,9 @@ export function EntrarFlow({
     });
 
     if (error) {
+      // se o registro automático falhar, mostra o formulário com o erro
+      // em vez de deixar o spinner girando pra sempre
+      setAutoRegistering(false);
       if (error.message.includes("Domínio")) {
         setError("Seu e-mail não pertence a um domínio autorizado para este evento.");
       } else if (error.message.includes("lista")) {
@@ -352,6 +394,33 @@ export function EntrarFlow({
                   <p className="mt-1.5 text-xs text-neutral-500">{domainHint}</p>
                 )}
               </div>
+
+              {creating && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium">
+                      Nome <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Como você quer aparecer no chat"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium">
+                      Sobrenome <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="mb-1.5 block text-sm font-medium">
                   {creating ? "Crie uma senha" : "Sua senha"}
@@ -369,7 +438,13 @@ export function EntrarFlow({
               {creating ? (
                 <button
                   onClick={signUp}
-                  disabled={busy || !email.includes("@") || password.length === 0}
+                  disabled={
+                    busy ||
+                    !email.includes("@") ||
+                    password.length === 0 ||
+                    !firstName.trim() ||
+                    !lastName.trim()
+                  }
                   className="w-full rounded-lg bg-[var(--brand,#0284c7)] py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40"
                 >
                   {busy ? "Criando…" : "Criar conta"}
@@ -486,7 +561,14 @@ export function EntrarFlow({
             </div>
           )}
 
-          {step === "cadastro" && (
+          {step === "cadastro" && autoRegistering && (
+            <div className="space-y-3 py-4 text-center">
+              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-neutral-700 border-t-[var(--brand,#0284c7)]" />
+              <p className="text-sm text-neutral-400">Entrando…</p>
+            </div>
+          )}
+
+          {step === "cadastro" && !autoRegistering && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>

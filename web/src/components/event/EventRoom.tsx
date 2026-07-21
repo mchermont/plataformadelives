@@ -29,7 +29,7 @@ type Tab = "chat" | "perguntas" | "interacao" | "fotos" | "materiais";
 export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoomProps) {
   const [event, setEvent] = useState(initialEvent);
   const [tab, setTab] = useState<Tab>("chat");
-  const { floats, send } = useReactions(initialEvent.id);
+  const { floats, send } = useReactions(initialEvent.id, event.reactions_enabled);
   const activities = useActivities(initialEvent.id, userId);
   const materials = useMaterials(initialEvent.id);
   const raffle = useDisplayedRaffle(initialEvent.id);
@@ -113,7 +113,9 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <PresenceBadge eventId={event.id} userId={userId} userName={userName} />
+          {event.presence_enabled && (
+            <PresenceBadge eventId={event.id} userId={userId} userName={userName} />
+          )}
           <span className="hidden text-sm text-neutral-400 sm:inline">{userName}</span>
           <button
             onClick={signOut}
@@ -133,8 +135,14 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             className="mx-auto w-full"
             style={{ maxWidth: "min(100%, calc((100dvh - 12rem) * 16 / 9))" }}
           >
-          <div className="relative">
-            <ReactionOverlay floats={floats} />
+          {/* isolate: cria um contexto de empilhamento próprio pro player +
+              overlays — sem isso, os z-index dos overlays (Reaction/
+              Activity/Raffle) competiam diretamente com os z-index
+              internos do player (click-catch, capa de pausa, controles),
+              e o player podia vencer por ordem de DOM mesmo com z-index
+              menor. */}
+          <div className="relative isolate">
+            {event.reactions_enabled && <ReactionOverlay floats={floats} />}
             <ActivityOverlay state={activities} ended={locked} />
             <RaffleOverlay raffle={raffle} />
             {showPlayer ? (
@@ -175,7 +183,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
             )}
           </div>
 
-          {isLive && (
+          {isLive && event.reactions_enabled && (
             <div className="mt-2 flex items-center">
               <ReactionBar onSend={send} />
             </div>

@@ -779,7 +779,11 @@ export function ActivityOverlay({
   const open = state.open;
   if (ended || !open || !open.highlight || open.id === dismissedId) return null;
   return (
-    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+    // z-40: precisa ficar acima de toda a UI própria do player (até z-30,
+    // a barra de controles) — sem isso, o clique pra digitar/votar caía no
+    // overlay de clique do player por baixo (mesmo nível de empilhamento,
+    // player renderiza depois no DOM) e pausava o vídeo.
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="relative w-full max-w-md">
         <button
           onClick={() => setDismissedId(open.id)}

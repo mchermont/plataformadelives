@@ -121,6 +121,8 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
     enabled_activity_types: event?.enabled_activity_types ?? [...TOGGLABLE_ACTIVITY_TYPES],
     qa_enabled: event?.qa_enabled ?? false,
     gallery_enabled: event?.gallery_enabled ?? false,
+    presence_enabled: event?.presence_enabled ?? true,
+    reactions_enabled: event?.reactions_enabled ?? true,
     qa_allow_anonymous: event?.qa_allow_anonymous ?? true,
     qa_upvote_enabled: event?.qa_upvote_enabled ?? true,
     brand_color: event?.brand_color ?? "#0284c7",
@@ -217,6 +219,8 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
       enabled_activity_types: form.enabled_activity_types,
       qa_enabled: form.qa_enabled,
       gallery_enabled: form.gallery_enabled,
+      presence_enabled: form.presence_enabled,
+      reactions_enabled: form.reactions_enabled,
       qa_allow_anonymous: form.qa_allow_anonymous,
       qa_upvote_enabled: form.qa_upvote_enabled,
       brand_color: form.brand_color,
@@ -589,6 +593,24 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
             className="h-4 w-4 accent-sky-500"
           />
           Galeria de fotos (moderação obrigatória)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.presence_enabled}
+            onChange={(e) => set("presence_enabled", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Mostrar quantidade de participantes online
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.reactions_enabled}
+            onChange={(e) => set("reactions_enabled", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Reações em emoji na transmissão
         </label>
       </section>
 

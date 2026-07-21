@@ -17,12 +17,13 @@ interface FloatingEmoji {
  * Renderiza a barra de botões e o overlay de emojis flutuantes —
  * o overlay deve ficar dentro de um container `relative` sobre o player.
  */
-export function useReactions(eventId: string) {
+export function useReactions(eventId: string, enabled: boolean = true) {
   const [floats, setFloats] = useState<FloatingEmoji[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const lastSentRef = useRef(0);
 
   useEffect(() => {
+    if (!enabled) return;
     const supabase = createClient();
     const channel = supabase
       .channel(`reactions:${eventId}`)
@@ -37,7 +38,7 @@ export function useReactions(eventId: string) {
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [eventId]);
+  }, [eventId, enabled]);
 
   function spawn(emoji: string) {
     const id = Date.now() + Math.random();

@@ -57,7 +57,11 @@ export function RaffleOverlay({ raffle }: { raffle: ScreenRaffle | null }) {
       : (raffle.result as (number | string)[]).map(String);
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+    // z-50: acima do ActivityOverlay (z-40) e de toda a UI do player —
+    // mesmo motivo (ver ActivityOverlay): sem isso o botão "Fechar" caía
+    // atrás do overlay de clique do player e pausava o vídeo em vez de
+    // fechar o sorteio.
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
       <div className="relative flex max-h-full w-full max-w-md flex-col items-center gap-3 overflow-y-auto rounded-xl bg-neutral-950/90 p-5 text-center shadow-2xl">
         <button
           onClick={() => setDismissedId(raffle.id)}

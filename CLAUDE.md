@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0027.
+  a última aplicada é a 0028.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -54,6 +54,12 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Q&A**: aprovação é sempre obrigatória (não é mais opcional) — toda
   pergunta nasce `pending` e só fica pública quando o colaborador aprova
   (`can_chat`); upvote é configurável por evento (`qa_upvote_enabled`).
+- **Contador de presença e reações** (migração 0028): `presence_enabled` e
+  `reactions_enabled` em `events`, toggles na aba Interações do EventForm
+  (default `true`, preserva o comportamento anterior). Controlam só a UI
+  (`PresenceBadge`, `ReactionBar`/`ReactionOverlay` em `EventRoom.tsx`);
+  `useReactions` recebe `enabled` e só assina o canal Realtime quando
+  ligado, pra não gastar canal à toa com a reação desligada.
 - Blocklist de texto livre: tabela `banned_words` (match por palavra inteira).
 - **Sorteios** (tabela `raffles`, permissão `can_quiz`): só via RPC
   `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log
@@ -76,13 +82,21 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   igual a `'ended'` — `get_room_event` libera a fonte do vídeo pra
   `'live'` e `'ondemand'`, só esconde pra `'draft'/'scheduled'/'ended'`.
 - **Player white-label** (`YouTubePlayer.tsx`/`VimeoPlayer.tsx`): sem
-  controles/logo/título nativos (sem zoom/crop — cortava imagem, removido),
-  autoplay mudo. Controles próprios: play/pause, volume, tela cheia,
+  controles/logo/título nativos (sem zoom/crop — cortava imagem, removido).
+  Autoplay tenta iniciar com som (`mute: 0`); se o navegador bloquear
+  autoplay não-mudo, o player fica parado até o clique manual em
+  "Assistir" (gesto real, som libera nele). O estado `muted` da UI nunca é
+  assumido — é sincronizado a cada poll a partir de `player.isMuted()`,
+  porque o navegador pode forçar mudo por conta própria mesmo com
+  `mute: 0`. Controles próprios: play/pause, volume, tela cheia,
   qualidade (`YouTubePlayer.tsx`, via `setPlaybackQuality` — o YouTube pode
-  ignorar e manter automática, não é bug daqui), barra de progresso/voltar
-  (só aparece se `getDuration() > 0`, ou seja, se a transmissão tiver DVR
-  habilitado) e legenda (módulo `captions` da IFrame API, só aparece botão
-  se o vídeo tiver faixa disponível). `stream_ref` não vai no HTML inicial
+  ignorar e manter automática, não é bug daqui; a UI só assume a troca
+  depois de confirmar com `getPlaybackQuality()`, nunca otimista), barra de
+  progresso/voltar (só aparece se `getDuration() > 0`, ou seja, se a
+  transmissão tiver DVR habilitado; arrasto usa estado local — só chama
+  `seekTo` ao soltar, não a cada tique, senão dispara buffer repetido) e
+  legenda (módulo `captions` da IFrame API via evento `onApiChange`, só
+  aparece botão se o vídeo tiver faixa disponível). `stream_ref` não vai no HTML inicial
   nem no Realtime bruto da tabela `events` (vazava a linha inteira) — a
   sala usa `get_room_event` (RPC, polling autenticado) que só inclui a
   fonte quando `status` é `'live'` ou `'ondemand'`.
@@ -99,6 +113,16 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   hora local primeiro (`toLocalDatetimeInputValue` em `EventForm.tsx`),
   senão o admin edita um horário e o formulário mostra outro (bug real
   corrigido em 21/07/2026: admin via 20:20, front mostrava 17:20 certo).
+- **Cadastro em evento (`EntrarFlow.tsx`)**: nome/sobrenome são pedidos na
+  criação de conta (junto com senha), não mais numa etapa separada depois
+  do login — evita repetir pergunta que devia ter sido feita uma vez só.
+  Fluxo "esqueci a senha"/código continua sem pedir nome ali (a pessoa
+  pode já ter conta sem nome salvo) e Google já traz o nome pronto
+  (trigger `handle_new_user`, migração 0001). A etapa "cadastro" (nome +
+  campos extras + consentimento) só aparece de fato se o evento tiver
+  campo extra (`event_fields`) ou `consent_text` — sem isso, com nome já
+  conhecido, registra automaticamente e pula pra sala (sem piscar
+  formulário).
 - **Ações destrutivas sempre com `confirm()`** (banir, apagar mensagem/foto/
   pergunta/resposta) — padrão consolidado após revisão `/impeccable critique`
   em 19/07/2026; qualquer exclusão nova segue o mesmo padrão.

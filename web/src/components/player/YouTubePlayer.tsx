@@ -19,6 +19,7 @@ interface YTPlayer {
   unMute(): void;
   setVolume(volume: number): void;
   destroy(): void;
+  isMuted(): boolean;
   getAvailableQualityLevels(): string[];
   getPlaybackQuality(): string;
   setPlaybackQuality(suggestedQuality: string): void;
@@ -43,6 +44,7 @@ interface YTNamespace {
         onReady: () => void;
         onStateChange: (e: { data: number }) => void;
         onPlaybackQualityChange?: (e: { data: string }) => void;
+        onApiChange?: () => void;
       };
     },
   ) => YTPlayer;
@@ -106,6 +108,12 @@ interface YouTubePlayerProps {
  * cortar a imagem. Limite conhecido: os termos do YouTube não permitem
  * remover 100% a marca.
  *
+ * Autoplay tenta iniciar com som (`mute: 0`); se o navegador bloquear
+ * autoplay não-mudo, o player fica parado até o clique manual em
+ * "Assistir" — aí sim é um gesto real do usuário e o som toca. O estado
+ * `muted` é sempre sincronizado a partir de `player.isMuted()` (nunca
+ * assumido), porque o navegador pode forçar mudo por conta própria.
+ *
  * Qualidade, progresso/voltar e legenda (Fase I.1) usam a mesma API —
  * dois limites que não são bug daqui: (1) o YouTube pode ignorar
  * `setPlaybackQuality` e manter o ajuste automático por conta própria,
@@ -121,7 +129,9 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     "loading",
   );
   const [ready, setReady] = useState(false);
-  const [muted, setMuted] = useState(true); // autoplay exige começar mudo
+  // tenta autoplay com som — se o navegador bloquear, o player fica parado
+  // até o clique manual em "Assistir" (gesto real, som liberado nele)
+  const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(100);
   const [fullscreen, setFullscreen] = useState(false);
   // player já está tocando, mas o YouTube ainda pode mostrar logo/"mais
@@ -136,6 +146,9 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
   const [currentTime, setCurrentTime] = useState(0);
   const [captionsAvailable, setCaptionsAvailable] = useState(false);
   const [captionsOn, setCaptionsOn] = useState(false);
+  // valor local durante o arraste da barra de progresso — só chama seekTo
+  // no YouTube quando o usuário solta, em vez de a cada tique do drag
+  const [seekPreview, setSeekPreview] = useState<number | null>(null);
 
   useEffect(() => {
     let disposed = false;
@@ -147,7 +160,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
         videoId,
         playerVars: {
           autoplay: 1,
-          mute: 1,
+          mute: 0,
           controls: 0,
           rel: 0,
           modestbranding: 1,
@@ -166,6 +179,10 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
             else if (e.data === 0) setPhase("cover"); // fim → capa (sem tela do YouTube)
           },
           onPlaybackQualityChange: (e) => setQuality(e.data),
+          onApiChange: () => {
+            const tracks = playerRef.current?.getOption("captions", "tracklist");
+            setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
+          },
         },
       });
     });
@@ -215,6 +232,9 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     const id = setInterval(() => {
       setCurrentTime(player.getCurrentTime());
       setDuration(player.getDuration());
+      // fonte da verdade pro mudo: o navegador pode forçar mudo mesmo
+      // pedindo `mute: 0` no autoplay — sincroniza em vez de assumir
+      setMuted(player.isMuted());
     }, 500);
     return () => clearInterval(id);
   }, [phase]);
@@ -237,15 +257,24 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
   const play = useCallback(() => playerRef.current?.playVideo(), []);
   const pause = useCallback(() => playerRef.current?.pauseVideo(), []);
 
-  function seek(seconds: number) {
-    playerRef.current?.seekTo(seconds, true);
-    setCurrentTime(seconds);
+  function commitSeek() {
+    if (seekPreview === null) return;
+    playerRef.current?.seekTo(seekPreview, true);
+    setCurrentTime(seekPreview);
+    setSeekPreview(null);
   }
 
   function setQualityLevel(level: string) {
-    playerRef.current?.setPlaybackQuality(level);
-    setQuality(level);
+    const player = playerRef.current;
+    if (!player) return;
+    player.setPlaybackQuality(level);
     setShowQualityMenu(false);
+    // o YouTube pode ignorar o pedido e manter automático — confirma com o
+    // valor real do player em vez de assumir que a troca funcionou
+    setTimeout(() => {
+      const actual = player.getPlaybackQuality();
+      if (actual) setQuality(actual);
+    }, 1000);
   }
 
   function toggleCaptions() {
@@ -351,15 +380,18 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
           {duration > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-[10px] tabular-nums text-white/80">
-                {formatTime(currentTime)}
+                {formatTime(seekPreview ?? currentTime)}
               </span>
               <input
                 type="range"
                 min={0}
                 max={duration}
                 step={0.1}
-                value={Math.min(currentTime, duration)}
-                onChange={(e) => seek(Number(e.target.value))}
+                value={Math.min(seekPreview ?? currentTime, duration)}
+                onChange={(e) => setSeekPreview(Number(e.target.value))}
+                onMouseUp={commitSeek}
+                onTouchEnd={commitSeek}
+                onKeyUp={commitSeek}
                 aria-label="Progresso do vídeo"
                 className="h-1 w-full accent-[var(--brand,#0284c7)]"
               />

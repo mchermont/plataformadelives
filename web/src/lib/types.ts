@@ -140,6 +140,9 @@ export interface LiveEvent {
   chat_moderation: boolean;
   /** galeria de fotos dos participantes (migração 0016), moderação obrigatória */
   gallery_enabled: boolean;
+  /** contador de "X online" e reações em emoji na sala (migração 0028) */
+  presence_enabled: boolean;
+  reactions_enabled: boolean;
 }
 
 // ===== Galeria de fotos (migração 0016, Fase G.2) =====
