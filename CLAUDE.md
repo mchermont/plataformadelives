@@ -88,15 +88,19 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   "Assistir" (gesto real, som libera nele). O estado `muted` da UI nunca é
   assumido — é sincronizado a cada poll a partir de `player.isMuted()`,
   porque o navegador pode forçar mudo por conta própria mesmo com
-  `mute: 0`. Controles próprios: play/pause, volume, tela cheia,
-  qualidade (`YouTubePlayer.tsx`, via `setPlaybackQuality` — o YouTube pode
-  ignorar e manter automática, não é bug daqui; a UI só assume a troca
-  depois de confirmar com `getPlaybackQuality()`, nunca otimista), barra de
+  `mute: 0`. Controles próprios: play/pause, volume, tela cheia, barra de
   progresso/voltar (só aparece se `getDuration() > 0`, ou seja, se a
   transmissão tiver DVR habilitado; arrasto usa estado local — só chama
   `seekTo` ao soltar, não a cada tique, senão dispara buffer repetido) e
-  legenda (módulo `captions` da IFrame API via evento `onApiChange`, só
-  aparece botão se o vídeo tiver faixa disponível). `stream_ref` não vai no HTML inicial
+  legenda (módulo `captions` da IFrame API — precisa de `loadModule` no
+  `onReady` pra `getOption("captions","tracklist")` retornar algo, e ligar
+  exige mandar uma faixa real da tracklist, `{}` não liga nada; botão só
+  aparece se o vídeo tiver faixa disponível, via evento `onApiChange`).
+  **Sem seletor de qualidade** (removido, tinha via `setPlaybackQuality`):
+  o YouTube trata isso como sugestão desde 2018 e ignora o pedido tanto em
+  live quanto em VOD (testado e confirmado) — não existe forma de forçar
+  qualidade num embed do IFrame API hoje, então não expomos o controle.
+  `stream_ref` não vai no HTML inicial
   nem no Realtime bruto da tabela `events` (vazava a linha inteira) — a
   sala usa `get_room_event` (RPC, polling autenticado) que só inclui a
   fonte quando `status` é `'live'` ou `'ondemand'`.

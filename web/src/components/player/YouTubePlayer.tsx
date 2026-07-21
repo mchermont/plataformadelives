@@ -7,7 +7,6 @@ import {
   Maximize,
   Pause,
   Play,
-  Settings,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -20,9 +19,6 @@ interface YTPlayer {
   setVolume(volume: number): void;
   destroy(): void;
   isMuted(): boolean;
-  getAvailableQualityLevels(): string[];
-  getPlaybackQuality(): string;
-  setPlaybackQuality(suggestedQuality: string): void;
   getCurrentTime(): number;
   getDuration(): number;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
@@ -43,26 +39,11 @@ interface YTNamespace {
       events: {
         onReady: () => void;
         onStateChange: (e: { data: number }) => void;
-        onPlaybackQualityChange?: (e: { data: string }) => void;
         onApiChange?: () => void;
       };
     },
   ) => YTPlayer;
 }
-
-/** Rótulos pt-BR pros níveis de qualidade do YouTube (mais recentes primeiro). */
-const QUALITY_LABELS: Record<string, string> = {
-  highres: "Máxima",
-  hd2160: "2160p",
-  hd1440: "1440p",
-  hd1080: "1080p",
-  hd720: "720p",
-  large: "480p",
-  medium: "360p",
-  small: "240p",
-  tiny: "144p",
-  auto: "Automática",
-};
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -114,12 +95,19 @@ interface YouTubePlayerProps {
  * `muted` é sempre sincronizado a partir de `player.isMuted()` (nunca
  * assumido), porque o navegador pode forçar mudo por conta própria.
  *
- * Qualidade, progresso/voltar e legenda (Fase I.1) usam a mesma API —
- * dois limites que não são bug daqui: (1) o YouTube pode ignorar
- * `setPlaybackQuality` e manter o ajuste automático por conta própria,
- * dependendo do vídeo; (2) só dá pra voltar no vídeo se o YouTube expuser
+ * Progresso/voltar e legenda (Fase I.1) usam a mesma API — limites que não
+ * são bug daqui: (1) só dá pra voltar no vídeo se o YouTube expuser
  * `getDuration() > 0`, o que depende do DVR da transmissão ao vivo estar
- * habilitado do lado de quem está transmitindo.
+ * habilitado do lado de quem está transmitindo; (2) legenda exige
+ * `loadModule("captions")` carregado (feito no `onReady`) pra
+ * `getOption("captions","tracklist")` retornar algo, e ligar exige mandar
+ * uma faixa real da tracklist — `{}` não liga nada.
+ *
+ * Sem seletor de qualidade: `setPlaybackQuality` é tratado pelo YouTube
+ * como sugestão desde 2018 e, na prática, ele ignora o pedido tanto em
+ * live quanto em VOD — testado e confirmado que não funciona mesmo fora
+ * de live. Não existe forma de forçar a qualidade num embed do IFrame API
+ * hoje; expor um controle que não controla nada só confundia.
  */
 export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -137,9 +125,6 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
   // player já está tocando, mas o YouTube ainda pode mostrar logo/"mais
   // vídeos" por alguns segundos — só revela de verdade depois da folga
   const [revealed, setRevealed] = useState(false);
-  const [quality, setQuality] = useState("auto");
-  const [availableQualities, setAvailableQualities] = useState<string[]>([]);
-  const [showQualityMenu, setShowQualityMenu] = useState(false);
   // duration > 0 só quando o YouTube permite voltar no vídeo (DVR da
   // transmissão) — se a live não permitir, fica 0 e a barra some sozinha
   const [duration, setDuration] = useState(0);
@@ -171,14 +156,19 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
           origin: window.location.origin,
         },
         events: {
-          onReady: () => setReady(true),
+          onReady: () => {
+            setReady(true);
+            // sem isso, getOption("captions","tracklist") nunca retorna
+            // nada — o módulo precisa estar carregado pra API expor as
+            // faixas disponíveis, mesmo só pra consulta
+            playerRef.current?.loadModule("captions");
+          },
           onStateChange: (e) => {
             if (e.data === 1) setPhase("playing");
             else if (e.data === 2) setPhase("paused");
             else if (e.data === 3) setPhase("loading"); // carregando/buffer
             else if (e.data === 0) setPhase("cover"); // fim → capa (sem tela do YouTube)
           },
-          onPlaybackQualityChange: (e) => setQuality(e.data),
           onApiChange: () => {
             const tracks = playerRef.current?.getOption("captions", "tracklist");
             setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
@@ -239,17 +229,13 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     return () => clearInterval(id);
   }, [phase]);
 
-  // Níveis de qualidade e disponibilidade de legenda só existem depois que
-  // o YouTube já carregou algum formato — checa de novo a cada vez que volta
-  // a tocar (leitura idempotente, sem custo perceptível).
+  // Disponibilidade de legenda só existe depois que o YouTube já carregou
+  // algum formato — checa de novo a cada vez que volta a tocar (leitura
+  // idempotente, sem custo perceptível).
   useEffect(() => {
     if (!ready || phase !== "playing") return;
     const player = playerRef.current;
     if (!player) return;
-    const levels = player.getAvailableQualityLevels();
-    if (levels.length > 0) setAvailableQualities(levels);
-    const q = player.getPlaybackQuality();
-    if (q) setQuality(q);
     const tracks = player.getOption("captions", "tracklist");
     setCaptionsAvailable(Array.isArray(tracks) && tracks.length > 0);
   }, [ready, phase]);
@@ -264,28 +250,22 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
     setSeekPreview(null);
   }
 
-  function setQualityLevel(level: string) {
-    const player = playerRef.current;
-    if (!player) return;
-    player.setPlaybackQuality(level);
-    setShowQualityMenu(false);
-    // o YouTube pode ignorar o pedido e manter automático — confirma com o
-    // valor real do player em vez de assumir que a troca funcionou
-    setTimeout(() => {
-      const actual = player.getPlaybackQuality();
-      if (actual) setQuality(actual);
-    }, 1000);
-  }
-
   function toggleCaptions() {
     const player = playerRef.current;
     if (!player) return;
     if (captionsOn) {
-      player.unloadModule("captions");
+      // limpa a faixa em vez de descarregar o módulo — unloadModule some
+      // com o tracklist, e o botão não voltava a funcionar depois
+      player.setOption("captions", "track", {});
       setCaptionsOn(false);
     } else {
-      player.loadModule("captions");
-      player.setOption("captions", "track", {});
+      // setOption("captions","track", {}) pra LIGAR não faz nada — precisa
+      // de uma faixa real (languageCode) da tracklist
+      const tracks = player.getOption("captions", "tracklist") as
+        | { languageCode: string }[]
+        | undefined;
+      if (!tracks || tracks.length === 0) return;
+      player.setOption("captions", "track", tracks[0]);
       setCaptionsOn(true);
     }
   }
@@ -331,10 +311,7 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
       {/* bloqueia cliques na UI do YouTube (logo, título, sugestões) */}
       <div
         className="absolute inset-0 z-10"
-        onClick={() => {
-          setShowQualityMenu(false);
-          (phase === "playing" ? pause : play)();
-        }}
+        onClick={() => (phase === "playing" ? pause : play)()}
       />
 
       {(phase === "cover" || phase === "paused") && (
@@ -433,36 +410,6 @@ export function YouTubePlayer({ videoId, title, coverUrl }: YouTubePlayerProps) 
               >
                 {captionsOn ? <Captions className="size-4" /> : <CaptionsOff className="size-4" />}
               </button>
-            )}
-            {availableQualities.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowQualityMenu((v) => !v)}
-                  aria-label="Qualidade do vídeo"
-                  aria-expanded={showQualityMenu}
-                  className="flex items-center gap-1 text-white hover:opacity-80"
-                >
-                  <Settings className="size-4" />
-                  <span className="text-[11px] font-medium">
-                    {QUALITY_LABELS[quality] ?? quality}
-                  </span>
-                </button>
-                {showQualityMenu && (
-                  <div className="absolute bottom-full right-0 z-40 mb-2 min-w-28 overflow-hidden rounded-lg bg-neutral-900 py-1 text-sm shadow-2xl ring-1 ring-white/10">
-                    {availableQualities.map((level) => (
-                      <button
-                        key={level}
-                        onClick={() => setQualityLevel(level)}
-                        className={`block w-full px-3 py-1.5 text-left hover:bg-white/10 ${
-                          level === quality ? "font-semibold text-[var(--brand,#0284c7)]" : "text-white"
-                        }`}
-                      >
-                        {QUALITY_LABELS[level] ?? level}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
             )}
             <span className="ml-auto rounded bg-red-600 px-1.5 text-[10px] font-bold uppercase text-white">
               ● Ao vivo
