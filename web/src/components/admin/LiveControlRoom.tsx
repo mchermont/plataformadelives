@@ -199,7 +199,7 @@ export function LiveControlRoom({
                       : "A transmissão ainda não começou."}
                   </div>
                 )}
-                <ActivityOverlay state={activities} />
+                <ActivityOverlay state={activities} ended={event.status === "ended"} />
                 <RaffleOverlay raffle={raffle} />
               </div>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-neutral-500">

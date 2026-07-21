@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0023.
+  a última aplicada é a 0025.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -58,6 +58,16 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Sorteios** (tabela `raffles`, permissão `can_quiz`): só via RPC
   `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log
   imutável, CSV de auditoria); exibição no telão via `raffle_display`.
+- **Evento encerrado** (`status = 'ended'`, migração 0025): a Sala do evento
+  mostra banner "EVENTO ENCERRADO" e trava as interações do participante —
+  chat (input some, histórico continua visível), Q&A (form some, voto
+  desabilita), fotos (upload some, grade continua) e atividades (aba
+  Interação e overlay do player somem). Equipe/admin (`isAdmin`/`has_event_role`)
+  continua podendo usar o chat mesmo após encerrar. Defesa em profundidade:
+  as RPCs de escrita (`submit_activity_response`, `answer_question`,
+  `submit_question`, `toggle_question_vote`, `submit_photo`) também
+  rejeitam se `events.status <> 'live'` — não é só filtro de UI. Chat já
+  tinha essa trava via RLS (`posts_insert_participant`, migração 0001).
 - **Player white-label** (`YouTubePlayer.tsx`/`VimeoPlayer.tsx`): sem
   controles/logo/título nativos (sem zoom/crop — cortava imagem, removido),
   autoplay mudo. `stream_ref` não vai no HTML inicial nem no Realtime bruto
@@ -74,6 +84,21 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Ações destrutivas sempre com `confirm()`** (banir, apagar mensagem/foto/
   pergunta/resposta) — padrão consolidado após revisão `/impeccable critique`
   em 19/07/2026; qualquer exclusão nova segue o mesmo padrão.
+- **Exclusão de agência/cliente/evento/pessoa da equipe** (migração 0024):
+  agência e cliente só excluem se não tiverem dependentes (RLS + FK sem
+  cascade — bloqueia com erro amigável em vez de apagar tudo em cascata);
+  evento já cascata sozinho (inscrições/chat/quiz/fotos/sorteios). Remover
+  pessoa da equipe de cliente/agência (`OrgTeam.tsx`) já vale pra admin
+  também — trigger `enforce_last_{client,agency}_admin` bloqueia só quando
+  seria o último admin (remoção ou rebaixamento). Excluir conta de verdade
+  (usuário com ou sem `is_platform_admin`) só na tela `/admin/equipe`
+  (`TeamList.tsx`) via rota `/api/admin/users/[id]` — usa a Admin API do
+  Supabase (`SUPABASE_SERVICE_ROLE_KEY`, server-only, nunca no client),
+  porque `auth.users` não tem RLS; ninguém exclui a própria conta por ali.
+  `posts`/`questions`/`event_photos.author_id` e `events.created_by` viram
+  `null` (`on delete set null`) em vez de bloquear ou apagar o conteúdo
+  histórico quando o autor é excluído (nome já denormalizado em
+  `author_name`).
 - Erros técnicos do Supabase/Postgres passam por `src/lib/friendlyError.ts`
   antes de chegar à UI (não expor `err.message` cru a usuário/operador).
 - **Design tokens onix** (`globals.css`): `bg-bg`/`bg-surface`/`text-ink`/

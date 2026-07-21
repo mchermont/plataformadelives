@@ -9,13 +9,15 @@ import { Lightbox } from "./Lightbox";
 interface PhotoGalleryProps {
   eventId: string;
   userId: string;
+  /** evento encerrado: some o envio, a grade continua visível */
+  ended?: boolean;
 }
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB (mesmo limite do bucket)
 
 /** Galeria da sala: envio pelo participante + grade de fotos aprovadas. */
-export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
+export function PhotoGallery({ eventId, userId, ended }: PhotoGalleryProps) {
   const supabase = useMemo(() => createClient(), []);
   const [photos, setPhotos] = useState<EventPhoto[]>([]);
   const [busy, setBusy] = useState(false);
@@ -95,6 +97,11 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
 
   return (
     <div className="flex h-full flex-col">
+      {ended ? (
+        <p className="border-b border-neutral-800 p-3 text-center text-[13px] text-neutral-500">
+          Este evento foi encerrado — não é mais possível enviar fotos.
+        </p>
+      ) : (
       <div className="border-b border-neutral-800 p-2">
         {error && <p className="mb-1.5 text-xs text-red-400">{error}</p>}
         <div className="flex items-center gap-2">
@@ -121,6 +128,7 @@ export function PhotoGallery({ eventId, userId }: PhotoGalleryProps) {
           </span>
         </div>
       </div>
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {visible.length === 0 ? (

@@ -12,6 +12,7 @@ interface QAPanelProps {
 
 /** Aba "Perguntas": envio (identificado ou anônimo), upvote e ordenação por votos. */
 export function QAPanel({ event, userId }: QAPanelProps) {
+  const ended = event.status === "ended";
   const supabase = useMemo(() => createClient(), []);
   const [questions, setQuestions] = useState<EventQuestion[]>([]);
   const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
@@ -128,7 +129,7 @@ export function QAPanel({ event, userId }: QAPanelProps) {
               {event.qa_upvote_enabled && (
                 <button
                   onClick={() => vote(q)}
-                  disabled={isMinePending}
+                  disabled={isMinePending || ended}
                   aria-label={voted ? "Retirar voto" : "Votar nesta pergunta"}
                   className={`flex shrink-0 flex-col items-center rounded-lg border px-2 py-1 text-xs transition ${
                     voted
@@ -159,6 +160,11 @@ export function QAPanel({ event, userId }: QAPanelProps) {
         })}
       </div>
 
+      {ended ? (
+        <p className="border-t border-neutral-800 p-3 text-center text-[13px] text-neutral-500">
+          Este evento foi encerrado — não é mais possível enviar perguntas.
+        </p>
+      ) : (
       <form onSubmit={submit} className="border-t border-neutral-800 p-2">
         {feedback && <p className="mb-1.5 text-xs text-amber-400">{feedback}</p>}
         <div className="flex gap-2">
@@ -195,6 +201,7 @@ export function QAPanel({ event, userId }: QAPanelProps) {
           </p>
         )}
       </form>
+      )}
     </div>
   );
 }

@@ -11,6 +11,8 @@ interface ChatPanelProps {
   isAdmin: boolean;
   /** chat pré-moderado: mensagens de participantes entram na fila (0015) */
   moderated?: boolean;
+  /** evento encerrado: participante só lê, não envia mais (equipe ainda pode) */
+  ended?: boolean;
 }
 
 /** Paleta de cores de nome por autor (determinística via hash do id). */
@@ -25,12 +27,13 @@ const NAME_COLORS = [
   "text-fuchsia-400",
 ];
 
-function nameColor(authorId: string, isMine: boolean, isAnnouncement: boolean) {
+function nameColor(authorId: string | null, isMine: boolean, isAnnouncement: boolean) {
   if (isAnnouncement) return "text-amber-400";
   if (isMine) return "text-emerald-400"; // o participante se identifica de longe
+  const id = authorId ?? "";
   let hash = 0;
-  for (let i = 0; i < authorId.length; i++) {
-    hash = (hash * 31 + authorId.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   }
   return NAME_COLORS[hash % NAME_COLORS.length];
 }
@@ -42,7 +45,7 @@ function formatTime(value: string) {
   });
 }
 
-export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProps) {
+export function ChatPanel({ eventId, userId, isAdmin, moderated, ended }: ChatPanelProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -381,6 +384,11 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
         )}
       </div>
 
+      {ended && !isAdmin ? (
+        <p className="border-t border-neutral-800 p-3 text-center text-[13px] text-neutral-500">
+          Este evento foi encerrado — o chat não recebe mais mensagens.
+        </p>
+      ) : (
       <div className="border-t border-neutral-800 p-2">
         {error && <p className="mb-1.5 text-xs text-red-400">{error}</p>}
         {moderated && !isAdmin && (
@@ -428,6 +436,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated }: ChatPanelProp
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

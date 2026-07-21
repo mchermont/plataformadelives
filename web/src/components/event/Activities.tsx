@@ -697,7 +697,13 @@ function ActivityCard({
 }
 
 /** Aba "Interação" da sala: uma atividade por vez, com paginação. */
-export function InteractionPanel({ state }: { state: ActivitiesState }) {
+export function InteractionPanel({
+  state,
+  ended,
+}: {
+  state: ActivitiesState;
+  ended?: boolean;
+}) {
   const [page, setPage] = useState(0);
   const acts = state.activities;
   const openId = state.open?.id;
@@ -709,6 +715,14 @@ export function InteractionPanel({ state }: { state: ActivitiesState }) {
     if (i >= 0) setPage(i);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId]);
+
+  if (ended) {
+    return (
+      <p className="p-6 text-center text-sm text-neutral-500">
+        Este evento foi encerrado — as atividades não aceitam mais respostas.
+      </p>
+    );
+  }
 
   if (acts.length === 0) {
     return (
@@ -754,10 +768,16 @@ export function InteractionPanel({ state }: { state: ActivitiesState }) {
 }
 
 /** Overlay sobre o vídeo para atividade aberta marcada como destaque. */
-export function ActivityOverlay({ state }: { state: ActivitiesState }) {
+export function ActivityOverlay({
+  state,
+  ended,
+}: {
+  state: ActivitiesState;
+  ended?: boolean;
+}) {
   const [dismissedId, setDismissedId] = useState<string | null>(null);
   const open = state.open;
-  if (!open || !open.highlight || open.id === dismissedId) return null;
+  if (ended || !open || !open.highlight || open.id === dismissedId) return null;
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="relative w-full max-w-md">

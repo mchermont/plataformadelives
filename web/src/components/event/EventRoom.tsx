@@ -76,6 +76,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
   }
 
   const isLive = event.status === "live";
+  const ended = event.status === "ended";
 
   return (
     <div
@@ -117,6 +118,12 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
         </div>
       </header>
 
+      {ended && (
+        <div className="border-b border-red-900/50 bg-red-950/20 px-4 py-2.5 text-center text-sm font-semibold tracking-wide text-red-400 md:px-6">
+          EVENTO ENCERRADO — obrigado por participar!
+        </div>
+      )}
+
       <main className="flex flex-1 flex-col gap-3 p-3 md:p-4 lg:min-h-0 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:justify-center">
           {/* player + reações no mesmo contêiner: largura limitada pela altura
@@ -128,7 +135,7 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
           >
           <div className="relative">
             <ReactionOverlay floats={floats} />
-            <ActivityOverlay state={activities} />
+            <ActivityOverlay state={activities} ended={ended} />
             <RaffleOverlay raffle={raffle} />
             {isLive && event.stream_ref ? (
               <StreamPlayer
@@ -246,15 +253,16 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 userId={userId}
                 isAdmin={isAdmin}
                 moderated={event.chat_moderation}
+                ended={ended}
               />
             ) : tab === "perguntas" && event.qa_enabled ? (
               <QAPanel event={event} userId={userId} />
             ) : tab === "fotos" && event.gallery_enabled ? (
-              <PhotoGallery eventId={event.id} userId={userId} />
+              <PhotoGallery eventId={event.id} userId={userId} ended={ended} />
             ) : tab === "materiais" && materials.length > 0 ? (
               <MaterialsPanel materials={materials} />
             ) : (
-              <InteractionPanel state={activities} />
+              <InteractionPanel state={activities} ended={ended} />
             )}
           </div>
         </aside>
