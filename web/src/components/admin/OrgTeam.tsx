@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ClientRole } from "@/lib/types";
 import { CLIENT_ROLE_LABELS } from "@/lib/types";
+import { friendlyError } from "@/lib/friendlyError";
 
 interface MemberRow {
   user_id: string;
@@ -94,25 +95,42 @@ export function OrgTeam({
   }
 
   async function changeRole(userId: string, newRole: ClientRole) {
-    await supabase
+    setError(null);
+    const { error: rpcErr } = await supabase
       .from(membersTable)
       .update({ role: newRole })
       .eq(idColumn, orgId)
       .eq("user_id", userId);
+    if (rpcErr) {
+      setError(friendlyError(rpcErr.message));
+      return;
+    }
     await load();
   }
 
-  async function removeMember(userId: string) {
-    await supabase
+  async function removeMember(userId: string, name: string) {
+    if (!confirm(`Remover ${name || "esta pessoa"} da equipe?`)) return;
+    setError(null);
+    const { error: rpcErr } = await supabase
       .from(membersTable)
       .delete()
       .eq(idColumn, orgId)
       .eq("user_id", userId);
+    if (rpcErr) {
+      setError(friendlyError(rpcErr.message));
+      return;
+    }
     await load();
   }
 
   async function cancelInvite(inviteId: string) {
-    await supabase.from(invitesTable).delete().eq("id", inviteId);
+    if (!confirm("Cancelar este convite?")) return;
+    setError(null);
+    const { error: rpcErr } = await supabase.from(invitesTable).delete().eq("id", inviteId);
+    if (rpcErr) {
+      setError(friendlyError(rpcErr.message));
+      return;
+    }
     await load();
   }
 
@@ -192,7 +210,7 @@ export function OrgTeam({
                     <option value="admin">Administrador</option>
                   </select>
                   <button
-                    onClick={() => removeMember(m.user_id)}
+                    onClick={() => removeMember(m.user_id, m.profiles?.full_name || m.profiles?.email || "")}
                     className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950"
                   >
                     Remover

@@ -118,7 +118,7 @@ export interface LiveEvent {
   enabled_activity_types: ActivityType[];
   brand_logo_url: string | null;
   brand_color: string;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
   // multi-tenant (migração 0004)
   client_id: string | null;
@@ -149,7 +149,7 @@ export type PhotoStatus = "pending" | "approved" | "rejected";
 export interface EventPhoto {
   id: string;
   event_id: string;
-  author_id: string;
+  author_id: string | null;
   /** desnormalizado (padrão de posts) — só aparece na moderação */
   author_name: string;
   storage_path: string;
@@ -164,7 +164,7 @@ export type QuestionStatusQA = "pending" | "visible" | "answered" | "rejected";
 export interface EventQuestion {
   id: string;
   event_id: string;
-  author_id: string;
+  author_id: string | null;
   /** '' quando anônima (nome real só no CSV do organizador) */
   author_name: string;
   is_anonymous: boolean;
@@ -219,7 +219,7 @@ export interface Registration {
 export interface Post {
   id: string;
   event_id: string;
-  author_id: string;
+  author_id: string | null;
   author_name: string;
   content: string;
   kind: PostKind;

@@ -8,6 +8,7 @@ import { getClientChain } from "@/lib/admin/chains";
 import { OrgTeam } from "@/components/admin/OrgTeam";
 import { ClientForm } from "@/components/admin/ClientForm";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import { DeleteEntityButton } from "@/components/admin/DeleteEntityButton";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,21 @@ export default async function ClientDetailPage({
   const isAdmin = profile?.is_platform_admin ?? false;
   const isClientAdmin = isAdmin || membership?.role === "admin";
   const list = (events as LiveEvent[]) ?? [];
+
+  // Excluir cliente é privilégio de quem está acima dele na hierarquia
+  // (admin geral ou admin da agência-mãe) — admin do próprio cliente não
+  // pode se autoexcluir (mesma regra da RLS "clients_delete").
+  let isAgencyAdmin = false;
+  if (agency) {
+    const { data: agencyMembership } = await supabase
+      .from("agency_members")
+      .select("role")
+      .eq("agency_id", agency.id)
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle();
+    isAgencyAdmin = agencyMembership?.role === "admin";
+  }
+  const canDeleteClient = isAdmin || isAgencyAdmin;
 
   return (
     <div className="max-w-5xl space-y-10">
@@ -146,6 +162,24 @@ export default async function ClientDetailPage({
           currentUserId={user!.id}
           title="Equipe do cliente"
         />
+      )}
+
+      {canDeleteClient && (
+        <section className="rounded-xl border border-red-900/50 bg-red-950/10 p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-red-400">
+            Zona de risco
+          </h2>
+          <p className="mb-4 text-xs text-neutral-500">
+            Exclui o cliente permanentemente. Só é possível se não houver
+            nenhum evento vinculado a ele.
+          </p>
+          <DeleteEntityButton
+            table="clients"
+            id={client.id}
+            confirmMessage={`Excluir o cliente "${client.name}"? Essa ação não pode ser desfeita.`}
+            redirectTo={agency ? `/admin/agencias/${agency.id}` : "/admin"}
+          />
+        </section>
       )}
     </div>
   );

@@ -20,6 +20,7 @@ import {
   REGISTRATION_MODE_LABELS,
 } from "@/lib/types";
 import { friendlyError } from "@/lib/friendlyError";
+import { DeleteEntityButton } from "@/components/admin/DeleteEntityButton";
 
 interface ExtraTab {
   key: string;
@@ -1031,6 +1032,24 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
             Cancelar
           </button>
         </div>
+      )}
+
+      {event && tab === "info" && (
+        <section className="rounded-xl border border-red-900/50 bg-red-950/10 p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-red-400">
+            Zona de risco
+          </h2>
+          <p className="mb-4 text-xs text-neutral-500">
+            Exclui o evento e todo o histórico ligado a ele — inscrições,
+            chat, quiz, fotos, sorteios. Não pode ser desfeito.
+          </p>
+          <DeleteEntityButton
+            table="events"
+            id={event.id}
+            confirmMessage={`Excluir o evento "${event.title}" e todo o seu histórico? Essa ação não pode ser desfeita.`}
+            redirectTo={event.client_id ? `/admin/clientes/${event.client_id}` : "/admin"}
+          />
+        </section>
       )}
     </div>
   );

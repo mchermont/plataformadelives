@@ -1,6 +1,10 @@
 const PATTERNS: [RegExp, string][] = [
   [/permission denied|row-level security/i, "Você não tem permissão para fazer isso."],
   [/duplicate key|already exists/i, "Já existe um registro com esses dados."],
+  [
+    /violates foreign key constraint/i,
+    "Não é possível excluir: existem outros registros vinculados a isto (ex.: eventos ou clientes). Exclua-os primeiro.",
+  ],
   [/violates .*constraint/i, "Os dados informados não são válidos."],
   [/JWT|expired/i, "Sua sessão expirou. Atualize a página e entre novamente."],
   [/network|fetch failed|failed to fetch/i, "Falha de conexão. Verifique sua internet e tente de novo."],

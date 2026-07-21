@@ -35,6 +35,23 @@ export function TeamList({ currentUserId }: { currentUserId: string }) {
     }
   }
 
+  async function deleteAccount(profile: Profile) {
+    if (
+      !confirm(
+        `Excluir a conta de ${profile.full_name || profile.email}? Essa ação não pode ser desfeita — a pessoa perde o acesso a toda a plataforma.`,
+      )
+    )
+      return;
+    setError(null);
+    const res = await fetch(`/api/admin/users/${profile.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setError(body.error || "Não foi possível excluir esta conta.");
+      return;
+    }
+    await load();
+  }
+
   const term = search.trim().toLowerCase();
   const visible = term
     ? profiles.filter(
@@ -97,6 +114,14 @@ export function TeamList({ currentUserId }: { currentUserId: string }) {
                     {profile.is_moderator ? "Remover moderação" : "Tornar moderador"}
                   </button>
                 </>
+              )}
+              {profile.id !== currentUserId && (
+                <button
+                  onClick={() => deleteAccount(profile)}
+                  className="rounded-lg border border-red-900 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-950"
+                >
+                  Excluir conta
+                </button>
               )}
             </div>
           </div>

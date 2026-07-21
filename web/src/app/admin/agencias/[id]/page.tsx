@@ -6,6 +6,7 @@ import { FOLDER_VISIBILITY_LABELS } from "@/lib/types";
 import { NewClientButton } from "@/components/admin/NewClientButton";
 import { OrgTeam } from "@/components/admin/OrgTeam";
 import { Breadcrumb } from "@/components/admin/Breadcrumb";
+import { DeleteEntityButton } from "@/components/admin/DeleteEntityButton";
 
 export const dynamic = "force-dynamic";
 
@@ -110,6 +111,24 @@ export default async function AgencyDetailPage({
           title="Equipe da agência"
           description="Administradores da agência gerenciam todos os clientes dela e a equipe. Colaboradores recebem funções por evento."
         />
+      )}
+
+      {isAdmin && (
+        <section className="rounded-xl border border-red-900/50 bg-red-950/10 p-5">
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-red-400">
+            Zona de risco
+          </h2>
+          <p className="mb-4 text-xs text-neutral-500">
+            Exclui a agência permanentemente. Só é possível se não houver
+            nenhum cliente vinculado a ela.
+          </p>
+          <DeleteEntityButton
+            table="agencies"
+            id={agency.id}
+            confirmMessage={`Excluir a agência "${agency.name}"? Essa ação não pode ser desfeita.`}
+            redirectTo="/admin/agencias"
+          />
+        </section>
       )}
     </div>
   );
