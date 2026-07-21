@@ -151,6 +151,15 @@ export function LiveControlRoom({
             )}
             {event.status === "ended" && (
               <button
+                onClick={() => setStatus("ondemand")}
+                disabled={busy}
+                className="rounded-lg border border-sky-800 px-3 py-1.5 text-sm text-sky-400 hover:bg-sky-950 disabled:opacity-40"
+              >
+                Deixar on demand
+              </button>
+            )}
+            {(event.status === "ended" || event.status === "ondemand") && (
+              <button
                 onClick={() => setStatus("scheduled")}
                 disabled={busy}
                 className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 disabled:opacity-40"
@@ -185,7 +194,7 @@ export function LiveControlRoom({
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
             <div>
               <div className="relative overflow-hidden rounded-xl border border-neutral-800">
-                {isLive ? (
+                {isLive || event.status === "ondemand" ? (
                   <StreamPlayer
                     provider={event.stream_provider}
                     streamRef={event.stream_ref}
@@ -199,7 +208,10 @@ export function LiveControlRoom({
                       : "A transmissão ainda não começou."}
                   </div>
                 )}
-                <ActivityOverlay state={activities} ended={event.status === "ended"} />
+                <ActivityOverlay
+                  state={activities}
+                  ended={event.status === "ended" || event.status === "ondemand"}
+                />
                 <RaffleOverlay raffle={raffle} />
               </div>
               <p className="mt-1.5 flex items-center gap-1.5 text-xs text-neutral-500">

@@ -1,6 +1,6 @@
 // Tipos do domínio — espelham o schema em supabase/migrations/0001_initial_schema.sql
 
-export type EventStatus = "draft" | "scheduled" | "live" | "ended";
+export type EventStatus = "draft" | "scheduled" | "live" | "ended" | "ondemand";
 export type StreamProvider = "youtube" | "vimeo" | "dacast" | "hls";
 export type RegistrationStatus = "pending" | "approved" | "rejected" | "banned";
 export type FieldType = "text" | "select" | "checkbox";
@@ -513,4 +513,5 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   scheduled: "Agendado",
   live: "Ao vivo",
   ended: "Encerrado",
+  ondemand: "On demand",
 };

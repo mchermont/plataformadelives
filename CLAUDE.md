@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0025.
+  a última aplicada é a 0027.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -58,16 +58,23 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Sorteios** (tabela `raffles`, permissão `can_quiz`): só via RPC
   `run_raffle` — semente + md5 determinístico, sem policy de UPDATE (log
   imutável, CSV de auditoria); exibição no telão via `raffle_display`.
-- **Evento encerrado** (`status = 'ended'`, migração 0025): a Sala do evento
-  mostra banner "EVENTO ENCERRADO" e trava as interações do participante —
-  chat (input some, histórico continua visível), Q&A (form some, voto
-  desabilita), fotos (upload some, grade continua) e atividades (aba
-  Interação e overlay do player somem). Equipe/admin (`isAdmin`/`has_event_role`)
-  continua podendo usar o chat mesmo após encerrar. Defesa em profundidade:
-  as RPCs de escrita (`submit_activity_response`, `answer_question`,
-  `submit_question`, `toggle_question_vote`, `submit_photo`) também
-  rejeitam se `events.status <> 'live'` — não é só filtro de UI. Chat já
-  tinha essa trava via RLS (`posts_insert_participant`, migração 0001).
+- **Evento encerrado/on demand** (`status = 'ended'` ou `'ondemand'`,
+  migrações 0025–0027): banner "EVENTO ENCERRADO" (dentro da área do
+  player, mesmo lugar do aviso de "agendado" — nunca uma barra separada no
+  topo) e trava as interações do participante em qualquer um dos dois
+  status — chat (input some, histórico continua visível, sem exceção nem
+  pra quem entra como staff via Sala do evento — o Diretor é outro
+  componente e não é afetado), Q&A (form some, voto desabilita), fotos
+  (upload some, grade continua), atividades (aba Interação e overlay do
+  player somem). Defesa em profundidade: as RPCs de escrita
+  (`submit_activity_response`, `answer_question`, `submit_question`,
+  `toggle_question_vote`, `submit_photo`) rejeitam se `events.status <>
+  'live'`. Chat já tinha essa trava via RLS (`posts_insert_participant`,
+  migração 0001). `'ondemand'` é status manual (botão "Deixar on demand"
+  no Diretor, só aparece depois de encerrar): mantém o player tocando o
+  mesmo `stream_ref` (vira VOD sozinho no provedor) mas trava interação
+  igual a `'ended'` — `get_room_event` libera a fonte do vídeo pra
+  `'live'` e `'ondemand'`, só esconde pra `'draft'/'scheduled'/'ended'`.
 - **Player white-label** (`YouTubePlayer.tsx`/`VimeoPlayer.tsx`): sem
   controles/logo/título nativos (sem zoom/crop — cortava imagem, removido),
   autoplay mudo. `stream_ref` não vai no HTML inicial nem no Realtime bruto
@@ -81,6 +88,11 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **UI sem scroll** nas áreas de interação: ou pagina, ou cabe na tela
   (regra do Marcelo). Chat/listas rolam só internamente.
 - Textos da UI em pt-BR; CSVs e datas em formato brasileiro.
+- **`<input type="datetime-local">` não faz conversão de fuso sozinho** —
+  `events.starts_at` é UTC no banco; popular o input exige converter pra
+  hora local primeiro (`toLocalDatetimeInputValue` em `EventForm.tsx`),
+  senão o admin edita um horário e o formulário mostra outro (bug real
+  corrigido em 21/07/2026: admin via 20:20, front mostrava 17:20 certo).
 - **Ações destrutivas sempre com `confirm()`** (banir, apagar mensagem/foto/
   pergunta/resposta) — padrão consolidado após revisão `/impeccable critique`
   em 19/07/2026; qualquer exclusão nova segue o mesmo padrão.

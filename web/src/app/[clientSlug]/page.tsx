@@ -9,6 +9,7 @@ const STATUS_BADGES: Partial<Record<LiveEvent["status"], { label: string; classN
   live: { label: "AO VIVO", className: "bg-red-600 text-white" },
   scheduled: { label: "Em breve", className: "bg-white/90 text-neutral-600 backdrop-blur-sm" },
   ended: { label: "Encerrado", className: "bg-white/90 text-neutral-500 backdrop-blur-sm" },
+  ondemand: { label: "Disponível on demand", className: "bg-sky-600 text-white" },
 };
 
 // Página pública do cliente: lista os eventos marcados como "listar na página".

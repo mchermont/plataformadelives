@@ -79,6 +79,15 @@ const labelClass = "mb-1.5 block text-sm font-medium";
 /** Cada seção de aba vira um painel próprio — separa visualmente do fundo da página. */
 const cardTab = "space-y-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5";
 
+/** `starts_at` vem da API em UTC; datetime-local mostra/edita em hora local
+ * — sem essa conversão o form exibia o horário UTC como se fosse local
+ * (evento marcado às 17:20 aparecia como 20:20 no admin). */
+function toLocalDatetimeInputValue(isoString: string): string {
+  const date = new Date(isoString);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
 const STREAM_PLACEHOLDERS: Record<StreamProvider, string> = {
   youtube: "Link do vídeo/live do YouTube (ex.: https://youtube.com/watch?v=... ou o ID)",
   vimeo: "Link do vídeo/evento do Vimeo (ex.: https://vimeo.com/123456789)",
@@ -96,7 +105,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
     title: event?.title ?? "",
     slug: event?.slug ?? "",
     description: event?.description ?? "",
-    starts_at: event?.starts_at ? event.starts_at.slice(0, 16) : "",
+    starts_at: event?.starts_at ? toLocalDatetimeInputValue(event.starts_at) : "",
     status: (event?.status ?? "draft") as EventStatus,
     stream_provider: (event?.stream_provider ?? "youtube") as StreamProvider,
     stream_ref: event?.stream_ref ?? "",

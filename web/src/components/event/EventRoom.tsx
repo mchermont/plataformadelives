@@ -78,6 +78,11 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
 
   const isLive = event.status === "live";
   const ended = event.status === "ended";
+  const onDemand = event.status === "ondemand";
+  // Ao vivo ou gravação disponível: mostra o player. Fora isso, trava as
+  // interações (mesma regra de "acabou a janela ao vivo" da migração 0025).
+  const showPlayer = (isLive || onDemand) && Boolean(event.stream_ref);
+  const locked = ended || onDemand;
 
   return (
     <div
@@ -119,19 +124,6 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
         </div>
       </header>
 
-      {ended && (
-        <div className="flex flex-col items-center gap-1 border-b border-red-900/50 bg-red-950/30 px-4 py-3 text-center md:px-6">
-          <p className="flex items-center gap-2 text-base font-bold tracking-wide text-red-400">
-            <Lock className="size-4" /> EVENTO ENCERRADO
-          </p>
-          <p className="text-xs text-neutral-400">
-            Você ainda pode consultar o histórico, os materiais e as fotos —
-            não é mais possível enviar mensagens, perguntas, fotos ou
-            respostas.
-          </p>
-        </div>
-      )}
-
       <main className="flex flex-1 flex-col gap-3 p-3 md:p-4 lg:min-h-0 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:justify-center">
           {/* player + reações no mesmo contêiner: largura limitada pela altura
@@ -143,26 +135,33 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
           >
           <div className="relative">
             <ReactionOverlay floats={floats} />
-            <ActivityOverlay state={activities} ended={ended} />
+            <ActivityOverlay state={activities} ended={locked} />
             <RaffleOverlay raffle={raffle} />
-            {isLive && event.stream_ref ? (
+            {showPlayer ? (
               <StreamPlayer
                 provider={event.stream_provider}
                 streamRef={event.stream_ref}
                 title={event.title}
                 coverUrl={event.cover_url || event.card_image_url}
               />
-            ) : isLive ? (
+            ) : isLive || onDemand ? (
               <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-neutral-900 text-sm text-neutral-500">
                 Carregando transmissão…
               </div>
+            ) : ended ? (
+              <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 text-center text-neutral-400">
+                <p className="flex items-center gap-2 text-lg font-bold tracking-wide text-red-400">
+                  <Lock className="size-5" /> EVENTO ENCERRADO
+                </p>
+                <p className="max-w-sm text-sm text-neutral-400">
+                  Você ainda pode consultar o histórico, os materiais e as
+                  fotos — não é mais possível enviar mensagens, perguntas,
+                  fotos ou respostas.
+                </p>
+              </div>
             ) : (
               <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-neutral-900 text-neutral-400">
-                <p className="text-lg font-medium">
-                  {event.status === "ended"
-                    ? "Esta transmissão foi encerrada."
-                    : "A transmissão ainda não começou."}
-                </p>
+                <p className="text-lg font-medium">A transmissão ainda não começou.</p>
                 {event.starts_at && event.status === "scheduled" && (
                   <p className="text-sm">
                     Início previsto:{" "}
@@ -261,16 +260,16 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
                 userId={userId}
                 isAdmin={isAdmin}
                 moderated={event.chat_moderation}
-                ended={ended}
+                ended={locked}
               />
             ) : tab === "perguntas" && event.qa_enabled ? (
               <QAPanel event={event} userId={userId} />
             ) : tab === "fotos" && event.gallery_enabled ? (
-              <PhotoGallery eventId={event.id} userId={userId} ended={ended} />
+              <PhotoGallery eventId={event.id} userId={userId} ended={locked} />
             ) : tab === "materiais" && materials.length > 0 ? (
               <MaterialsPanel materials={materials} />
             ) : (
-              <InteractionPanel state={activities} ended={ended} />
+              <InteractionPanel state={activities} ended={locked} />
             )}
           </div>
         </aside>
