@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { LiveEvent } from "@/lib/types";
 import { EVENT_STATUS_LABELS } from "@/lib/types";
@@ -119,8 +120,15 @@ export function EventRoom({ initialEvent, userId, userName, isAdmin }: EventRoom
       </header>
 
       {ended && (
-        <div className="border-b border-red-900/50 bg-red-950/20 px-4 py-2.5 text-center text-sm font-semibold tracking-wide text-red-400 md:px-6">
-          EVENTO ENCERRADO — obrigado por participar!
+        <div className="flex flex-col items-center gap-1 border-b border-red-900/50 bg-red-950/30 px-4 py-3 text-center md:px-6">
+          <p className="flex items-center gap-2 text-base font-bold tracking-wide text-red-400">
+            <Lock className="size-4" /> EVENTO ENCERRADO
+          </p>
+          <p className="text-xs text-neutral-400">
+            Você ainda pode consultar o histórico, os materiais e as fotos —
+            não é mais possível enviar mensagens, perguntas, fotos ou
+            respostas.
+          </p>
         </div>
       )}
 

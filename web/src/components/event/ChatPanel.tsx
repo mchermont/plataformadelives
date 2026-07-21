@@ -384,7 +384,7 @@ export function ChatPanel({ eventId, userId, isAdmin, moderated, ended }: ChatPa
         )}
       </div>
 
-      {ended && !isAdmin ? (
+      {ended ? (
         <p className="border-t border-neutral-800 p-3 text-center text-[13px] text-neutral-500">
           Este evento foi encerrado — o chat não recebe mais mensagens.
         </p>
