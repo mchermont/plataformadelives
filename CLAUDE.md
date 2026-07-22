@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0028.
+  a última aplicada é a 0029.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -189,8 +189,37 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   desmontar o conteúdo da aba (perde estado não salvo). Ver
   `EventForm.tsx`'s `extraTabs` para injetar abas de componentes irmãos
   (Materiais, Equipe) só quando fazem sentido (evento já existe).
+- **Landing pública ("/", GoLive)**: página institucional virou landing de
+  vendas (`web/src/components/landing/`), tema claro isolado do onix do
+  produto via classe `.gl-landing` em `globals.css` (não mexe nos tokens
+  onix globais) — paleta full-palette com cor por função (`--gl-brand`
+  indigo, `--gl-quiz` violeta, `--gl-chat` teal, `--gl-raffle` âmbar,
+  `--gl-reaction` coral). "GoLive" é o nome de marketing da plataforma;
+  não menciona a Propano Filmes na landing (pedido explícito do Marcelo).
+- **Ambiente de teste compartilhado** (`/demo`, migração 0029): cliente
+  fixo "Cliente Demo" com dois eventos — `evento-modelo` (`status='draft'`,
+  editado normalmente pelo `/admin`, é onde a configuração "oficial" do
+  demo vive) e `evento` (`status='live'`, id fixo, é o que os dois logins
+  públicos usam de verdade). RPC `reset_demo_event()` roda via `pg_cron` a
+  cada 4h: apaga o evento "ao vivo" e recria copiando as colunas atuais do
+  `evento-modelo` (cascade do Postgres já limpa chat/quiz/fotos/sorteios/
+  inscrições) — ou seja, o que se configura no modelo pelo admin normal
+  vira o padrão que sobrevive ao reset; só o que visitantes mexeram no
+  evento ao vivo entre um reset e outro é que se perde. O reset também
+  restringe `client_members` do cliente demo só ao admin oficial e limpa
+  convites pendentes — fecha a brecha de alguém se auto-promover ou
+  convidar terceiros usando o login público. Login fixo (sem depender de
+  caixa de entrada real, `email_confirm: true` na criação via
+  `scripts/seed-demo-users.mjs`, script avulso — não é migração porque
+  mexe em `auth.users` via Admin API):
+  `demo@golive.net.br` / `participante@golive.net.br`, senha `golive`
+  pros dois. Limitação aceita: atividades do tipo quiz não são copiadas do
+  modelo pro evento ao vivo (dependem de `quizzes`/`quiz_questions` à
+  parte, exigiria remapear IDs); arquivos de Storage (fotos/materiais/logo)
+  não são apagados pelo cascade, ficam órfãos no bucket (baixo volume
+  esperado, sem cron de limpeza dedicado por enquanto).
 
-## Estado (20/07/2026)
+## Estado (22/07/2026)
 
 Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
 F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
@@ -204,6 +233,10 @@ vitrine pública clara, abas na Configuração), mais D.1 — revisão pós-
 feedback: aba Interações com `enabled_activity_types`, Q&A com aprovação
 sempre obrigatória, sidebar lateral trocada por navbar superior,
 zoneamento visual em cartões, logos maiores nos pontos de entrada — ver
-ROADMAP. Próxima fase de produto: J (streaming próprio). Pendências
-avulsas: Google OAuth (falta credencial), upload de planilha p/ allowlist,
-evento-piloto em produção.
+ROADMAP. Landing pública "GoLive" (`/impeccable`, 21–22/07/2026): landing
+de vendas completa em `/` (hero, vitrine de recursos, demo interativa,
+white-label, painel Diretor, FAQ) + ambiente de teste compartilhado em
+`/demo` com reset automático (migração 0029, ver Convenções do produto).
+Próxima fase de produto: J (streaming próprio). Pendências avulsas: Google
+OAuth (falta credencial), upload de planilha p/ allowlist, evento-piloto
+em produção.
