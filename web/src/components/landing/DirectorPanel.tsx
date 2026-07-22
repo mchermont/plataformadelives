@@ -9,7 +9,7 @@ const ACTIONS = [
 
 export default function DirectorPanel() {
   return (
-    <section className="border-y border-black/10 bg-[oklch(0.07_0_0)] py-24 text-[oklch(0.96_0_0)] sm:py-28">
+    <section className="border-y border-black/10 bg-[oklch(0.07_0_0)] py-28 text-[oklch(0.96_0_0)] sm:py-32">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
@@ -25,9 +25,9 @@ export default function DirectorPanel() {
             </h2>
             <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[oklch(0.68_0_0)]">
               Essa é a cara real do painel que sua equipe usa durante a
-              transmissão — não uma versão simplificada pra demo. Escuro,
-              denso o suficiente pra caber tudo, e desenhado pra nunca
-              competir mais de quatro decisões ao mesmo tempo.
+              transmissão — não uma versão simplificada pra demo. Escuro e
+              direto ao ponto, desenhado pra nunca competir mais de quatro
+              decisões na tela ao mesmo tempo.
             </p>
             <ul className="mt-6 space-y-3 text-sm text-[oklch(0.96_0_0)]">
               <li className="flex gap-2.5">

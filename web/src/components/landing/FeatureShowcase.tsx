@@ -271,7 +271,7 @@ const BLOCKS: Block[] = [
 
 export default function FeatureShowcase() {
   return (
-    <section id="recursos" className="py-24 sm:py-32">
+    <section id="recursos" className="py-28 sm:py-36">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Reveal className="max-w-xl">
           <span className="text-sm font-semibold text-[var(--gl-brand)]">
@@ -285,7 +285,7 @@ export default function FeatureShowcase() {
           </h2>
         </Reveal>
 
-        <div className="mt-20 flex flex-col gap-24">
+        <div className="mt-24 flex flex-col gap-28">
           {BLOCKS.map((block) => (
             <div
               key={block.id}
@@ -329,7 +329,7 @@ export default function FeatureShowcase() {
           ))}
         </div>
 
-        <Reveal className="mt-20 rounded-2xl border border-[var(--gl-border)] bg-[var(--gl-surface)] px-6 py-6 sm:px-8">
+        <Reveal className="mt-24 rounded-2xl border border-[var(--gl-border)] bg-[var(--gl-surface)] px-6 py-6 sm:px-8">
           <p className="text-xs font-bold uppercase tracking-wide text-[var(--gl-muted)]">
             E também
           </p>

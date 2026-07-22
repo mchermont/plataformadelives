@@ -37,7 +37,7 @@ export default function LiveDemo() {
   }
 
   return (
-    <section className="border-t border-[var(--gl-border)] bg-[var(--gl-surface)] py-24">
+    <section className="border-t border-[var(--gl-border)] bg-[var(--gl-surface)] py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <Reveal>

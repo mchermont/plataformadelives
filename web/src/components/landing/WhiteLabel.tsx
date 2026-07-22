@@ -9,7 +9,7 @@ const EXAMPLES = [
 
 export default function WhiteLabel() {
   return (
-    <section id="agencias" className="py-24 sm:py-32">
+    <section id="agencias" className="py-24 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
@@ -29,19 +29,19 @@ export default function WhiteLabel() {
                 agência → cliente → evento
               </strong>{" "}
               — pensados pra quem revende ou opera múltiplos eventos ao mesmo
-              tempo. Cada cliente tem cor, logo e domínio próprios; a mesma
+              tempo. Cada cliente tem cor, logo e página própria; a mesma
               plataforma por baixo, uma cara diferente por cima.
             </p>
             <ul className="mt-6 space-y-3 text-sm text-[var(--gl-ink)]">
               <li className="flex gap-2.5">
                 <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand)]" />
-                Cor de marca, logo e imagem de capa por cliente, sem depender
-                de você
+                Cor de marca, logo e imagem de capa por cliente — sem você
+                mexer em nada técnico
               </li>
               <li className="flex gap-2.5">
                 <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand)]" />
-                Permissões por evento — quem modera chat, roda quiz ou vê
-                relatório é você quem decide
+                Permissões por evento — você decide quem modera chat, roda
+                quiz ou vê relatório
               </li>
               <li className="flex gap-2.5">
                 <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand)]" />
@@ -54,7 +54,7 @@ export default function WhiteLabel() {
           <Reveal delay={100} className="grid gap-5 sm:grid-cols-2">
             {EXAMPLES.map((ex) => (
               <div key={ex.name}>
-                <BrowserFrame label={`${ex.name.toLowerCase().replace(" ", "")}.suaagencia.com`}>
+                <BrowserFrame label={`suaagencia.com/${ex.name.toLowerCase().replace(" ", "-")}`}>
                   <div
                     className="flex flex-col items-center gap-2 px-4 py-8 text-center"
                     style={{ background: `color-mix(in oklch, ${ex.color} 6%, white)` }}

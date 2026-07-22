@@ -30,7 +30,7 @@ const FAQS = [
 
 export default function Faq() {
   return (
-    <section id="faq" className="border-t border-[var(--gl-border)] bg-[var(--gl-surface)] py-24">
+    <section id="faq" className="border-t border-[var(--gl-border)] bg-[var(--gl-surface)] py-20 sm:py-24">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Reveal className="text-center">
           <h2

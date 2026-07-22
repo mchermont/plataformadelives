@@ -6,7 +6,7 @@ const STEPS = [
     icon: Palette,
     title: "Configura com a sua marca",
     description:
-      "Logo, cor e domínio do seu cliente. Escolhe quais interações entram: quiz, enquete, nuvem de palavras, Q&A, sorteio, fotos. Sem pressa, sem código.",
+      "Logo, cor e página do seu cliente. Escolhe quais interações entram: quiz, enquete, nuvem de palavras, Q&A, sorteio, fotos. Sem pressa, sem código.",
   },
   {
     icon: Radio,
@@ -24,14 +24,14 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section id="como-funciona" className="border-t border-[var(--gl-border)] bg-[var(--gl-surface)] py-24">
+    <section id="como-funciona" className="border-t border-[var(--gl-border)] bg-[var(--gl-surface)] py-20 sm:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Reveal className="max-w-xl">
           <h2
             className="text-[clamp(1.875rem,2.5vw+1rem,2.75rem)] font-extrabold tracking-[-0.03em] text-[var(--gl-ink)]"
             style={{ textWrap: "balance" }}
           >
-            Do briefing ao aplauso, em três passos
+            Da configuração ao aplauso, em três passos
           </h2>
         </Reveal>
 

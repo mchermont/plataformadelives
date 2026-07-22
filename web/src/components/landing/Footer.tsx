@@ -12,13 +12,13 @@ export default function Footer({
 }) {
   return (
     <>
-      <section className="bg-[var(--gl-brand)] py-20 text-white">
+      <section className="bg-[var(--gl-brand)] py-28 text-white sm:py-32">
         <Reveal className="mx-auto max-w-2xl px-4 text-center sm:px-6">
           <h2
             className="text-[clamp(1.875rem,3vw+1rem,3rem)] font-extrabold tracking-[-0.03em]"
             style={{ textWrap: "balance" }}
           >
-            Bora colocar o próximo evento pra interagir?
+            Vamos colocar seu próximo evento pra interagir?
           </h2>
           <p className="mx-auto mt-4 max-w-md text-white/80">
             Conta pra gente o formato do seu evento e a gente te mostra a

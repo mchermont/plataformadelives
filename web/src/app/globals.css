@@ -231,3 +231,10 @@ body {
     opacity: 0;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-landing .animate-ping,
+  .gl-landing .animate-pulse {
+    animation: none;
+  }
+}
