@@ -1,9 +1,27 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import Header from "@/components/landing/Header";
+import Hero from "@/components/landing/Hero";
+import HowItWorks from "@/components/landing/HowItWorks";
+import FeatureShowcase from "@/components/landing/FeatureShowcase";
+import LiveDemo from "@/components/landing/LiveDemo";
+import WhiteLabel from "@/components/landing/WhiteLabel";
+import DirectorPanel from "@/components/landing/DirectorPanel";
+import AudienceCta from "@/components/landing/AudienceCta";
+import Faq from "@/components/landing/Faq";
+import Footer from "@/components/landing/Footer";
 
 export const dynamic = "force-dynamic";
 
-// Home institucional: eventos são privados e acessados apenas pelo link direto.
+export const metadata: Metadata = {
+  title: "GoLive — lives com gamificação em tempo real",
+  description:
+    "Quiz, chat moderado, Q&A com aprovação, sorteio auditável e reações em tempo real, tudo com a marca do seu cliente. A plataforma de lives pra agências e empresas que querem participação, não só transmissão.",
+};
+
+// Home institucional: eventos são privados e acessados apenas pelo link
+// direto enviado pelo organizador — esta página vende a plataforma, não
+// lista eventos.
 export default async function Home() {
   const supabase = await createClient();
   const {
@@ -20,41 +38,23 @@ export default async function Home() {
     isStaff = (profile?.is_platform_admin || profile?.is_moderator) ?? false;
   }
 
-  return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
-        <h1 className="text-lg font-semibold tracking-tight">
-          Plataforma de Lives
-        </h1>
-        {isStaff ? (
-          <Link
-            href="/admin"
-            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
-          >
-            Painel
-          </Link>
-        ) : !user ? (
-          <Link
-            href="/login"
-            className="text-sm text-neutral-400 hover:text-white"
-          >
-            Entrar
-          </Link>
-        ) : null}
-      </header>
+  const authHref = isStaff ? "/admin" : !user ? "/login" : null;
+  const authLabel = isStaff ? "Painel" : !user ? "Entrar" : null;
 
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-sky-400">
-          Transmissões ao vivo privadas
-        </p>
-        <h2 className="max-w-xl text-3xl font-bold leading-tight tracking-tight md:text-4xl">
-          Lives com acesso controlado, chat e quiz em tempo real
-        </h2>
-        <p className="mt-4 max-w-md text-neutral-400">
-          O acesso a cada evento é feito pelo link exclusivo enviado pelo
-          organizador.
-        </p>
+  return (
+    <div className="gl-landing bg-[var(--gl-bg)] text-[var(--gl-ink)]">
+      <Header authHref={authHref} authLabel={authLabel} />
+      <main>
+        <Hero />
+        <HowItWorks />
+        <FeatureShowcase />
+        <LiveDemo />
+        <WhiteLabel />
+        <DirectorPanel />
+        <AudienceCta />
+        <Faq />
       </main>
+      <Footer authHref={authHref} authLabel={authLabel} />
     </div>
   );
 }

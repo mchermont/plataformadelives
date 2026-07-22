@@ -148,3 +148,86 @@ html,
 body {
   overflow-x: clip;
 }
+
+/*
+ * Landing institucional (GoLive, "/"): tema claro isolado do onix do
+ * produto, mesma técnica da vitrine pública (bg-white literal em vez de
+ * herdar os tokens onix). Cor por função em vez de um único accent —
+ * quiz/enquete, chat/Q&A, sorteio e reações/telão têm cada um seu papel
+ * fixo nas seções de recursos, sempre a mesma cor pro mesmo conceito.
+ * Todos os pares vs. branco/texto verificados ≥4.5:1 (script de contraste
+ * OKLCH->sRGB, ver histórico da sessão que introduziu este bloco).
+ */
+.gl-landing {
+  --gl-bg: oklch(0.99 0.004 265);
+  --gl-surface: oklch(0.97 0.006 265);
+  --gl-surface-2: oklch(0.945 0.008 265);
+  --gl-border: oklch(0.89 0.01 265);
+  --gl-ink: oklch(0.19 0.025 265);
+  --gl-muted: oklch(0.38 0.02 265);
+
+  --gl-brand: oklch(0.5 0.21 273);
+  --gl-brand-strong: oklch(0.4 0.19 273);
+  --gl-brand-soft: oklch(0.95 0.03 273);
+
+  --gl-quiz: oklch(0.55 0.22 322);
+  --gl-quiz-soft: oklch(0.95 0.035 322);
+
+  --gl-chat: oklch(0.52 0.11 190);
+  --gl-chat-soft: oklch(0.95 0.03 190);
+
+  --gl-raffle: oklch(0.5 0.14 70);
+  --gl-raffle-soft: oklch(0.95 0.035 70);
+
+  --gl-reaction: oklch(0.52 0.17 22);
+  --gl-reaction-soft: oklch(0.95 0.035 22);
+}
+
+/* Reveal ao rolar (IntersectionObserver aplica .gl-inview, ver Reveal.tsx) */
+.gl-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gl-reveal.gl-inview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* Emoji decorativo flutuando no mockup do hero (própria da landing, não
+   reaproveita .reaction-float do produto pra não acoplar comportamentos) */
+@keyframes gl-float-up {
+  0% {
+    transform: translateY(0) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-120px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.gl-float {
+  animation: gl-float-up 3.2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gl-float {
+    animation: none;
+    opacity: 0;
+  }
+}
