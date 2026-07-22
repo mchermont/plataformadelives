@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0029.
+  a última aplicada é a 0031.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -217,7 +217,15 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   modelo pro evento ao vivo (dependem de `quizzes`/`quiz_questions` à
   parte, exigiria remapear IDs); arquivos de Storage (fotos/materiais/logo)
   não são apagados pelo cascade, ficam órfãos no bucket (baixo volume
-  esperado, sem cron de limpeza dedicado por enquanto).
+  esperado, sem cron de limpeza dedicado por enquanto). O evento modelo
+  leva o título `[MODELO — edite aqui] ...` (migração 0030) só pra ficar
+  diferenciável do "ao vivo" na lista do `/admin` — o reset tira esse
+  prefixo ao copiar. **`demo@golive.net.br` só pode editar o evento "ao
+  vivo"**, nunca o modelo (migração 0031, função
+  `is_protected_demo_template()` + policies de UPDATE/DELETE de
+  `events`) — só `is_admin()` de verdade mexe no modelo; assim visitantes
+  do `/demo` podem trocar logo/cor/fundo à vontade pra entender como
+  funciona, sem risco de estragar o padrão que o Marcelo mantém.
 
 ## Estado (22/07/2026)
 
