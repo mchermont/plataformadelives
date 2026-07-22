@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, PlayCircle, Users } from "lucide-react";
 import { WHATSAPP_URL } from "./contact";
 import { PhoneFrame } from "./DeviceFrame";
@@ -41,13 +42,13 @@ export default function Hero() {
               Falar com a gente
               <ArrowRight className="h-4 w-4" />
             </a>
-            <a
-              href="#como-funciona"
+            <Link
+              href="/demo"
               className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-[var(--gl-ink)] transition hover:text-[var(--gl-brand)]"
             >
               <PlayCircle className="h-5 w-5" />
-              Ver como funciona
-            </a>
+              Testar agora, de graça
+            </Link>
           </div>
 
           <dl className="mt-12 grid max-w-md grid-cols-2 gap-x-6 gap-y-4 border-t border-[var(--gl-border)] pt-6 sm:grid-cols-4">

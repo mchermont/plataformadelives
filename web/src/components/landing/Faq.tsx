@@ -1,7 +1,21 @@
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import Reveal from "./Reveal";
 
-const FAQS = [
+const FAQS: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "Tem como testar antes de decidir?",
+    a: (
+      <>
+        Tem — em{" "}
+        <Link href="/demo" className="font-semibold text-[var(--gl-brand)] hover:underline">
+          /demo
+        </Link>{" "}
+        tem um ambiente compartilhado com login de organizador e de
+        participante, pronto pra você mexer sem falar com ninguém antes.
+      </>
+    ),
+  },
   {
     q: "Quanto custa?",
     a: "Sob consulta — a estrutura muda conforme número de eventos, participantes esperados e quais recursos entram. Fala com a gente no WhatsApp e a gente monta uma proposta pro seu caso.",

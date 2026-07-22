@@ -52,6 +52,12 @@ export default function Header({
               {authLabel}
             </Link>
           ) : null}
+          <Link
+            href="/demo"
+            className="text-sm font-medium text-[var(--gl-ink)] transition hover:text-[var(--gl-brand)]"
+          >
+            Teste agora
+          </Link>
           <a
             href={WHATSAPP_URL}
             target="_blank"
@@ -102,6 +108,15 @@ export default function Header({
                 </Link>
               </li>
             ) : null}
+            <li>
+              <Link
+                href="/demo"
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--gl-ink)] hover:bg-[var(--gl-surface)]"
+              >
+                Teste agora
+              </Link>
+            </li>
           </ul>
           <a
             href={WHATSAPP_URL}
