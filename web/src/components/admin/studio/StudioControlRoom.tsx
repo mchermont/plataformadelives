@@ -51,35 +51,9 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
 
-  // Mídia local de fallback quando o servidor WebRTC não está ativo
+  // Mídia local de fallback quando o LiveKit token não chegou
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [stageParticipants, setStageParticipants] = useState<Record<string, boolean>>({
-    "diretor-local": true,
-  });
-
-  // Tenta ativar a câmera nativa do browser como fallback
-  useEffect(() => {
-    async function enableLocalCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        setLocalStream(stream);
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.warn("Câmera local indisponível ou permissão negada:", err);
-      }
-    }
-    enableLocalCamera();
-
-    return () => {
-      localStream?.getTracks().forEach((track) => track.stop());
-    };
-  }, []);
 
   // Busca token JWT do LiveKit na API
   useEffect(() => {
@@ -94,11 +68,24 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           setServerUrl(data.serverUrl);
         }
       } catch (err) {
-        console.warn("LiveKit server token indisponível, usando fallback local:", err);
+        console.warn("LiveKit server token indisponível:", err);
       }
     }
     fetchToken();
   }, [event.id]);
+
+  // Fallback de câmera local se o LiveKit demorar
+  useEffect(() => {
+    if (!token) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          setLocalStream(stream);
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        })
+        .catch((err) => console.warn("Mídia local negada:", err));
+    }
+  }, [token]);
 
   // Atualiza estado da sala no Supabase (realtime persistente)
   const handleUpdateRoom = useCallback(
@@ -120,7 +107,7 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
     [event.id]
   );
 
-  // Criar novo asset no Supabase com tratamento de erros visual
+  // Criar novo asset no Supabase
   const handleCreateAsset = useCallback(
     async (assetData: Partial<StudioAsset>) => {
       try {
@@ -138,7 +125,7 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           setAssets((prev) => [data as StudioAsset, ...prev]);
         } else if (error) {
           console.error("Erro ao salvar asset:", error);
-          alert("Não foi possível salvar o item. Verifique as permissões.");
+          alert("Não foi possível salvar o item.");
         }
       } catch (err) {
         console.error(err);
@@ -147,16 +134,10 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
     [event.id]
   );
 
-  // Toggle do participante entre Palco e Backstage
-  const handleToggleStage = useCallback(
-    (participantIdentity: string, currentOnStage: boolean) => {
-      setStageParticipants((prev) => ({
-        ...prev,
-        [participantIdentity]: !currentOnStage,
-      }));
-    },
-    []
-  );
+  // Toggle do participante entre Palco e Backstage (noop no pai, manipulado pelo participante no LiveKit)
+  const handleToggleStage = useCallback((participantIdentity: string, currentOnStage: boolean) => {
+    console.log("Toggle stage:", participantIdentity, currentOnStage);
+  }, []);
 
   // Gera o link de convite correto para o convidado
   const handleCopyInviteLink = () => {
@@ -170,7 +151,8 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
     alert(`Link do convidado copiado para a área de transferência:\n${link}`);
   };
 
-  return (
+  // Renderização do Shell do Estúdio
+  const studioContent = (
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
       {/* 1. Sidebar Esquerda — Cenas pré-configuradas */}
       <div className="hidden md:flex w-52 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 space-y-3">
@@ -210,7 +192,7 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
         <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-800/80 px-3 py-1 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> ESTÚDIO PRONTO
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> ESTÚDIO AO VIVO
             </span>
             <span className="text-xs font-semibold text-neutral-400">{event.title}</span>
           </div>
@@ -225,79 +207,15 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           </div>
         </div>
 
-        {/* Canvas do Palco (com suporte a vídeo local e LiveKit) */}
-        {token && serverUrl ? (
-          <LiveKitRoom
-            token={token}
-            serverUrl={serverUrl}
-            connect={true}
-            video={isCamOn}
-            audio={isMicOn}
-          >
-            <RoomAudioRenderer />
-            <StudioCanvas roomState={roomState} assets={assets} />
-          </LiveKitRoom>
-        ) : (
-          <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-neutral-950 shadow-2xl border border-neutral-800 flex items-center justify-center">
-            {/* Fallback de Vídeo Local do Browser */}
-            {stageParticipants["diretor-local"] && isCamOn ? (
-              <video
-                ref={(el) => {
-                  localVideoRef.current = el;
-                  if (el && localStream) el.srcObject = localStream;
-                }}
-                autoPlay
-                muted
-                playsInline
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex flex-col items-center space-y-2 text-neutral-500">
-                <User className="h-12 w-12" />
-                <span className="text-xs font-semibold">Câmera desligada ou no Backstage</span>
-              </div>
-            )}
-
-            {/* Tarja de Nome do Diretor */}
-            <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-neutral-950/80 px-2.5 py-1 backdrop-blur-md border border-neutral-800/80">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-xs font-semibold text-neutral-100">Diretor (Você)</span>
-            </div>
-
-            {/* Logo e Overlays no Fallback */}
-            {roomState.active_logo_url && (
-              <div className="absolute top-6 right-6 z-20 pointer-events-none max-w-[140px] max-h-[60px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={roomState.active_logo_url} alt="Logo" className="h-full w-full object-contain" />
-              </div>
-            )}
-
-            {roomState.active_overlay_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={roomState.active_overlay_url} alt="Overlay" className="absolute inset-0 z-30 h-full w-full object-cover pointer-events-none" />
-            )}
-
-            {roomState.active_banner_id && (
-              <div className="absolute bottom-6 left-6 z-40 max-w-xl">
-                <div className="rounded-xl bg-emerald-500 p-4 text-neutral-950 shadow-2xl border border-emerald-400">
-                  <h3 className="text-base font-extrabold leading-tight">
-                    {assets.find((a) => a.id === roomState.active_banner_id)?.title}
-                  </h3>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Canvas do Palco */}
+        <StudioCanvas roomState={roomState} assets={assets} />
 
         {/* Controles de Mídia & Seletores de Layout */}
         <div className="flex items-center justify-between rounded-2xl bg-neutral-900 border border-neutral-800 p-3">
           {/* Mutes de Áudio e Vídeo */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                setIsMicOn(!isMicOn);
-                localStream?.getAudioTracks().forEach((t) => (t.enabled = !isMicOn));
-              }}
+              onClick={() => setIsMicOn(!isMicOn)}
               className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
                 isMicOn ? "bg-neutral-800 text-emerald-400 hover:bg-neutral-700" : "bg-rose-950 text-rose-400 border border-rose-800"
               }`}
@@ -307,10 +225,7 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
             </button>
 
             <button
-              onClick={() => {
-                setIsCamOn(!isCamOn);
-                localStream?.getVideoTracks().forEach((t) => (t.enabled = !isCamOn));
-              }}
+              onClick={() => setIsCamOn(!isCamOn)}
               className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${
                 isCamOn ? "bg-neutral-800 text-emerald-400 hover:bg-neutral-700" : "bg-rose-950 text-rose-400 border border-rose-800"
               }`}
@@ -346,53 +261,8 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           </div>
         </div>
 
-        {/* Fila do Backstage (com suporte ao participante local do Diretor) */}
-        <div className="flex flex-col space-y-2 rounded-2xl bg-neutral-900/90 border border-neutral-800 p-3">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-              Participantes do Estúdio (1)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3 overflow-x-auto pb-1">
-            <div
-              className={`relative flex min-w-[200px] flex-col justify-between rounded-xl border p-3 transition ${
-                stageParticipants["diretor-local"]
-                  ? "border-emerald-500/80 bg-emerald-950/20"
-                  : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="min-w-0 pr-2">
-                  <p className="text-xs font-bold text-neutral-100 truncate flex items-center gap-1.5">
-                    Diretor
-                    <span className="rounded bg-neutral-800 px-1 py-0.5 text-[9px] font-semibold text-neutral-400">
-                      Você
-                    </span>
-                  </p>
-                  <span
-                    className={`text-[10px] font-semibold uppercase tracking-wider ${
-                      stageParticipants["diretor-local"] ? "text-emerald-400" : "text-amber-400"
-                    }`}
-                  >
-                    {stageParticipants["diretor-local"] ? "No Palco" : "No Backstage"}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleToggleStage("diretor-local", !!stageParticipants["diretor-local"])}
-                className={`mt-3 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
-                  stageParticipants["diretor-local"]
-                    ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                    : "bg-emerald-500 text-neutral-950 hover:bg-emerald-400"
-                }`}
-              >
-                {stageParticipants["diretor-local"] ? "Mover p/ Backstage" : "Subir ao Palco"}
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Fila do Backstage (DENTRO do LiveKitRoom para acessar useParticipants) */}
+        <StudioBackstageBar onToggleStage={handleToggleStage} />
       </div>
 
       {/* 3. Sidebar Direita — Painel de Gráficos e GCs */}
@@ -409,4 +279,24 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
       <StudioPrivateChat eventId={event.id} />
     </div>
   );
+
+  // Se tiver token e servidor LiveKit, envolve TODA a UI com LiveKitRoom
+  if (token && serverUrl) {
+    return (
+      <LiveKitRoom
+        token={token}
+        serverUrl={serverUrl}
+        connect={true}
+        video={isCamOn}
+        audio={isMicOn}
+        className="h-full w-full"
+      >
+        <RoomAudioRenderer />
+        {studioContent}
+      </LiveKitRoom>
+    );
+  }
+
+  // Fallback se token não tiver chegado
+  return studioContent;
 }
