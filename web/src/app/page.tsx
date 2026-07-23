@@ -23,13 +23,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
-    images: [{ url: "/og-image.png", width: 1536, height: 1024, alt: "GoLive" }],
+    images: [{ url: "/og-icon.png", width: 512, height: 512, alt: "GoLive" }],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: TITLE,
     description: DESCRIPTION,
-    images: ["/og-image.png"],
+    images: ["/og-icon.png"],
   },
 };
 
