@@ -27,7 +27,7 @@ export default async function StudioOutputPage({
     .from("studio_rooms")
     .select("*")
     .eq("event_id", id)
-    .single();
+    .maybeSingle();
 
   // Busca assets do estúdio
   const { data: assetsData } = await supabase

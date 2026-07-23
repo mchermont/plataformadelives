@@ -33,7 +33,7 @@ export default async function StudioAdminPage({
     .from("studio_rooms")
     .select("*")
     .eq("event_id", id)
-    .single();
+    .maybeSingle();
 
   if (roomData) {
     studioRoom = roomData as StudioRoom;
