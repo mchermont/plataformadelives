@@ -25,7 +25,7 @@ export default function Hero() {
           </h1>
 
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-[var(--gl-muted)]">
-            A <strong className="font-semibold text-[var(--gl-ink)]">GoLive</strong> entrega
+            A <strong className="font-semibold text-[var(--gl-ink)]">GoLive</strong>{" "}entrega
             na sua live Quiz ao vivo, Q&amp;A e chat moderado, sorteios
             auditáveis, reações e muito mais — tudo com a sua identidade visual
             e sem complicação técnica.
