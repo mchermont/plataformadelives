@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, FileText, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, Plus, Upload, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 
 interface StudioPresentationManagerProps {
@@ -19,12 +20,48 @@ export function StudioPresentationManager({
 }: StudioPresentationManagerProps) {
   const [title, setTitle] = useState("");
   const [urlsInput, setUrlsInput] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   const presentations = assets.filter((a) => a.asset_type === "presentation");
   const activePresentation = presentations.find((p) => p.id === roomState.active_presentation_id);
 
-  const slides: string[] = activePresentation?.content_json?.slides as string[] || [];
+  const slides: string[] = (activePresentation?.content_json?.slides as string[]) || [];
   const currentSlideIndex = roomState.active_slide_index || 0;
+
+  // Upload direto de imagem de slide para o Supabase Storage
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+        const path = `slides/slide-${crypto.randomUUID()}.${ext}`;
+
+        const { error } = await supabase.storage.from("materials").upload(path, file);
+        if (!error) {
+          const { data } = supabase.storage.from("materials").getPublicUrl(path);
+          if (data.publicUrl) uploadedUrls.push(data.publicUrl);
+        } else {
+          console.error("Erro no upload do slide:", error);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        setUrlsInput((prev) => (prev ? `${prev}\n${uploadedUrls.join("\n")}` : uploadedUrls.join("\n")));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Falha no upload do arquivo. Tente novamente.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleCreatePresentation = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,9 +157,10 @@ export function StudioPresentationManager({
         </div>
       ) : null}
 
-      {/* Formulário de Nova Apresentação */}
+      {/* Formulário de Nova Apresentação com Upload de Arquivo */}
       <form onSubmit={handleCreatePresentation} className="space-y-3 bg-neutral-950 p-3 rounded-xl border border-neutral-800">
         <span className="text-xs font-semibold text-neutral-300 block">Nova Apresentação de Slides</span>
+
         <input
           type="text"
           placeholder="Título da Apresentação (ex: Decks de Vendas)"
@@ -130,19 +168,42 @@ export function StudioPresentationManager({
           onChange={(e) => setTitle(e.target.value)}
           className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs text-neutral-100 placeholder:text-neutral-500 focus:border-emerald-500 focus:outline-none"
         />
+
+        {/* Botão de Upload de Arquivo do Computador */}
+        <label className="flex items-center justify-center gap-2 cursor-pointer rounded-lg border border-dashed border-neutral-700 bg-neutral-900 py-2.5 px-3 text-xs font-semibold text-neutral-300 hover:border-emerald-500 hover:text-emerald-400 transition">
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> Fazendo upload dos slides...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" /> Escolher imagens dos slides no computador
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={uploading}
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </label>
+
         <textarea
-          placeholder="Cole as URLs das imagens dos slides (uma por linha)"
+          placeholder="Ou cole as URLs das imagens dos slides (uma por linha)"
           value={urlsInput}
           onChange={(e) => setUrlsInput(e.target.value)}
           rows={3}
           className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs text-neutral-100 placeholder:text-neutral-500 focus:border-emerald-500 focus:outline-none font-mono"
         />
+
         <button
           type="submit"
-          disabled={!title.trim() || !urlsInput.trim()}
-          className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-1.5 text-xs font-semibold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50"
+          disabled={!title.trim() || !urlsInput.trim() || uploading}
+          className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50"
         >
-          <Plus className="h-4 w-4" /> Adicionar Apresentação
+          <Plus className="h-4 w-4" /> Salvar Apresentação
         </button>
       </form>
 

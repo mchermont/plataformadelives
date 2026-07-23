@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Image, Layers, Sparkles, Type, Plus, Check } from "lucide-react";
+import { Image, Layers, Sparkles, Type, Plus, Check, Upload, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
-
 import { StudioPresentationManager } from "./StudioPresentationManager";
 
 interface StudioGraphicsPanelProps {
@@ -22,11 +22,46 @@ export function StudioGraphicsPanel({
   const [activeTab, setActiveTab] = useState<"graphics" | "captions" | "presentation">("graphics");
   const [newGcText, setNewGcText] = useState("");
   const [newGcSubtext, setNewGcSubtext] = useState("");
+  const [uploadingKind, setUploadingKind] = useState<"logo" | "overlay" | "background" | null>(null);
 
   const logos = assets.filter((a) => a.asset_type === "logo");
   const overlays = assets.filter((a) => a.asset_type === "overlay");
   const backgrounds = assets.filter((a) => a.asset_type === "background");
   const gcs = assets.filter((a) => a.asset_type === "gc_name" || a.asset_type === "banner");
+
+  const handleUploadImage = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    assetType: "logo" | "overlay" | "background"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKind(assetType);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `studio/${assetType}-${crypto.randomUUID()}.${ext}`;
+
+      const { error } = await supabase.storage.from("branding").upload(path, file);
+      if (!error) {
+        const { data } = supabase.storage.from("branding").getPublicUrl(path);
+        if (data.publicUrl) {
+          onCreateAsset({
+            asset_type: assetType,
+            title: file.name,
+            file_url: data.publicUrl,
+          });
+        }
+      } else {
+        console.error("Erro no upload da imagem:", error);
+        alert("Falha no upload da imagem.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploadingKind(null);
+    }
+  };
 
   const handleCreateGc = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,35 +83,35 @@ export function StudioGraphicsPanel({
       <div className="flex border-b border-neutral-800">
         <button
           onClick={() => setActiveTab("graphics")}
-          className={`flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold transition border-b-2 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold transition border-b-2 ${
             activeTab === "graphics"
               ? "border-emerald-500 text-emerald-400 bg-neutral-800/50"
               : "border-transparent text-neutral-400 hover:text-neutral-200"
           }`}
         >
-          <Layers className="h-4 w-4" />
+          <Layers className="h-3.5 w-3.5" />
           Gráficos
         </button>
         <button
           onClick={() => setActiveTab("captions")}
-          className={`flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold transition border-b-2 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold transition border-b-2 ${
             activeTab === "captions"
               ? "border-emerald-500 text-emerald-400 bg-neutral-800/50"
               : "border-transparent text-neutral-400 hover:text-neutral-200"
           }`}
         >
-          <Type className="h-4 w-4" />
+          <Type className="h-3.5 w-3.5" />
           GCs
         </button>
         <button
           onClick={() => setActiveTab("presentation")}
-          className={`flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold transition border-b-2 ${
+          className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold transition border-b-2 ${
             activeTab === "presentation"
               ? "border-emerald-500 text-emerald-400 bg-neutral-800/50"
               : "border-transparent text-neutral-400 hover:text-neutral-200"
           }`}
         >
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-3.5 w-3.5" />
           Slides
         </button>
       </div>
@@ -91,11 +126,25 @@ export function StudioGraphicsPanel({
                 <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
                   <Image className="h-3.5 w-3.5" /> Marca / Logo
                 </span>
+
+                {/* Upload de Logo */}
+                <label className="cursor-pointer text-[11px] font-semibold text-emerald-400 hover:underline flex items-center gap-1">
+                  {uploadingKind === "logo" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  Subir Logo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingKind === "logo"}
+                    onChange={(e) => handleUploadImage(e, "logo")}
+                    className="hidden"
+                  />
+                </label>
               </div>
+
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => onUpdateRoom({ active_logo_url: null })}
-                  className={`relative aspect-square flex flex-col items-center justify-center rounded-lg border text-xs transition ${
+                  className={`relative aspect-square flex flex-col items-center justify-center rounded-lg border text-[11px] transition ${
                     !roomState.active_logo_url
                       ? "border-emerald-500 bg-emerald-950/20 text-emerald-400 font-semibold"
                       : "border-neutral-800 bg-neutral-950 text-neutral-500 hover:border-neutral-700"
@@ -132,7 +181,21 @@ export function StudioGraphicsPanel({
                 <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5" /> Molduras / Overlays
                 </span>
+
+                {/* Upload de Overlay */}
+                <label className="cursor-pointer text-[11px] font-semibold text-emerald-400 hover:underline flex items-center gap-1">
+                  {uploadingKind === "overlay" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  Subir Overlay
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingKind === "overlay"}
+                    onChange={(e) => handleUploadImage(e, "overlay")}
+                    className="hidden"
+                  />
+                </label>
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => onUpdateRoom({ active_overlay_url: null })}
@@ -167,7 +230,21 @@ export function StudioGraphicsPanel({
                 <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
                   <Layers className="h-3.5 w-3.5" /> Fundo de Tela
                 </span>
+
+                {/* Upload de Fundo */}
+                <label className="cursor-pointer text-[11px] font-semibold text-emerald-400 hover:underline flex items-center gap-1">
+                  {uploadingKind === "background" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  Subir Fundo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingKind === "background"}
+                    onChange={(e) => handleUploadImage(e, "background")}
+                    className="hidden"
+                  />
+                </label>
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => onUpdateRoom({ active_background_url: null })}
