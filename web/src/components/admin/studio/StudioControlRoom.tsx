@@ -156,7 +156,20 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
     alert(`Link do convidado copiado para a área de transferência:\n${link}`);
   };
 
-  // Renderização do Shell do Estúdio
+  // --- Early returns ANTES do studioContent para evitar hooks LiveKit fora do contexto ---
+  const spinner = (
+    <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
+      <div className="flex items-center gap-3">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <span className="text-sm font-medium">Carregando Estúdio GoLive...</span>
+      </div>
+    </div>
+  );
+
+  if (!mounted) return spinner;
+  if (!token || !serverUrl) return spinner;
+
+  // Renderização do Shell do Estúdio (só chega aqui quando LiveKitRoom já está pronto)
   const studioContent = (
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
       {/* 1. Sidebar Esquerda — Cenas pré-configuradas */}
@@ -285,37 +298,21 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
     </div>
   );
 
-  if (!mounted) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
-        <div className="flex items-center gap-3">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-          <span className="text-sm font-medium">Carregando Estúdio GoLive...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Se tiver token e servidor LiveKit, envolve TODA a UI com LiveKitRoom
-  if (token && serverUrl) {
-    return (
-      <LiveKitRoom
-        token={token}
-        serverUrl={serverUrl}
-        connect={true}
-        video={isCamOn}
-        audio={isMicOn}
-        className="h-full w-full"
-        onError={(err) => {
-          console.error("LiveKit Room Connection Error:", err);
-        }}
-      >
-        <RoomAudioRenderer />
-        {studioContent}
-      </LiveKitRoom>
-    );
-  }
-
-  // Fallback se token não tiver chegado
-  return studioContent;
+  // Sempre dentro do LiveKitRoom — nunca renderiza studioContent fora do contexto
+  return (
+    <LiveKitRoom
+      token={token}
+      serverUrl={serverUrl}
+      connect={true}
+      video={isCamOn}
+      audio={isMicOn}
+      className="h-full w-full"
+      onError={(err) => {
+        console.error("LiveKit Room Connection Error:", err);
+      }}
+    >
+      <RoomAudioRenderer />
+      {studioContent}
+    </LiveKitRoom>
+  );
 }
