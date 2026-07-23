@@ -29,7 +29,7 @@ export default function Header({
           <img
             src="/logo-horizontal.png"
             alt="GoLive"
-            className="h-10 w-auto object-contain"
+            className="h-9 w-auto object-contain"
           />
         </Link>
 
