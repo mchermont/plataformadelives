@@ -14,22 +14,21 @@ export default function Hero() {
       <div className="mx-auto grid max-w-6xl items-center gap-16 px-4 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-[var(--gl-border)] bg-white px-4 py-1.5 text-sm font-medium text-[var(--gl-muted)]">
-            Lives com gamificação, do jeito da sua marca
+            Transmita ao vivo. Engaje de verdade.
           </p>
 
           <h1
             className="mt-6 max-w-xl text-[clamp(2.25rem,4.5vw+1rem,3.75rem)] font-extrabold leading-[1.05] tracking-[-0.03em] text-[var(--gl-ink)]"
             style={{ textWrap: "balance" }}
           >
-            Sua live vira um evento que o público lembra
+            A plataforma para quem quer participação, não só audiência.
           </h1>
 
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-[var(--gl-muted)]">
-            Quiz, chat moderado, Q&amp;A com aprovação, sorteio auditável e
-            reações em tempo real — tudo com a marca do seu cliente estampada,
-            não a nossa. A <strong className="font-semibold text-[var(--gl-ink)]">GoLive</strong>{" "}
-            é a plataforma que agências e empresas usam pra transformar
-            transmissão em participação.
+            A <strong className="font-semibold text-[var(--gl-ink)]">GoLive</strong> entrega
+            na sua live Quiz ao vivo, Q&amp;A e chat moderado, sorteios
+            auditáveis, reações e muito mais — tudo com a sua identidade visual
+            e sem complicação técnica.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
