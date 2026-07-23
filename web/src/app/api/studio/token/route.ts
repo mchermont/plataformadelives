@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { AccessToken } from "livekit-server-sdk";
 import { createClient } from "@/lib/supabase/server";
 
+function cleanEnv(val?: string): string {
+  if (!val) return "";
+  return val.replace(/^["']|["']$/g, "").trim();
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -28,7 +33,7 @@ export async function GET(req: NextRequest) {
         .from("events")
         .select("id")
         .eq("slug", eventParam)
-        .single();
+        .maybeSingle();
 
       if (eventData?.id) {
         realEventId = eventData.id;
@@ -49,8 +54,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const apiKey = process.env.LIVEKIT_API_KEY || "devkey";
-    const apiSecret = process.env.LIVEKIT_API_SECRET || "secretsecretsecretsecretsecretsecretsecretsecret";
+    const apiKey = cleanEnv(process.env.LIVEKIT_API_KEY) || "devkey";
+    const apiSecret = cleanEnv(process.env.LIVEKIT_API_SECRET) || "secretsecretsecretsecretsecretsecretsecretsecret";
+    const rawServerUrl = cleanEnv(process.env.NEXT_PUBLIC_LIVEKIT_URL) || "ws://localhost:7880";
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity,
@@ -74,7 +80,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       token,
       roomName,
-      serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880",
+      serverUrl: rawServerUrl,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro interno";

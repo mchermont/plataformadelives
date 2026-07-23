@@ -57,6 +57,7 @@ export default function GuestStudioPage() {
         connect={true}
         video={true}
         audio={true}
+        onError={(err) => console.error("Guest LiveKit Room Error:", err)}
         className="flex h-screen w-full flex-col items-center justify-center bg-neutral-950 text-neutral-100 p-6 text-center space-y-4"
       >
         <RoomAudioRenderer />

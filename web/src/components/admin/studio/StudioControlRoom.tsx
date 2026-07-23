@@ -306,6 +306,9 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
         video={isCamOn}
         audio={isMicOn}
         className="h-full w-full"
+        onError={(err) => {
+          console.error("LiveKit Room Connection Error:", err);
+        }}
       >
         <RoomAudioRenderer />
         {studioContent}
