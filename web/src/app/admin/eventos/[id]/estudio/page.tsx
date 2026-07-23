@@ -1,10 +1,30 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getEventChain } from "@/lib/admin/chains";
-import { StudioControlRoom } from "@/components/admin/studio/StudioControlRoom";
 import { StudioAsset, StudioRoom } from "@/lib/types";
+import dynamic from "next/dynamic";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// Carrega o StudioControlRoom APENAS no cliente — o LiveKit SDK usa APIs do browser
+// que não existem no servidor (WebRTC, navigator.mediaDevices, etc.)
+const StudioControlRoom = dynamic(
+  () =>
+    import("@/components/admin/studio/StudioControlRoom").then(
+      (mod) => mod.StudioControlRoom
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
+        <div className="flex items-center gap-3">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <span className="text-sm font-medium">Carregando Estúdio GoLive...</span>
+        </div>
+      </div>
+    ),
+  }
+);
 
 export default async function StudioAdminPage({
   params,

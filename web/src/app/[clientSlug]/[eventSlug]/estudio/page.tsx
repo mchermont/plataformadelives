@@ -2,12 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Mic, Video, User, Check, ArrowRight } from "lucide-react";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { Check, ArrowRight } from "lucide-react";
+import dynamic from "next/dynamic";
+
+// Carrega o LiveKitRoom apenas no cliente — WebRTC não funciona no servidor
+const LiveKitRoom = dynamic(
+  () => import("@livekit/components-react").then((mod) => mod.LiveKitRoom),
+  { ssr: false }
+);
+const RoomAudioRenderer = dynamic(
+  () =>
+    import("@livekit/components-react").then((mod) => mod.RoomAudioRenderer),
+  { ssr: false }
+);
 
 export default function GuestStudioPage() {
   const params = useParams();
-  const clientSlug = params?.clientSlug as string;
   const eventSlug = params?.eventSlug as string;
 
   const [mounted, setMounted] = useState(false);
@@ -16,6 +26,7 @@ export default function GuestStudioPage() {
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -26,22 +37,23 @@ export default function GuestStudioPage() {
     if (!name.trim()) return;
 
     setLoading(true);
+    setError(null);
     try {
-      // Usa id temporário do participante convidado
       const guestIdentity = `guest-${Math.random().toString(36).substring(2, 9)}`;
       const res = await fetch(
-        `/api/studio/token?eventId=${eventSlug}&identity=${guestIdentity}&name=${encodeURIComponent(
-          name
-        )}`
+        `/api/studio/token?eventId=${eventSlug}&identity=${guestIdentity}&name=${encodeURIComponent(name)}`
       );
       const data = await res.json();
-      if (data.token) {
+      if (data.token && data.serverUrl) {
         setToken(data.token);
         setServerUrl(data.serverUrl);
         setJoined(true);
+      } else {
+        setError("Não foi possível entrar no estúdio. Tente novamente.");
       }
     } catch (err) {
       console.error("Erro ao entrar no estúdio:", err);
+      setError("Erro de conexão. Verifique sua internet e tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -66,7 +78,7 @@ export default function GuestStudioPage() {
         </div>
         <h1 className="text-xl font-bold">Você está conectado ao Estúdio!</h1>
         <p className="max-w-md text-sm text-neutral-400">
-          Sua câmera e microfone estão ativos. Você está no **Backstage**. O diretor colocará você no palco no momento certo da live.
+          Sua câmera e microfone estão ativos. Você está no <strong>Backstage</strong>. O diretor colocará você no palco no momento certo.
         </p>
       </LiveKitRoom>
     );
@@ -99,6 +111,12 @@ export default function GuestStudioPage() {
               className="w-full rounded-xl bg-neutral-950 border border-neutral-800 px-4 py-2.5 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-500 focus:outline-none"
             />
           </div>
+
+          {error && (
+            <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
