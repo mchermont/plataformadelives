@@ -29,6 +29,17 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
     return assets.find((a) => a.id === roomState.active_banner_id);
   }, [roomState.active_banner_id, assets]);
 
+  const activePresentation = useMemo(() => {
+    if (!roomState.active_presentation_id) return null;
+    return assets.find((a) => a.id === roomState.active_presentation_id);
+  }, [roomState.active_presentation_id, assets]);
+
+  const activeSlideUrl = useMemo(() => {
+    if (!activePresentation) return null;
+    const slides = (activePresentation.content_json?.slides as string[]) || [];
+    return slides[roomState.active_slide_index || 0] || null;
+  }, [activePresentation, roomState.active_slide_index]);
+
   // Define a classe CSS do grid com base no layout ativo e quantidade de pessoas no palco
   const gridLayoutClass = useMemo(() => {
     const count = stageTracks.length;
@@ -53,8 +64,42 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
         />
       )}
 
-      {/* 2. Grid de Vídeos dos Participantes no Palco */}
-      {stageTracks.length === 0 ? (
+      {/* 2. Grid de Vídeos ou Apresentação de Slides no Palco */}
+      {activeSlideUrl ? (
+        <div className="relative z-10 flex h-full w-full gap-3 p-4">
+          {/* Apresentação Principal (Esquerda - 75% da largura) */}
+          <div className="relative flex-1 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 flex items-center justify-center p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={activeSlideUrl} alt="Slide ativo" className="h-full w-full object-contain" />
+          </div>
+
+          {/* Câmeras dos Palestrantes no Palco (Direita - 25% da largura) */}
+          {stageTracks.length > 0 && (
+            <div className="flex w-64 flex-col gap-2 overflow-y-auto">
+              {stageTracks.map((track) => {
+                const participant = track.participant;
+                const name = participant.name || participant.identity;
+
+                return (
+                  <div
+                    key={participant.sid}
+                    className="relative aspect-video overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center"
+                  >
+                    {track.publication?.isMuted ? (
+                      <User className="h-6 w-6 text-neutral-500" />
+                    ) : (
+                      <VideoTrack trackRef={track} className="h-full w-full object-cover" />
+                    )}
+                    <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded bg-neutral-950/80 px-2 py-0.5 backdrop-blur-md">
+                      <span className="text-[10px] font-semibold text-neutral-100">{name}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : stageTracks.length === 0 ? (
         <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 space-y-3">
           <div className="h-16 w-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-600">
             <User className="h-8 w-8" />

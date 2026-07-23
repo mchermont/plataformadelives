@@ -7,6 +7,7 @@ import { LiveEvent, StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "./StudioCanvas";
 import { StudioBackstageBar } from "./StudioBackstageBar";
 import { StudioGraphicsPanel } from "./StudioGraphicsPanel";
+import { StudioPrivateChat } from "./StudioPrivateChat";
 import {
   Grid,
   User,
@@ -265,6 +266,9 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           onCreateAsset={handleCreateAsset}
         />
       </div>
+
+      {/* 4. Chat Privado da Equipe */}
+      <StudioPrivateChat eventId={event.id} />
     </LiveKitRoom>
   );
 }

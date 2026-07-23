@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Image, Layers, Sparkles, Type, Plus, Check } from "lucide-react";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 
+import { StudioPresentationManager } from "./StudioPresentationManager";
+
 interface StudioGraphicsPanelProps {
   roomState: StudioRoom;
   assets: StudioAsset[];
@@ -17,7 +19,7 @@ export function StudioGraphicsPanel({
   onUpdateRoom,
   onCreateAsset,
 }: StudioGraphicsPanelProps) {
-  const [activeTab, setActiveTab] = useState<"graphics" | "captions" | "media">("graphics");
+  const [activeTab, setActiveTab] = useState<"graphics" | "captions" | "presentation">("graphics");
   const [newGcText, setNewGcText] = useState("");
   const [newGcSubtext, setNewGcSubtext] = useState("");
 
@@ -64,7 +66,18 @@ export function StudioGraphicsPanel({
           }`}
         >
           <Type className="h-4 w-4" />
-          GCs / Banners
+          GCs
+        </button>
+        <button
+          onClick={() => setActiveTab("presentation")}
+          className={`flex flex-1 items-center justify-center gap-2 py-3 text-xs font-semibold transition border-b-2 ${
+            activeTab === "presentation"
+              ? "border-emerald-500 text-emerald-400 bg-neutral-800/50"
+              : "border-transparent text-neutral-400 hover:text-neutral-200"
+          }`}
+        >
+          <Sparkles className="h-4 w-4" />
+          Slides
         </button>
       </div>
 
@@ -258,6 +271,15 @@ export function StudioGraphicsPanel({
               )}
             </div>
           </>
+        )}
+
+        {activeTab === "presentation" && (
+          <StudioPresentationManager
+            roomState={roomState}
+            assets={assets}
+            onUpdateRoom={onUpdateRoom}
+            onCreateAsset={onCreateAsset}
+          />
         )}
       </div>
     </div>
