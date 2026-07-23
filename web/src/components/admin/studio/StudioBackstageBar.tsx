@@ -28,7 +28,7 @@ export function StudioBackstageBar({ onToggleStage }: StudioBackstageBarProps) {
           </div>
         ) : (
           participants.map((p) => {
-            const isOnStage = p.attributes?.isOnStage === "true";
+            const isOnStage = p.attributes?.isOnStage !== "false";
             const name = p.name || p.identity;
             const isMuted = !p.isMicrophoneEnabled;
             const isCamOff = !p.isCameraEnabled;
@@ -76,7 +76,14 @@ export function StudioBackstageBar({ onToggleStage }: StudioBackstageBarProps) {
                 </div>
 
                 <button
-                  onClick={() => onToggleStage(p.identity, isOnStage)}
+                  onClick={() => {
+                    const newStatus = isOnStage ? "false" : "true";
+                    if (p.isLocal) {
+                      (p as unknown as { setAttributes: (attr: Record<string, string>) => void }).setAttributes?.({ isOnStage: newStatus });
+                    } else {
+                      onToggleStage(p.identity, isOnStage);
+                    }
+                  }}
                   className={`mt-3 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
                     isOnStage
                       ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"

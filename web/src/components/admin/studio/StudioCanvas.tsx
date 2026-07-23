@@ -20,7 +20,9 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
   const stageTracks = useMemo(() => {
     return cameraTracks.filter((t) => {
       const p = t.participant;
-      return p.attributes?.isOnStage === "true";
+      // Se tiver sido explicitamente movido para o backstage, esconde do palco
+      if (p.attributes?.isOnStage === "false") return false;
+      return true;
     });
   }, [cameraTracks]);
 
