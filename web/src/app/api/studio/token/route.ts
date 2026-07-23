@@ -5,20 +5,36 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const eventId = searchParams.get("eventId");
+    const eventParam = searchParams.get("eventId") || searchParams.get("eventSlug");
     const identity = searchParams.get("identity");
     const name = searchParams.get("name") || identity || "Convidado";
     const isDirector = searchParams.get("isDirector") === "true";
 
-    if (!eventId || !identity) {
+    if (!eventParam || !identity) {
       return NextResponse.json(
-        { error: "eventId e identity são obrigatórios" },
+        { error: "eventId/eventSlug e identity são obrigatórios" },
         { status: 400 }
       );
     }
 
-    // Valida usuário no Supabase se for diretor
     const supabase = await createClient();
+
+    // Busca o evento pelo id (UUID) ou pelo slug para garantir que Diretor e Convidado caiam na MESMA sala
+    let realEventId = eventParam;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventParam);
+
+    if (!isUuid) {
+      const { data: eventData } = await supabase
+        .from("events")
+        .select("id")
+        .eq("slug", eventParam)
+        .single();
+
+      if (eventData?.id) {
+        realEventId = eventData.id;
+      }
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -26,13 +42,11 @@ export async function GET(req: NextRequest) {
     let canPublish = true;
     let canSubscribe = true;
 
-    if (isDirector) {
-      if (!user) {
-        return NextResponse.json(
-          { error: "Não autorizado para controlar o estúdio" },
-          { status: 401 }
-        );
-      }
+    if (isDirector && !user) {
+      return NextResponse.json(
+        { error: "Não autorizado para controlar o estúdio" },
+        { status: 401 }
+      );
     }
 
     const apiKey = process.env.LIVEKIT_API_KEY || "devkey";
@@ -44,7 +58,7 @@ export async function GET(req: NextRequest) {
       ttl: "8h",
     });
 
-    const roomName = `studio-${eventId}`;
+    const roomName = `studio-${realEventId}`;
 
     at.addGrant({
       roomJoin: true,
