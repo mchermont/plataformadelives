@@ -274,7 +274,7 @@ export default function FeatureShowcase() {
     <section id="recursos" className="py-28 sm:py-36">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <Reveal className="max-w-xl">
-          <span className="text-sm font-semibold text-[var(--gl-brand)]">
+          <span className="text-sm font-semibold text-[var(--gl-brand-text)]">
             Recursos
           </span>
           <h2

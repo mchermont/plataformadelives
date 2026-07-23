@@ -157,18 +157,26 @@ body {
  * fixo nas seções de recursos, sempre a mesma cor pro mesmo conceito.
  * Todos os pares vs. branco/texto verificados ≥4.5:1 (script de contraste
  * OKLCH->sRGB, ver histórico da sessão que introduziu este bloco).
+ *
+ * Marca (--gl-brand*) extraída da arte oficial do ícone GoLive (navy
+ * #131523 + verde #02c99f, amostrado via System.Drawing). O verde
+ * vibrante (--gl-brand) só entra como PREENCHIMENTO (botão/badge/dot)
+ * com texto/ícone --gl-ink por cima — texto branco nele reprova
+ * contraste (2.13:1). Texto/link/ícone em cima de fundo claro usa
+ * --gl-brand-text (verde mais escuro, ~5.2:1 em --gl-bg).
  */
 .gl-landing {
-  --gl-bg: oklch(0.99 0.004 265);
-  --gl-surface: oklch(0.97 0.006 265);
-  --gl-surface-2: oklch(0.945 0.008 265);
-  --gl-border: oklch(0.89 0.01 265);
-  --gl-ink: oklch(0.19 0.025 265);
-  --gl-muted: oklch(0.38 0.02 265);
+  --gl-bg: oklch(0.99 0.004 278);
+  --gl-surface: oklch(0.97 0.006 278);
+  --gl-surface-2: oklch(0.945 0.008 278);
+  --gl-border: oklch(0.89 0.01 278);
+  --gl-ink: oklch(0.2 0.028 278);
+  --gl-muted: oklch(0.38 0.02 278);
 
-  --gl-brand: oklch(0.5 0.21 273);
-  --gl-brand-strong: oklch(0.4 0.19 273);
-  --gl-brand-soft: oklch(0.95 0.03 273);
+  --gl-brand: oklch(0.744 0.146 170.7);
+  --gl-brand-strong: oklch(0.6 0.13 170.7);
+  --gl-brand-text: oklch(0.5 0.13 170.7);
+  --gl-brand-soft: oklch(0.95 0.04 170.7);
 
   --gl-quiz: oklch(0.55 0.22 322);
   --gl-quiz-soft: oklch(0.95 0.035 322);

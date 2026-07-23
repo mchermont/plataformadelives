@@ -8,7 +8,7 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     a: (
       <>
         Tem — em{" "}
-        <Link href="/demo" className="font-semibold text-[var(--gl-brand)] hover:underline">
+        <Link href="/demo" className="font-semibold text-[var(--gl-brand-text)] hover:underline">
           /demo
         </Link>{" "}
         tem um ambiente compartilhado com login de organizador e de

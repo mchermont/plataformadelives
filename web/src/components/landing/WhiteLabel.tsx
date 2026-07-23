@@ -13,7 +13,7 @@ export default function WhiteLabel() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full bg-[var(--gl-brand-soft)] px-3 py-1 text-xs font-bold text-[var(--gl-brand)]">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[var(--gl-brand-soft)] px-3 py-1 text-xs font-bold text-[var(--gl-brand-text)]">
               <Building2 className="h-3.5 w-3.5" aria-hidden />
               White-label de verdade
             </span>
@@ -34,17 +34,17 @@ export default function WhiteLabel() {
             </p>
             <ul className="mt-6 space-y-3 text-sm text-[var(--gl-ink)]">
               <li className="flex gap-2.5">
-                <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand)]" />
+                <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand-text)]" />
                 Cor de marca, logo e imagem de capa por cliente — sem você
                 mexer em nada técnico
               </li>
               <li className="flex gap-2.5">
-                <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand)]" />
+                <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand-text)]" />
                 Permissões por evento — você decide quem modera chat, roda
                 quiz ou vê relatório
               </li>
               <li className="flex gap-2.5">
-                <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand)]" />
+                <Palette className="mt-0.5 h-4 w-4 shrink-0 text-[var(--gl-brand-text)]" />
                 Um painel de agência pra acompanhar todos os clientes e
                 eventos de um lugar só
               </li>

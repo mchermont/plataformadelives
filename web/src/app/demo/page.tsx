@@ -46,7 +46,7 @@ export default async function DemoPage() {
       <Header authHref={authHref} authLabel={authLabel} />
 
       <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
-        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--gl-brand-soft)] px-3 py-1 text-xs font-bold text-[var(--gl-brand)]">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[var(--gl-brand-soft)] px-3 py-1 text-xs font-bold text-[var(--gl-brand-text)]">
           <Wrench className="h-3.5 w-3.5" aria-hidden />
           Ambiente de teste
         </span>
@@ -73,7 +73,7 @@ export default async function DemoPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-[var(--gl-brand)] hover:underline"
+              className="font-semibold text-[var(--gl-brand-text)] hover:underline"
             >
               falar com a gente
             </a>
@@ -84,7 +84,7 @@ export default async function DemoPage() {
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
           <div className="flex flex-col rounded-2xl border border-[var(--gl-border)] bg-white p-6">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-[var(--gl-brand-soft)]">
-              <ShieldCheck className="h-5 w-5 text-[var(--gl-brand)]" />
+              <ShieldCheck className="h-5 w-5 text-[var(--gl-brand-text)]" />
             </span>
             <h2 className="mt-4 text-lg font-bold text-[var(--gl-ink)]">
               Entrar como organizador
@@ -99,7 +99,7 @@ export default async function DemoPage() {
             </div>
             <a
               href={`/login?next=/admin/eventos/${LIVE_EVENT_ID}/live`}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--gl-brand)] py-3 text-sm font-semibold text-white transition hover:bg-[var(--gl-brand-strong)]"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[var(--gl-brand)] py-3 text-sm font-semibold text-[var(--gl-ink)] transition hover:bg-[var(--gl-brand-strong)]"
             >
               Entrar no Diretor
               <ArrowRight className="h-4 w-4" />

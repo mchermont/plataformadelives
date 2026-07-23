@@ -41,7 +41,7 @@ export default function LiveDemo() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid items-center gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full bg-[var(--gl-brand-soft)] px-3 py-1 text-xs font-bold text-[var(--gl-brand)]">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[var(--gl-brand-soft)] px-3 py-1 text-xs font-bold text-[var(--gl-brand-text)]">
               <Vote className="h-3.5 w-3.5" aria-hidden />
               Experimente
             </span>
@@ -78,7 +78,7 @@ export default function LiveDemo() {
                         className={`relative block w-full overflow-hidden rounded-lg border text-left transition ${
                           picked
                             ? "cursor-default border-[var(--gl-border)]"
-                            : "border-[var(--gl-border)] hover:border-[var(--gl-brand)]"
+                            : "border-[var(--gl-border)] hover:border-[var(--gl-brand-text)]"
                         }`}
                       >
                         <div
@@ -109,7 +109,7 @@ export default function LiveDemo() {
                     <button
                       type="button"
                       onClick={reset}
-                      className="inline-flex items-center gap-1 font-semibold text-[var(--gl-brand)] hover:underline"
+                      className="inline-flex items-center gap-1 font-semibold text-[var(--gl-brand-text)] hover:underline"
                     >
                       <RotateCcw className="h-3 w-3" />
                       Votar de novo

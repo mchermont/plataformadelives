@@ -38,7 +38,7 @@ export default function HowItWorks() {
         <ol className="mt-14 grid gap-10 sm:grid-cols-3 sm:gap-8">
           {STEPS.map((step, i) => (
             <Reveal key={step.title} delay={i * 120} as="li">
-              <span className="text-sm font-bold text-[var(--gl-brand)]">
+              <span className="text-sm font-bold text-[var(--gl-brand-text)]">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <step.icon

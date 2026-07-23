@@ -24,11 +24,13 @@ export default function Header({
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--gl-border)] bg-[var(--gl-bg)]/90 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-[var(--gl-ink)]">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--gl-brand)] text-sm font-black text-white">
-            G
+        <Link href="/" className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon.png" alt="" className="h-8 w-8 rounded-lg" />
+          <span className="text-lg font-extrabold tracking-tight">
+            <span className="text-[var(--gl-ink)]">Go</span>
+            <span className="text-[var(--gl-brand-text)]">Live</span>
           </span>
-          <span className="text-lg font-extrabold tracking-tight">GoLive</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -54,7 +56,7 @@ export default function Header({
           ) : null}
           <Link
             href="/demo"
-            className="text-sm font-medium text-[var(--gl-ink)] transition hover:text-[var(--gl-brand)]"
+            className="text-sm font-medium text-[var(--gl-ink)] transition hover:text-[var(--gl-brand-text)]"
           >
             Teste agora
           </Link>
@@ -62,7 +64,7 @@ export default function Header({
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full bg-[var(--gl-brand)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[var(--gl-brand)]/20 transition hover:bg-[var(--gl-brand-strong)]"
+            className="rounded-full bg-[var(--gl-brand)] px-5 py-2.5 text-sm font-semibold text-[var(--gl-ink)] shadow-sm shadow-[var(--gl-brand)]/20 transition hover:bg-[var(--gl-brand-strong)]"
           >
             Falar com a gente
           </a>
@@ -122,7 +124,7 @@ export default function Header({
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 block rounded-full bg-[var(--gl-brand)] px-5 py-3 text-center text-sm font-semibold text-white"
+            className="mt-3 block rounded-full bg-[var(--gl-brand)] px-5 py-3 text-center text-sm font-semibold text-[var(--gl-ink)]"
           >
             Falar com a gente
           </a>

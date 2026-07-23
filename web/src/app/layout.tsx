@@ -13,6 +13,9 @@ const splineMono = Spline_Sans_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://lives.propanofilmes.com.br",
+  ),
   title: "Plataforma de Lives",
   description: "Transmissões ao vivo com acesso controlado, chat e quiz",
 };

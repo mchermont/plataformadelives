@@ -13,10 +13,24 @@ import Footer from "@/components/landing/Footer";
 
 export const dynamic = "force-dynamic";
 
+const TITLE = "GoLive — lives com gamificação em tempo real";
+const DESCRIPTION =
+  "Quiz, chat moderado, Q&A com aprovação, sorteio auditável e reações em tempo real, tudo com a marca do seu cliente. A plataforma de lives pra agências e empresas que querem participação, não só transmissão.";
+
 export const metadata: Metadata = {
-  title: "GoLive — lives com gamificação em tempo real",
-  description:
-    "Quiz, chat moderado, Q&A com aprovação, sorteio auditável e reações em tempo real, tudo com a marca do seu cliente. A plataforma de lives pra agências e empresas que querem participação, não só transmissão.",
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [{ url: "/og-image.png", width: 1536, height: 1024, alt: "GoLive" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/og-image.png"],
+  },
 };
 
 // Home institucional: eventos são privados e acessados apenas pelo link

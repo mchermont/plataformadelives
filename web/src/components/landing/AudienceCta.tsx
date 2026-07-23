@@ -8,7 +8,7 @@ const AUDIENCES = [
     title: "Você é uma agência ou produtora",
     description:
       "Revenda a GoLive com a marca de cada cliente, gerencie vários eventos ao mesmo tempo e mostre resultado com relatório exportável — sem escrever uma linha de código.",
-    color: "var(--gl-brand)",
+    color: "var(--gl-brand-text)",
     soft: "var(--gl-brand-soft)",
   },
   {

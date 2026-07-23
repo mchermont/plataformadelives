@@ -37,14 +37,14 @@ export default function Hero() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--gl-brand)] px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-[var(--gl-brand)]/25 transition hover:-translate-y-0.5 hover:bg-[var(--gl-brand-strong)]"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--gl-brand)] px-7 py-3.5 text-base font-semibold text-[var(--gl-ink)] shadow-lg shadow-[var(--gl-brand)]/25 transition hover:-translate-y-0.5 hover:bg-[var(--gl-brand-strong)]"
             >
               Falar com a gente
               <ArrowRight className="h-4 w-4" />
             </a>
             <Link
               href="/demo"
-              className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-[var(--gl-ink)] transition hover:text-[var(--gl-brand)]"
+              className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-base font-semibold text-[var(--gl-ink)] transition hover:text-[var(--gl-brand-text)]"
             >
               <PlayCircle className="h-5 w-5" />
               Testar agora, de graça
