@@ -51,7 +51,8 @@ function embedSrc(provider: StreamProvider, ref: string): string | null {
       // Dacast fornece a URL completa do iframe no painel deles
       return ref.startsWith("http") ? ref : null;
     case "hls":
-      return null; // fase 2
+    case "studio":
+      return null;
   }
 }
 
@@ -76,6 +77,16 @@ export function StreamPlayer({ provider, streamRef, title, coverUrl }: StreamPla
         <p className="max-w-sm text-center text-sm">
           Transmissão pelo servidor próprio (HLS) chega na fase 2. Configure o
           evento com YouTube, Vimeo ou Dacast por enquanto.
+        </p>
+      </div>
+    );
+  }
+
+  if (provider === "studio") {
+    return (
+      <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-neutral-900 text-neutral-400">
+        <p className="max-w-sm text-center text-sm">
+          Transmissão ao vivo do Estúdio GoLive.
         </p>
       </div>
     );

@@ -1,7 +1,7 @@
 // Tipos do domínio — espelham o schema em supabase/migrations/0001_initial_schema.sql
 
 export type EventStatus = "draft" | "scheduled" | "live" | "ended" | "ondemand";
-export type StreamProvider = "youtube" | "vimeo" | "dacast" | "hls";
+export type StreamProvider = "youtube" | "vimeo" | "dacast" | "hls" | "studio";
 export type RegistrationStatus = "pending" | "approved" | "rejected" | "banned";
 export type FieldType = "text" | "select" | "checkbox";
 export type PostKind = "message" | "announcement";
@@ -503,6 +503,7 @@ export const PROVIDER_LABELS: Record<StreamProvider, string> = {
   vimeo: "Vimeo",
   dacast: "Dacast",
   hls: "Servidor próprio (HLS)",
+  studio: "Estúdio GoLive (WebRTC / Cloud Mixer)",
 };
 
 export const REGISTRATION_MODE_LABELS: Record<RegistrationMode, string> = {
@@ -518,3 +519,50 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   ended: "Encerrado",
   ondemand: "On demand",
 };
+
+// ===== Estúdio GoLive (migração 0032) =====
+
+export type StudioLayout = "solo" | "grid" | "split" | "spotlight" | "presentation";
+
+export type StudioAssetType =
+  | "gc_name"
+  | "banner"
+  | "ticker"
+  | "logo"
+  | "overlay"
+  | "background"
+  | "video_clip"
+  | "presentation";
+
+export interface StudioRoom {
+  id: string;
+  event_id: string;
+  active_layout: StudioLayout;
+  active_scene_id: string;
+  spotlight_participant_id: string | null;
+  active_banner_id: string | null;
+  active_ticker_text: string | null;
+  active_overlay_url: string | null;
+  active_background_url: string | null;
+  active_logo_url: string | null;
+  active_presentation_id: string | null;
+  active_slide_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudioAsset {
+  id: string;
+  event_id: string;
+  asset_type: StudioAssetType;
+  title: string;
+  subtitle: string | null;
+  content_json: Record<string, unknown>;
+  file_url: string | null;
+  sort_order: number;
+  is_default: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+

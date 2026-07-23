@@ -9,8 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@livekit/components-core": "^0.12.14",
+    "@livekit/components-react": "^2.9.23",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.5",
+    "livekit-client": "^2.21.0",
+    "livekit-server-sdk": "^2.17.0",
     "lucide-react": "^1.25.0",
     "next": "16.2.10",
     "pg": "^8.22.0",

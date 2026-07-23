@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 function tabsFor(eventId: string) {
   return [
     { label: "Configuração", href: `/admin/eventos/${eventId}` },
+    { label: "Estúdio", href: `/admin/eventos/${eventId}/estudio` },
     { label: "Sala de produção", href: `/admin/eventos/${eventId}/live` },
     { label: "Inscrições", href: `/admin/eventos/${eventId}/inscricoes` },
     { label: "Relatório", href: `/admin/eventos/${eventId}/relatorio` },

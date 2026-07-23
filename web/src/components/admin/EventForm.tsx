@@ -93,6 +93,7 @@ const STREAM_PLACEHOLDERS: Record<StreamProvider, string> = {
   vimeo: "Link do vídeo/evento do Vimeo (ex.: https://vimeo.com/123456789)",
   dacast: "URL completa do player fornecida pelo painel Dacast",
   hls: "URL do stream HLS (.m3u8) — disponível na Fase J (streaming próprio)",
+  studio: "Nenhum link necessário — a transmissão é gerada no Estúdio GoLive",
 };
 
 export function EventForm({ event, fields, allowlist, userId, clientId, extraTabs }: EventFormProps) {
