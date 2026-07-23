@@ -38,10 +38,13 @@ export default function Footer({
 
       <footer className="bg-[var(--gl-ink)] py-10 text-white/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 text-sm sm:flex-row sm:justify-between sm:px-6">
-          <div className="flex items-center gap-2 text-white">
+          <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.png" alt="" className="h-6 w-6 rounded-md" />
-            <span className="font-bold">GoLive</span>
+            <img
+              src="/logo-horizontal.png"
+              alt="GoLive"
+              className="h-8 w-auto object-contain brightness-0 invert"
+            />
           </div>
 
           <p>© {new Date().getFullYear()} GoLive. Todos os direitos reservados.</p>
