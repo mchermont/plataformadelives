@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Mic, Video, User, Check, ArrowRight } from "lucide-react";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
@@ -10,11 +10,16 @@ export default function GuestStudioPage() {
   const clientSlug = params?.clientSlug as string;
   const eventSlug = params?.eventSlug as string;
 
+  const [mounted, setMounted] = useState(false);
   const [name, setName] = useState("");
   const [joined, setJoined] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +46,8 @@ export default function GuestStudioPage() {
       setLoading(false);
     }
   };
+
+  if (!mounted) return null;
 
   if (joined && token && serverUrl) {
     return (

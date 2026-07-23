@@ -27,6 +27,7 @@ interface StudioControlRoomProps {
 }
 
 export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioControlRoomProps) {
+  const [mounted, setMounted] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [roomState, setRoomState] = useState<StudioRoom>(
@@ -54,6 +55,10 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
   // Mídia local de fallback quando o LiveKit token não chegou
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Busca token JWT do LiveKit na API
   useEffect(() => {
@@ -279,6 +284,17 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
       <StudioPrivateChat eventId={event.id} />
     </div>
   );
+
+  if (!mounted) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
+        <div className="flex items-center gap-3">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <span className="text-sm font-medium">Carregando Estúdio GoLive...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Se tiver token e servidor LiveKit, envolve TODA a UI com LiveKitRoom
   if (token && serverUrl) {
