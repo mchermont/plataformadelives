@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0033.
+  a última aplicada é a 0034.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
