@@ -87,3 +87,43 @@ export function useFitTiles(
 
   return { ...size, ref };
 }
+
+export interface FitWidthResult {
+  itemWidth: number;
+  itemHeight: number;
+  ref: (el: HTMLElement | null) => void;
+}
+
+/**
+ * Encaixa tiles de proporção fixa só pela LARGURA do contêiner — a altura
+ * de cada tile (e portanto a altura total do bloco) sai da proporção, não
+ * é medida. Diferente de `useFitTiles`, que mede altura E largura pra
+ * maximizar o tile dentro de um contêiner com altura FIXA (bom pra área
+ * do player, que é sempre 16:9) — aqui o bloco inteiro cresce ou encolhe
+ * verticalmente conforme o número de linhas, então o que vier depois dele
+ * (ex.: a seção de intérpretes, embaixo da lista de participantes) sobe
+ * ou desce junto, em vez de ficar preso no fundo de uma área esticada.
+ */
+export function useFitWidth(cols: number, opts?: { gap?: number; aspect?: number }): FitWidthResult {
+  const gap = opts?.gap ?? 8;
+  const aspect = opts?.aspect ?? 16 / 9;
+
+  const [node, setNode] = useState<HTMLElement | null>(null);
+  const ref = useCallback((el: HTMLElement | null) => setNode(el), []);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (!node) {
+      setWidth(0);
+      return;
+    }
+    const compute = () => setWidth(node.clientWidth);
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [node]);
+
+  const itemWidth = cols > 0 && width > 0 ? Math.max(0, (width - gap * (cols - 1)) / cols) : 0;
+  return { itemWidth, itemHeight: itemWidth / aspect, ref };
+}

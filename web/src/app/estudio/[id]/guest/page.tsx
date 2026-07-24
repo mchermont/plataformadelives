@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Mic, MicOff, Video, VideoOff, Users, ArrowRight, Settings } from "lucide-react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useLocalParticipant, useParticipants } from "@livekit/components-react";
+import { useLocalParticipant, useParticipants, useRoomContext } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "@/components/admin/studio/StudioCanvas";
@@ -12,6 +12,8 @@ import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipa
 import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
 import { useStudioSelfStage } from "@/components/admin/studio/useStudioSelfStage";
+
+const MAX_BACKSTAGE_PARTICIPANTS = 14;
 
 const LiveKitRoom = dynamic(
   () => import("@livekit/components-react").then((m) => m.LiveKitRoom),
@@ -33,12 +35,32 @@ function GuestStudioInner({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { isOnStage, setDesiredMicOn } = useStudioSelfStage();
   const participants = useParticipants();
+  const room = useRoomContext();
 
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
   const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [noiseSuppression, setNoiseSuppression] = useState(true);
   const [volumes, setVolumes] = useState<StudioVolumeMap>({});
+  const [studioFull, setStudioFull] = useState(false);
+
+  // Estúdio (Diretor + convidados, sem contar intérpretes — pool à parte)
+  // limitado a MAX_BACKSTAGE_PARTICIPANTS. Se esta conexão for a que
+  // estourou o limite, sai.
+  useEffect(() => {
+    const identity = localParticipant?.identity;
+    if (!identity) return;
+    const nonInterpreters = participants.filter((p) => !p.identity.startsWith("interprete-"));
+    const isAmongFirst = nonInterpreters
+      .slice()
+      .sort((a, b) => a.identity.localeCompare(b.identity))
+      .slice(0, MAX_BACKSTAGE_PARTICIPANTS)
+      .some((p) => p.identity === identity);
+    if (nonInterpreters.length > MAX_BACKSTAGE_PARTICIPANTS && !isAmongFirst) {
+      setStudioFull(true);
+      room.disconnect();
+    }
+  }, [participants, localParticipant, room]);
 
   // Subscrição em Realtime com o Supabase para manter o Canvas do convidado em sincronia com o Diretor
   useEffect(() => {
@@ -94,6 +116,20 @@ function GuestStudioInner({
       return isDirector ? p.attributes?.isOnStage !== "false" : p.attributes?.isOnStage === "true";
     })
     .map((p) => ({ identity: p.identity, name: p.name || p.identity }));
+
+  if (studioFull) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-950 p-4 text-center text-neutral-100">
+        <div className="max-w-sm space-y-2">
+          <Users className="mx-auto h-8 w-8 text-neutral-600" />
+          <p className="text-sm font-semibold">Estúdio cheio</p>
+          <p className="text-xs text-neutral-400">
+            Já tem {MAX_BACKSTAGE_PARTICIPANTS} pessoas conectadas neste evento (contando o Diretor). Aguarde alguém sair pra entrar.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full flex-col lg:flex-row overflow-hidden bg-neutral-950 text-neutral-100 p-3 lg:p-4 gap-4">

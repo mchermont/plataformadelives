@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { LiveKitRoom, useLocalParticipant, useParticipants } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { LiveEvent, StudioAsset, StudioRoom } from "@/lib/types";
@@ -68,6 +68,21 @@ function StudioControlRoomInner({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { setDesiredMicOn } = useStudioSelfStage();
   const participants = useParticipants();
+
+  // Altura real disponível abaixo do que já está acima na página (navbar +
+  // breadcrumb + abas do evento, que variam de altura e não são só o
+  // navbar) — medida de verdade em vez de um `calc(100vh-Nrem)` chutado,
+  // que ficava baixo e estourava a página inteira em scroll.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [rootHeight, setRootHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const compute = () => setRootHeight(window.innerHeight - el.getBoundingClientRect().top);
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Estado otimista local de quem foi movido pro palco/backstage — reflete
@@ -178,7 +193,11 @@ function StudioControlRoomInner({
   );
 
   return (
-    <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
+    <div
+      ref={rootRef}
+      style={rootHeight ? { height: rootHeight } : undefined}
+      className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100"
+    >
       <StudioAudioRenderer volumes={volumes} includeInterpreters />
 
       {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
