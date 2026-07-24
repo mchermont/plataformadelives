@@ -5,6 +5,7 @@ import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
 import { User } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 import { useFitTiles } from "./useFitTiles";
+import { StudioTileGrid } from "./StudioTileGrid";
 
 interface StudioCanvasProps {
   roomState: StudioRoom;
@@ -111,7 +112,6 @@ export function StudioCanvas({
   // arranjo ativo de fato é anexado a um elemento montado no DOM).
   const gridCellCount = (isMediaActive ? 1 : 0) + stageParticipants.length;
   const gridFit = useFitTiles(gridCellCount, { gap: 12 });
-  const railFit = useFitTiles(secondaries.length, { gap: 8, forceCols: 1 });
   const bottomRowFit = useFitTiles(secondaries.length, {
     gap: 8,
     forceCols: secondaries.length || 1,
@@ -211,16 +211,8 @@ export function StudioCanvas({
             : null;
 
         const thumbsColumn = secondaries.length > 0 && (
-          <div ref={railFit.ref} className="h-full w-56 flex-shrink-0">
-            {railFit.itemHeight > 0 && (
-              <div className="flex h-full flex-col items-center justify-center gap-2">
-                {secondaries.map((p) => (
-                  <div key={p.sid} style={{ width: railFit.itemWidth, height: railFit.itemHeight }}>
-                    {renderTile(p, true)}
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className={`h-full flex-shrink-0 ${secondaries.length > 5 ? "w-72" : "w-56"}`}>
+            <StudioTileGrid items={secondaries} getKey={(p) => p.sid} renderItem={(p) => renderTile(p, true)} />
           </div>
         );
 
