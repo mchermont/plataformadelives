@@ -397,6 +397,16 @@ o provedor HLS). Diretor + convidados na mesma sala, mixagem de cena e saída
 limpa pro OBS. **Ainda instável — muitas melhorias pendentes; mexer aqui é
 trabalho conjunto com o Marcelo, não assumir que está pronto.**
 
+Decisões/alvos (do plano original, sessão Antigravity):
+- **Provedor: LiveKit Cloud** (tier dev grátis, 10.000 participant-minutes/
+  mês). Produção pode seguir no Cloud ou subir o Docker do LiveKit no
+  Railway/VPS — a definir. Env `LIVEKIT_*` precisa apontar pra uma instância
+  real (hoje há fallback `devkey`/localhost no código, só serve pra dev).
+- **Alvo de escala: até 12 participantes** por sala.
+- Sincronia de estado de cena via **Supabase Realtime** (`studio_rooms`);
+  o plano previa slides via **LiveKit Data Channels** — hoje o código
+  sincroniza tudo por Supabase; unificar/decidir depois.
+
 Base já construída:
 - [x] Migração 0032: `'studio'` no enum `stream_provider`; tabelas
       `studio_rooms` (estado de palco por evento) e `studio_assets`
@@ -420,16 +430,26 @@ Base já construída:
       do browser; upload real de arquivos (PDF/imagens/logos).
 
 Lacunas conhecidas / a fazer:
-- [ ] **Sincronia Realtime não dispara**: guest/output assinam
-      `postgres_changes` em `studio_rooms`, mas a tabela **não está** na
-      publicação `supabase_realtime` — adicionar à publicação (ou trocar a
-      via de sincronia).
+- [x] **Sincronia Realtime não disparava** (corrigido, migração 0033):
+      guest/output/Diretor assinam `postgres_changes` em `studio_rooms`/
+      `studio_assets`, mas as tabelas não estavam na publicação
+      `supabase_realtime` e ainda faltava `REPLICA IDENTITY FULL` (o
+      upsert do Diretor vira UPDATE e as assinaturas filtram por
+      `event_id`, não a PK — sem FULL o filtro descarta o evento).
+      Verificado ponta a ponta no nível de dados (anon **e** autenticado
+      recebem o UPDATE). Falta ainda o teste visual real (Diretor troca
+      layout no browser → convidado/output refletem) com LiveKit + 2 abas.
 - [ ] **Segurança do token**: `/api/studio/token` com `isDirector=true` só
       confere se há usuário logado, não valida `has_event_role(_,'stream')`
       — qualquer autenticado pega `roomAdmin`. Remover também o fallback
       `devkey`/`secret` hardcoded.
-- [ ] Provisionar/definir o servidor LiveKit de produção (a env aponta pra
-      onde?) e validar custo/escala.
+- [ ] Provisionar/definir o servidor LiveKit de produção (LiveKit Cloud vs
+      Docker no Railway/VPS) e validar custo/escala; hoje a env pode estar
+      sem apontar pra instância real.
+- [ ] Slides PDF/PPT: decidir a conversão (client-side `pdfjs-dist` vs
+      salvar cada página como imagem no Storage) — hoje o
+      `StudioPresentationManager` sobe pro bucket `materials`, sem
+      conversão de PDF→imagem implementada.
 - [ ] Estabilização geral de UX/mixer, gravação/VOD, e demais melhorias a
       alinhar com o Marcelo.
 

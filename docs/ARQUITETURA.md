@@ -233,11 +233,10 @@ si trafega pelo **LiveKit** (fora do Supabase); o Postgres guarda só o
   entram na mesma resolvendo slug→UUID no `/api/studio/token`. Palco vs
   backstage é o atributo `isOnStage` do participante, setado pelo
   `/api/studio/stage` (via `RoomServiceClient.updateParticipant`).
-- **Lacunas conhecidas** (ROADMAP J.2): `studio_rooms` **não está** na
-  publicação `supabase_realtime` apesar de guest/output assinarem
-  `postgres_changes` nela — a sincronia de cena por Realtime não dispara
-  ainda; e `/api/studio/token` não valida papel do "Diretor" (qualquer
-  autenticado pega `roomAdmin`).
+- **Sincronia de cena** via Supabase Realtime nas duas tabelas — ligada na
+  migração 0033 (publicação + `REPLICA IDENTITY FULL`, ver seção Realtime).
+- **Lacuna ainda aberta** (ROADMAP J.2): `/api/studio/token` não valida
+  papel do "Diretor" — qualquer autenticado pega `roomAdmin`.
 
 ## RPCs principais (`security definer`)
 
@@ -403,11 +402,16 @@ intervalo curto (RPCs leves como `get_displayed_raffle`), por serem menos
 sensíveis a latência ou por já terem uma via de atualização otimista no
 cliente.
 
-⚠️ **`studio_rooms` ainda NÃO está na publicação** (migração 0032), embora
-as telas do estúdio (`/estudio/[id]/guest` e `/output`) assinem
-`postgres_changes` nela — por isso a sincronia de cena do estúdio via
-Realtime não funciona ainda. Adicionar à publicação é uma das pendências
-do Estúdio (ROADMAP J.2).
+**`studio_rooms` e `studio_assets` entraram na publicação** na migração
+0033 (o Estúdio — Diretor/`/estudio/[id]/guest`/`/output` — assina
+`postgres_changes` nelas). Junto veio `REPLICA IDENTITY FULL` nas duas: o
+Diretor grava por `upsert` (que vira UPDATE após a 1ª criação) e as
+assinaturas filtram por `event_id`, não pela PK — com a replica identity
+padrão (só a PK `id`) o `event_id` não vai no WAL do UPDATE e o filtro do
+Realtime descartaria o evento. Verificado no nível de dados que anon (rota
+`/output` do OBS, sem sessão) e autenticado (Diretor/convidado) recebem o
+UPDATE. É o padrão a repetir pra qualquer tabela nova que precise de
+Realtime com filtro por coluna não-PK.
 
 ## Storage
 

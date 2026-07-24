@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0032.
+  a última aplicada é a 0033.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -224,14 +224,18 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   Canvas, OutputCanvas, BackstageBar, GraphicsPanel, PresentationManager,
   PrivateChat, ClientLoader — SDK WebRTC exige `dynamic ssr:false`).
   Env novas: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
-  `NEXT_PUBLIC_LIVEKIT_URL`. **Lacunas conhecidas a resolver:** (1) a
-  sincronia Diretor→convidado→output assina `postgres_changes` em
-  `studio_rooms`, mas a tabela **não está** na publicação `supabase_realtime`
-  — a sincronia via Realtime provavelmente não dispara ainda; (2)
+  `NEXT_PUBLIC_LIVEKIT_URL` (intenção: LiveKit Cloud, tier dev; produção a
+  definir — hoje o código tem fallback `devkey`/localhost, só dev). Alvo de
+  escala: até 12 participantes. **Lacunas:** (1) ~~sincronia via Realtime
+  não disparava~~ **corrigida na migração 0033** — `studio_rooms`/
+  `studio_assets` entraram na publicação `supabase_realtime` + `REPLICA
+  IDENTITY FULL` (o upsert do Diretor vira UPDATE e as assinaturas filtram
+  por `event_id`, não a PK; sem FULL o filtro descartava o evento);
+  verificado no nível de dados (anon e autenticado recebem), falta só o
+  teste visual com LiveKit + 2 abas; (2) **ainda aberta** —
   `/api/studio/token` com `isDirector=true` só checa se há usuário logado,
   **não** valida `has_event_role(_,'stream')` — qualquer autenticado
-  consegue token de `roomAdmin` de qualquer estúdio, e há fallback pra
-  `devkey`/`secret` hardcoded se a env faltar.
+  consegue token de `roomAdmin` de qualquer estúdio.
 - **Ambiente de teste compartilhado** (`/demo`, migração 0029): cliente
   fixo "Cliente Demo" com dois eventos — `evento-modelo` (`status='draft'`,
   editado normalmente pelo `/admin`, é onde a configuração "oficial" do
