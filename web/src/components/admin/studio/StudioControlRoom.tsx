@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { LiveEvent, StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "./StudioCanvas";
@@ -26,147 +26,47 @@ interface StudioControlRoomProps {
   initialAssets: StudioAsset[];
 }
 
-export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioControlRoomProps) {
-  const [mounted, setMounted] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
-  const [serverUrl, setServerUrl] = useState<string | null>(null);
-  const [roomState, setRoomState] = useState<StudioRoom>(
-    initialRoom || {
-      id: "temp",
-      event_id: event.id,
-      active_layout: "grid",
-      active_scene_id: "default",
-      spotlight_participant_id: null,
-      active_banner_id: null,
-      active_ticker_text: null,
-      active_overlay_url: null,
-      active_background_url: null,
-      active_logo_url: event.brand_logo_url,
-      active_presentation_id: null,
-      active_slide_index: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-  );
-  const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
+// 1. COMPONENTE INTERNO: Consome os hooks do LiveKit (roda obrigatoriamente dentro do LiveKitRoom)
+function StudioControlRoomInner({
+  event,
+  roomState,
+  assets,
+  handleUpdateRoom,
+  handleCreateAsset,
+  handleToggleStage,
+  handleCopyInviteLink,
+}: {
+  event: LiveEvent;
+  roomState: StudioRoom;
+  assets: StudioAsset[];
+  handleUpdateRoom: (updates: Partial<StudioRoom>) => Promise<void>;
+  handleCreateAsset: (assetData: Partial<StudioAsset>) => Promise<void>;
+  handleToggleStage: (identity: string, currentOnStage: boolean) => void;
+  handleCopyInviteLink: () => void;
+}) {
+  const { localParticipant } = useLocalParticipant();
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
 
-  // Mídia local de fallback quando o LiveKit token não chegou
-  const localVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-
+  // Muta/Desmuta a câmera local de forma reativa no LiveKit
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Busca token JWT do LiveKit na API
-  useEffect(() => {
-    async function fetchToken() {
-      try {
-        const res = await fetch(
-          `/api/studio/token?eventId=${event.id}&identity=diretor-${event.id}&name=Diretor&isDirector=true`
-        );
-        const data = await res.json();
-        if (data.token && data.serverUrl) {
-          setToken(data.token);
-          setServerUrl(data.serverUrl);
-        }
-      } catch (err) {
-        console.warn("LiveKit server token indisponível:", err);
-      }
+    if (localParticipant) {
+      localParticipant.setCameraEnabled(isCamOn).catch((err) => {
+        console.error("Erro ao alterar estado da câmera:", err);
+      });
     }
-    fetchToken();
-  }, [event.id]);
+  }, [isCamOn, localParticipant]);
 
-  // Fallback de câmera local se o LiveKit demorar
+  // Muta/Desmuta o microfone local de forma reativa no LiveKit
   useEffect(() => {
-    if (!token) {
-      navigator.mediaDevices
-        .getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-          setLocalStream(stream);
-          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        })
-        .catch((err) => console.warn("Mídia local negada:", err));
+    if (localParticipant) {
+      localParticipant.setMicrophoneEnabled(isMicOn).catch((err) => {
+        console.error("Erro ao alterar estado do microfone:", err);
+      });
     }
-  }, [token]);
+  }, [isMicOn, localParticipant]);
 
-  // Atualiza estado da sala no Supabase (realtime persistente)
-  const handleUpdateRoom = useCallback(
-    async (updates: Partial<StudioRoom>) => {
-      setRoomState((prev) => ({ ...prev, ...updates }));
-      try {
-        const supabase = createClient();
-        await supabase.from("studio_rooms").upsert(
-          {
-            event_id: event.id,
-            ...updates,
-          },
-          { onConflict: "event_id" }
-        );
-      } catch (err) {
-        console.error("Erro ao atualizar studio_rooms:", err);
-      }
-    },
-    [event.id]
-  );
-
-  // Criar novo asset no Supabase
-  const handleCreateAsset = useCallback(
-    async (assetData: Partial<StudioAsset>) => {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("studio_assets")
-          .insert({
-            event_id: event.id,
-            ...assetData,
-          })
-          .select()
-          .single();
-
-        if (data && !error) {
-          setAssets((prev) => [data as StudioAsset, ...prev]);
-        } else if (error) {
-          console.error("Erro ao salvar asset:", error);
-          alert("Não foi possível salvar o item.");
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    },
-    [event.id]
-  );
-
-  // Toggle do participante entre Palco e Backstage (noop no pai, manipulado pelo participante no LiveKit)
-  const handleToggleStage = useCallback((participantIdentity: string, currentOnStage: boolean) => {
-    console.log("Toggle stage:", participantIdentity, currentOnStage);
-  }, []);
-
-  // Gera o link de convite para o convidado — usa UUID do evento para garantir a sala correta no LiveKit
-  const handleCopyInviteLink = () => {
-    const origin = window.location.origin;
-    const link = `${origin}/estudio/${event.id}/guest`;
-    navigator.clipboard.writeText(link);
-    alert(`Link copiado!\n\nCompartilhe com o convidado:\n${link}`);
-  };
-
-  // --- Early returns ANTES do studioContent para evitar hooks LiveKit fora do contexto ---
-  const spinner = (
-    <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
-      <div className="flex items-center gap-3">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-        <span className="text-sm font-medium">Carregando Estúdio GoLive...</span>
-      </div>
-    </div>
-  );
-
-  if (!mounted) return spinner;
-  if (!token || !serverUrl) return spinner;
-
-  // Renderização do Shell do Estúdio (só chega aqui quando LiveKitRoom já está pronto)
-  const studioContent = (
+  return (
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
       {/* 1. Sidebar Esquerda — Cenas pré-configuradas */}
       <div className="hidden md:flex w-52 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 space-y-3">
@@ -221,8 +121,10 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           </div>
         </div>
 
-        {/* Canvas do Palco */}
-        <StudioCanvas roomState={roomState} assets={assets} />
+        {/* Canvas do Palco (Garante proporção 16:9 sempre) */}
+        <div className="relative aspect-video w-full overflow-hidden bg-black rounded-2xl">
+          <StudioCanvas roomState={roomState} assets={assets} />
+        </div>
 
         {/* Controles de Mídia & Seletores de Layout */}
         <div className="flex items-center justify-between rounded-2xl bg-neutral-900 border border-neutral-800 p-3">
@@ -275,7 +177,7 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
           </div>
         </div>
 
-        {/* Fila do Backstage (DENTRO do LiveKitRoom para acessar useParticipants) */}
+        {/* Fila do Backstage */}
         <StudioBackstageBar eventId={event.id} onToggleStage={handleToggleStage} />
       </div>
 
@@ -293,22 +195,146 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
       <StudioPrivateChat eventId={event.id} />
     </div>
   );
+}
 
-  // Sempre dentro do LiveKitRoom — nunca renderiza studioContent fora do contexto
+// 2. COMPONENTE PRINCIPAL (Outer Loader)
+export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioControlRoomProps) {
+  const [mounted, setMounted] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const [roomState, setRoomState] = useState<StudioRoom>(
+    initialRoom || {
+      id: "temp",
+      event_id: event.id,
+      active_layout: "grid",
+      active_scene_id: "default",
+      spotlight_participant_id: null,
+      active_banner_id: null,
+      active_ticker_text: null,
+      active_overlay_url: null,
+      active_background_url: null,
+      active_logo_url: event.brand_logo_url,
+      active_presentation_id: null,
+      active_slide_index: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+  );
+  const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Busca token JWT do LiveKit na API
+  useEffect(() => {
+    async function fetchToken() {
+      try {
+        const res = await fetch(
+          `/api/studio/token?eventId=${event.id}&identity=diretor-${event.id}&name=Diretor&isDirector=true`
+        );
+        const data = await res.json();
+        if (data.token && data.serverUrl) {
+          setToken(data.token);
+          setServerUrl(data.serverUrl);
+        }
+      } catch (err) {
+        console.warn("LiveKit server token indisponível:", err);
+      }
+    }
+    fetchToken();
+  }, [event.id]);
+
+  // Atualiza estado da sala no Supabase (realtime persistente)
+  const handleUpdateRoom = useCallback(
+    async (updates: Partial<StudioRoom>) => {
+      setRoomState((prev) => ({ ...prev, ...updates }));
+      try {
+        const supabase = createClient();
+        await supabase.from("studio_rooms").upsert(
+          {
+            event_id: event.id,
+            ...updates,
+          },
+          { onConflict: "event_id" }
+        );
+      } catch (err) {
+        console.error("Erro ao atualizar studio_rooms:", err);
+      }
+    },
+    [event.id]
+  );
+
+  // Criar novo asset no Supabase
+  const handleCreateAsset = useCallback(
+    async (assetData: Partial<StudioAsset>) => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("studio_assets")
+          .insert({
+            event_id: event.id,
+            ...assetData,
+          })
+          .select()
+          .single();
+
+        if (data && !error) {
+          setAssets((prev) => [data as StudioAsset, ...prev]);
+        } else if (error) {
+          console.error("Erro ao salvar asset:", error);
+          alert("Não foi possível salvar o item.");
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [event.id]
+  );
+
+  const handleToggleStage = useCallback((participantIdentity: string, currentOnStage: boolean) => {
+    console.log("Toggle stage:", participantIdentity, currentOnStage);
+  }, []);
+
+  const handleCopyInviteLink = () => {
+    const origin = window.location.origin;
+    const link = `${origin}/estudio/${event.id}/guest`;
+    navigator.clipboard.writeText(link);
+    alert(`Link copiado!\n\nCompartilhe com o convidado:\n${link}`);
+  };
+
+  const spinner = (
+    <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
+      <div className="flex items-center gap-3">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+        <span className="text-sm font-medium">Carregando Estúdio GoLive...</span>
+      </div>
+    </div>
+  );
+
+  if (!mounted) return spinner;
+  if (!token || !serverUrl) return spinner;
+
   return (
     <LiveKitRoom
       token={token}
       serverUrl={serverUrl}
       connect={true}
-      video={isCamOn}
-      audio={isMicOn}
       className="h-full w-full"
       onError={(err) => {
         console.error("LiveKit Room Connection Error:", err);
       }}
     >
       <RoomAudioRenderer />
-      {studioContent}
+      <StudioControlRoomInner
+        event={event}
+        roomState={roomState}
+        assets={assets}
+        handleUpdateRoom={handleUpdateRoom}
+        handleCreateAsset={handleCreateAsset}
+        handleToggleStage={handleToggleStage}
+        handleCopyInviteLink={handleCopyInviteLink}
+      />
     </LiveKitRoom>
   );
 }

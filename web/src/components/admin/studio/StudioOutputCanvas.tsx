@@ -83,7 +83,7 @@ export function StudioOutputCanvas({ eventId, initialRoom, initialAssets }: Stud
       className="h-screen w-screen bg-black overflow-hidden flex items-center justify-center p-0 m-0"
     >
       <RoomAudioRenderer />
-      <div className="h-full w-full">
+      <div className="relative aspect-video w-full max-w-[1920px] bg-black">
         <StudioCanvas roomState={roomState} assets={assets} />
       </div>
     </LiveKitRoom>

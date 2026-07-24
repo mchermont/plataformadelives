@@ -1,7 +1,6 @@
 "use client";
 
 import { useParticipants } from "@livekit/components-react";
-import { LocalParticipant } from "livekit-client";
 import { Mic, MicOff, Video, VideoOff, ArrowUp, ArrowDown } from "lucide-react";
 
 interface StudioBackstageBarProps {
@@ -12,33 +11,24 @@ interface StudioBackstageBarProps {
 export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBarProps) {
   const participants = useParticipants();
 
-  const handleToggle = async (identity: string, isLocal: boolean, isOnStage: boolean) => {
+  const handleToggle = async (identity: string, isOnStage: boolean) => {
     const newStatus = !isOnStage;
 
-    if (isLocal) {
-      // Participante local (diretor): usa setAttributes direto
-      const localP = participants.find((p) => p.identity === identity);
-      if (localP && localP instanceof LocalParticipant) {
-        localP.setAttributes({ isOnStage: newStatus ? "true" : "false" });
-      }
-    } else {
-      // Participante remoto (convidado): usa API do servidor LiveKit
-      try {
-        await fetch("/api/studio/stage", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventId,
-            participantIdentity: identity,
-            isOnStage: newStatus,
-          }),
-        });
-      } catch (err) {
-        console.error("Erro ao mover participante:", err);
-      }
-      // Notifica o pai para atualização otimista
-      onToggleStage(identity, isOnStage);
+    try {
+      await fetch("/api/studio/stage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          participantIdentity: identity,
+          isOnStage: newStatus,
+        }),
+      });
+    } catch (err) {
+      console.error("Erro ao mover participante:", err);
     }
+    // Notifica o pai para atualização otimista
+    onToggleStage(identity, isOnStage);
   };
 
   return (
@@ -59,8 +49,13 @@ export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBa
           </div>
         ) : (
           participants.map((p) => {
-            // Por padrão todos estão no palco; só sai se explicitamente movido para backstage
-            const isOnStage = p.attributes?.isOnStage !== "false";
+            // Diretor entra no palco por padrão (isOnStage !== false)
+            // Convidados entram no backstage por padrão (isOnStage === true)
+            const isDirector = p.identity.startsWith("diretor-");
+            const isOnStage = isDirector
+              ? p.attributes?.isOnStage !== "false"
+              : p.attributes?.isOnStage === "true";
+
             const name = p.name || p.identity;
             const isMuted = !p.isMicrophoneEnabled;
             const isCamOff = !p.isCameraEnabled;
@@ -108,7 +103,7 @@ export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBa
                 </div>
 
                 <button
-                  onClick={() => handleToggle(p.identity, p.isLocal, isOnStage)}
+                  onClick={() => handleToggle(p.identity, isOnStage)}
                   className={`mt-3 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
                     isOnStage
                       ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"

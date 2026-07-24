@@ -15,14 +15,19 @@ interface StudioCanvasProps {
 export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCanvasProps) {
   const participants = useParticipants();
   const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
-
   // Filtra participantes e tracks que estão no PALCO (definido via participant.attributes.isOnStage)
   const stageTracks = useMemo(() => {
     return cameraTracks.filter((t) => {
       const p = t.participant;
-      // Se tiver sido explicitamente movido para o backstage, esconde do palco
-      if (p.attributes?.isOnStage === "false") return false;
-      return true;
+      const isDirector = p.identity.startsWith("diretor-");
+      
+      // Se for diretor, fica no palco por padrão (a menos que explicitamente movido para backstage)
+      if (isDirector) {
+        return p.attributes?.isOnStage !== "false";
+      }
+      
+      // Se for convidado, fica no backstage por padrão (precisa ser explicitamente colocado no palco)
+      return p.attributes?.isOnStage === "true";
     });
   }, [cameraTracks]);
 
