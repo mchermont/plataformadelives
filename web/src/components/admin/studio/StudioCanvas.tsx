@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { Track } from "livekit-client";
-import { VideoTrack, useTracks, useParticipants } from "@livekit/components-react";
+import { VideoTrack, useParticipants } from "@livekit/components-react";
 import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
-import { User } from "lucide-react";
+import { User, MicOff } from "lucide-react";
 
 interface StudioCanvasProps {
   roomState: StudioRoom;
@@ -14,22 +14,19 @@ interface StudioCanvasProps {
 
 export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCanvasProps) {
   const participants = useParticipants();
-  const cameraTracks = useTracks([Track.Source.Camera], { onlySubscribed: false });
-  // Filtra participantes e tracks que estão no PALCO (definido via participant.attributes.isOnStage)
-  const stageTracks = useMemo(() => {
-    return cameraTracks.filter((t) => {
-      const p = t.participant;
+
+  // Filtra participantes que estão no PALCO
+  const stageParticipants = useMemo(() => {
+    return participants.filter((p) => {
       const isDirector = p.identity.startsWith("diretor-");
-      
-      // Se for diretor, fica no palco por padrão (a menos que explicitamente movido para backstage)
+      // Diretor: fica no palco por padrão (a menos que explicitamente movido para backstage)
       if (isDirector) {
         return p.attributes?.isOnStage !== "false";
       }
-      
-      // Se for convidado, fica no backstage por padrão (precisa ser explicitamente colocado no palco)
+      // Convidado: fica no backstage por padrão (precisa ser explicitamente colocado no palco)
       return p.attributes?.isOnStage === "true";
     });
-  }, [cameraTracks]);
+  }, [participants]);
 
   const activeBanner = useMemo(() => {
     if (!roomState.active_banner_id) return null;
@@ -47,9 +44,19 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
     return slides[roomState.active_slide_index || 0] || null;
   }, [activePresentation, roomState.active_slide_index]);
 
-  // Define a classe CSS do grid com base no layout ativo e quantidade de pessoas no palco
+  // Filtra os participantes a exibir com base no layout ativo (Solo foca em um)
+  const displayParticipants = useMemo(() => {
+    if (roomState.active_layout === "solo") {
+      const spotlight = stageParticipants.find((p) => p.identity === roomState.spotlight_participant_id);
+      if (spotlight) return [spotlight];
+      return stageParticipants.slice(0, 1);
+    }
+    return stageParticipants;
+  }, [stageParticipants, roomState.active_layout, roomState.spotlight_participant_id]);
+
+  // Define a classe CSS do grid com base na quantidade de pessoas no palco
   const gridLayoutClass = useMemo(() => {
-    const count = stageTracks.length;
+    const count = displayParticipants.length;
     const layout = roomState.active_layout;
 
     if (layout === "solo" || count <= 1) return "grid-cols-1 grid-rows-1";
@@ -57,17 +64,63 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
     if (count <= 4) return "grid-cols-2 grid-rows-2";
     if (count <= 6) return "grid-cols-3 grid-rows-2";
     return "grid-cols-4 grid-rows-3";
-  }, [stageTracks.length, roomState.active_layout]);
+  }, [displayParticipants.length, roomState.active_layout]);
+
+  // Componente interno para renderizar o feed de cada palestrante
+  const renderParticipantFeed = (p: typeof participants[0], isThumbnail = false) => {
+    const name = p.name || p.identity;
+    const isCamEnabled = p.isCameraEnabled;
+    const isMicMuted = !p.isMicrophoneEnabled;
+    const trackPub = p.getTrackPublication(Track.Source.Camera);
+
+    const trackRef = {
+      participant: p,
+      source: Track.Source.Camera,
+      publication: trackPub as any,
+    };
+
+    return (
+      <div
+        key={p.sid}
+        onClick={() => onParticipantClick?.(p.identity)}
+        className="relative h-full w-full overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center group cursor-pointer"
+      >
+        {isCamEnabled && trackPub?.isSubscribed ? (
+          <VideoTrack trackRef={trackRef} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex flex-col items-center space-y-2 text-neutral-500 p-2 text-center">
+            <User className={isThumbnail ? "h-6 w-6" : "h-10 w-10"} />
+            {!isThumbnail && (
+              <span className="text-[10px] md:text-xs font-semibold text-neutral-400">
+                Câmera Desligada
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Tarja de Nome / Lower-Third */}
+        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-neutral-950/80 px-2 py-0.5 md:py-1 backdrop-blur-md border border-neutral-800/80">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[9px] md:text-xs font-semibold text-neutral-100 truncate max-w-[120px] md:max-w-none">
+            {name}
+          </span>
+          {isMicMuted && (
+            <MicOff className="h-2.5 w-2.5 text-rose-400 ml-1.5" />
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-neutral-950 shadow-2xl border border-neutral-800 flex items-center justify-center">
+    <div className="absolute inset-0 h-full w-full bg-neutral-950 flex items-center justify-center">
       {/* 1. Imagem de Fundo (Fundo de Tela) */}
       {roomState.active_background_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={roomState.active_background_url}
           alt="Fundo"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover pointer-events-none"
         />
       )}
 
@@ -81,69 +134,45 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
           </div>
 
           {/* Câmeras dos Palestrantes no Palco (Direita - 25% da largura) */}
-          {stageTracks.length > 0 && (
-            <div className="flex w-64 flex-col gap-2 overflow-y-auto">
-              {stageTracks.map((track) => {
-                const participant = track.participant;
-                const name = participant.name || participant.identity;
-
-                return (
-                  <div
-                    key={participant.sid}
-                    className="relative aspect-video overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center"
-                  >
-                    {track.publication?.isMuted ? (
-                      <User className="h-6 w-6 text-neutral-500" />
-                    ) : (
-                      <VideoTrack trackRef={track} className="h-full w-full object-cover" />
-                    )}
-                    <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded bg-neutral-950/80 px-2 py-0.5 backdrop-blur-md">
-                      <span className="text-[10px] font-semibold text-neutral-100">{name}</span>
-                    </div>
-                  </div>
-                );
-              })}
+          {displayParticipants.length > 0 && (
+            <div className="flex w-64 flex-col gap-2 overflow-y-auto pr-1">
+              {displayParticipants.map((p) => renderParticipantFeed(p, true))}
             </div>
           )}
         </div>
-      ) : stageTracks.length === 0 ? (
+      ) : displayParticipants.length === 0 ? (
         <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 space-y-3">
-          <div className="h-16 w-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-600">
+          <div className="h-16 w-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-600 shadow-lg">
             <User className="h-8 w-8" />
           </div>
-          <p className="text-sm font-medium text-neutral-400">
+          <p className="text-sm font-medium text-neutral-400 max-w-sm">
             O palco está vazio. Adicione participantes do backstage abaixo para ir ao ar.
           </p>
         </div>
-      ) : (
-        <div className={`relative z-10 grid h-full w-full gap-3 p-4 ${gridLayoutClass}`}>
-          {stageTracks.map((track) => {
-            const participant = track.participant;
-            const name = participant.name || participant.identity;
-
-            return (
-              <div
-                key={participant.sid}
-                onClick={() => onParticipantClick?.(participant.identity)}
-                className="relative overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center group cursor-pointer"
-              >
-                {track.publication?.isMuted ? (
-                  <div className="flex flex-col items-center space-y-2 text-neutral-500">
-                    <User className="h-10 w-10" />
-                    <span className="text-xs font-semibold">{name} (Câmera desligada)</span>
-                  </div>
-                ) : (
-                  <VideoTrack trackRef={track} className="h-full w-full object-cover" />
-                )}
-
-                {/* Tarja de Nome do Participante (Lower-Third Automática) */}
-                <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-neutral-950/80 px-2.5 py-1 backdrop-blur-md border border-neutral-800/80">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="text-xs font-semibold text-neutral-100">{name}</span>
+      ) : roomState.active_layout === "spotlight" && displayParticipants.length > 1 ? (
+        // Layout de Destaque: Um grande acima, outros em miniatura embaixo
+        <div className="relative z-10 flex flex-col h-full w-full gap-3 p-4">
+          {/* Palestrante Destaque (Foco) */}
+          <div className="flex-1 min-h-0">
+            {renderParticipantFeed(
+              displayParticipants.find((p) => p.identity === roomState.spotlight_participant_id) || displayParticipants[0]
+            )}
+          </div>
+          {/* Linha de Miniaturas (Thumbnails) */}
+          <div className="h-28 flex gap-3 overflow-x-auto justify-center py-1">
+            {displayParticipants
+              .filter((p) => p.identity !== (roomState.spotlight_participant_id || displayParticipants[0].identity))
+              .map((p) => (
+                <div key={p.sid} className="w-40 h-full flex-shrink-0">
+                  {renderParticipantFeed(p, true)}
                 </div>
-              </div>
-            );
-          })}
+              ))}
+          </div>
+        </div>
+      ) : (
+        // Layout Padrão: Grid ou Split
+        <div className={`relative z-10 grid h-full w-full gap-3 p-4 ${gridLayoutClass}`}>
+          {displayParticipants.map((p) => renderParticipantFeed(p, false))}
         </div>
       )}
 
