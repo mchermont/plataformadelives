@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Mic, MicOff, Video, VideoOff, Users, ArrowRight } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Users, ArrowRight, Settings } from "lucide-react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useLocalParticipant, useParticipants } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "@/components/admin/studio/StudioCanvas";
+import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipantTile";
+import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
+import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
+import { useStudioSelfStage } from "@/components/admin/studio/useStudioSelfStage";
 
 const LiveKitRoom = dynamic(
   () => import("@livekit/components-react").then((m) => m.LiveKitRoom),
-  { ssr: false }
-);
-const RoomAudioRenderer = dynamic(
-  () => import("@livekit/components-react").then((m) => m.RoomAudioRenderer),
   { ssr: false }
 );
 
@@ -31,13 +31,14 @@ function GuestStudioInner({
   initialAssets: StudioAsset[];
 }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
+  const { isOnStage, setDesiredMicOn } = useStudioSelfStage();
   const participants = useParticipants();
 
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
   const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
-
-  // Mapeia se o participante local (convidado) está no palco ou backstage
-  const isOnStage = localParticipant?.attributes?.isOnStage === "true";
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [noiseSuppression, setNoiseSuppression] = useState(true);
+  const [volumes, setVolumes] = useState<StudioVolumeMap>({});
 
   // Subscrição em Realtime com o Supabase para manter o Canvas do convidado em sincronia com o Diretor
   useEffect(() => {
@@ -68,9 +69,35 @@ function GuestStudioInner({
     };
   }, [eventId]);
 
+  const toggleMic = () => setDesiredMicOn(!isMicrophoneEnabled);
+  const toggleCam = () => localParticipant?.setCameraEnabled(!isCameraEnabled).catch(console.error);
+
+  const handleToggleNoiseSuppression = async (on: boolean) => {
+    setNoiseSuppression(on);
+    if (localParticipant && isMicrophoneEnabled) {
+      try {
+        await localParticipant.setMicrophoneEnabled(true, {
+          noiseSuppression: on,
+          echoCancellation: true,
+          autoGainControl: true,
+        });
+      } catch {
+        // dispositivo pode não suportar a constraint — ignora silenciosamente
+      }
+    }
+  };
+
+  const remoteTargets = participants
+    .filter((p) => {
+      if (p.isLocal) return false;
+      const isDirector = p.identity.startsWith("diretor-");
+      return isDirector ? p.attributes?.isOnStage !== "false" : p.attributes?.isOnStage === "true";
+    })
+    .map((p) => ({ identity: p.identity, name: p.name || p.identity }));
+
   return (
     <div className="flex h-screen w-full flex-col lg:flex-row overflow-hidden bg-neutral-950 text-neutral-100 p-3 lg:p-4 gap-4">
-      <RoomAudioRenderer />
+      <StudioAudioRenderer volumes={volumes} />
 
       {/* Esquerda/Centro: Player de Vídeo em 16:9 (Stage) */}
       <div className="flex-1 flex flex-col justify-center items-center gap-3">
@@ -94,42 +121,29 @@ function GuestStudioInner({
         <div className="space-y-4">
           <div className="text-center pb-2 border-b border-neutral-800">
             <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-              isOnStage 
-                ? "bg-emerald-950 border border-emerald-800 text-emerald-400" 
+              isOnStage
+                ? "bg-emerald-950 border border-emerald-800 text-emerald-400"
                 : "bg-amber-950 border border-amber-800 text-amber-400"
             }`}>
               <span className={`h-2 w-2 rounded-full ${isOnStage ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
               {isOnStage ? "Você está no Palco" : "Você está no Backstage"}
             </span>
             <p className="text-[11px] text-neutral-400 mt-2">
-              {isOnStage 
-                ? "Sua imagem e voz estão aparecendo na live!" 
-                : "Aguarde. O diretor irá colocá-lo no palco em breve."}
+              {isOnStage
+                ? "Sua imagem e voz estão aparecendo na live!"
+                : "Câmera e microfone continuam ligados pra você se preparar, mas o áudio só vai ao ar quando o diretor subir você ao palco."}
             </p>
           </div>
 
-          {/* Câmera Local (Preview do próprio convidado) */}
-          <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 flex items-center justify-center">
-            {isCameraEnabled ? (
-              <video
-                autoPlay
-                muted
-                playsInline
-                ref={(el) => {
-                  if (!el) return;
-                  navigator.mediaDevices
-                    .getUserMedia({ video: true, audio: true })
-                    .then((stream) => {
-                      el.srcObject = stream;
-                    })
-                    .catch(() => {});
-                }}
-                className="h-full w-full object-cover"
-              />
+          {/* Câmera Local (Preview do próprio convidado) — usa a track já publicada
+              no LiveKit em vez de chamar getUserMedia de novo (evita o flicker de
+              ficar recapturando a câmera a cada re-render) */}
+          <div className="relative aspect-video rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800">
+            {localParticipant ? (
+              <StudioParticipantTile participant={localParticipant} variant="thumbnail" showName={false} />
             ) : (
-              <div className="text-center text-neutral-500 space-y-1">
-                <VideoOff className="h-8 w-8 mx-auto" />
-                <span className="text-[10px] font-semibold">Câmera Desativada</span>
+              <div className="flex h-full items-center justify-center text-neutral-600">
+                <VideoOff className="h-8 w-8" />
               </div>
             )}
             <div className="absolute bottom-2 left-2 rounded bg-neutral-950/80 px-2 py-0.5 text-[9px] font-semibold text-neutral-300">
@@ -138,9 +152,10 @@ function GuestStudioInner({
           </div>
 
           {/* Controles de Mic e Cam */}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-2">
             <button
-              onClick={() => localParticipant?.setMicrophoneEnabled(!isMicrophoneEnabled)}
+              onClick={toggleMic}
+              title={!isOnStage ? "No backstage o áudio fica mudo automaticamente" : undefined}
               className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-xs font-bold transition ${
                 isMicrophoneEnabled ? "bg-neutral-800 text-emerald-400 hover:bg-neutral-700" : "bg-rose-950 text-rose-400 border border-rose-800"
               }`}
@@ -150,13 +165,21 @@ function GuestStudioInner({
             </button>
 
             <button
-              onClick={() => localParticipant?.setCameraEnabled(!isCameraEnabled)}
+              onClick={toggleCam}
               className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-xs font-bold transition ${
                 isCameraEnabled ? "bg-neutral-800 text-emerald-400 hover:bg-neutral-700" : "bg-rose-950 text-rose-400 border border-rose-800"
               }`}
             >
               {isCameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
               {isCameraEnabled ? "Cam Off" : "Cam On"}
+            </button>
+
+            <button
+              onClick={() => setSettingsOpen(true)}
+              title="Configurações de áudio e vídeo"
+              className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-neutral-800 text-neutral-300 transition hover:bg-neutral-700"
+            >
+              <Settings className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -169,7 +192,7 @@ function GuestStudioInner({
           </div>
           <div className="max-h-28 overflow-y-auto space-y-1">
             {participants.map((p) => {
-              const name = p.name || p.identity;
+              const pName = p.name || p.identity;
               const isDirector = p.identity.startsWith("diretor-");
               const isGuestOnStage = isDirector
                 ? p.attributes?.isOnStage !== "false"
@@ -177,7 +200,7 @@ function GuestStudioInner({
 
               return (
                 <div key={p.sid} className="flex items-center justify-between bg-neutral-950 px-2.5 py-1.5 rounded-lg border border-neutral-800 text-[10px]">
-                  <span className="font-semibold text-neutral-200 truncate max-w-[120px]">{name}</span>
+                  <span className="font-semibold text-neutral-200 truncate max-w-[120px]">{pName}</span>
                   <span className={`font-bold px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider ${
                     isGuestOnStage ? "bg-emerald-950 text-emerald-400" : "bg-neutral-800 text-neutral-400"
                   }`}>
@@ -189,6 +212,16 @@ function GuestStudioInner({
           </div>
         </div>
       </div>
+
+      <StudioMediaSettings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        noiseSuppression={noiseSuppression}
+        onToggleNoiseSuppression={handleToggleNoiseSuppression}
+        volumes={volumes}
+        onChangeVolume={(identity, v) => setVolumes((prev) => ({ ...prev, [identity]: v }))}
+        remoteTargets={remoteTargets}
+      />
     </div>
   );
 }
@@ -222,13 +255,13 @@ export default function GuestRoomPage() {
     setError(null);
     try {
       const guestIdentity = `guest-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      
+
       // Busca token JWT
       const res = await fetch(
         `/api/studio/token?eventId=${eventId}&identity=${guestIdentity}&name=${encodeURIComponent(name)}`
       );
       const data = await res.json();
-      
+
       if (data.token && data.serverUrl) {
         // Carrega dados iniciais do Supabase para o Canvas do convidado
         const supabase = createClient();
@@ -259,7 +292,7 @@ export default function GuestRoomPage() {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
-        
+
         setInitialAssets((assetsData as StudioAsset[]) || []);
         setToken(data.token);
         setServerUrl(data.serverUrl);

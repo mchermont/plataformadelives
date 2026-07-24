@@ -1,14 +1,22 @@
 "use client";
 
 import { useParticipants } from "@livekit/components-react";
-import { Mic, MicOff, Video, VideoOff, ArrowUp, ArrowDown } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, ArrowUp, ArrowDown, Star } from "lucide-react";
+import { StudioParticipantTile } from "./StudioParticipantTile";
 
 interface StudioBackstageBarProps {
   eventId: string;
   onToggleStage: (participantIdentity: string, currentOnStage: boolean) => void;
+  spotlightParticipantId?: string | null;
+  onSpotlight?: (participantIdentity: string) => void;
 }
 
-export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBarProps) {
+export function StudioBackstageBar({
+  eventId,
+  onToggleStage,
+  spotlightParticipantId,
+  onSpotlight,
+}: StudioBackstageBarProps) {
   const participants = useParticipants();
 
   const handleToggle = async (identity: string, isOnStage: boolean) => {
@@ -59,6 +67,7 @@ export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBa
             const name = p.name || p.identity;
             const isMuted = !p.isMicrophoneEnabled;
             const isCamOff = !p.isCameraEnabled;
+            const isSpotlighted = p.identity === spotlightParticipantId;
 
             return (
               <div
@@ -69,6 +78,10 @@ export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBa
                     : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"
                 }`}
               >
+                <div className="mb-2 aspect-video w-full overflow-hidden rounded-lg">
+                  <StudioParticipantTile participant={p} variant="thumbnail" showName={false} />
+                </div>
+
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 pr-2">
                     <p className="text-xs font-bold text-neutral-100 truncate flex items-center gap-1.5">
@@ -102,24 +115,40 @@ export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBa
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleToggle(p.identity, isOnStage)}
-                  className={`mt-3 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
-                    isOnStage
-                      ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                      : "bg-emerald-500 text-neutral-950 hover:bg-emerald-400"
-                  }`}
-                >
-                  {isOnStage ? (
-                    <>
-                      <ArrowDown className="h-3.5 w-3.5" /> Mover p/ Backstage
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUp className="h-3.5 w-3.5" /> Subir ao Palco
-                    </>
+                <div className="mt-3 flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleToggle(p.identity, isOnStage)}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
+                      isOnStage
+                        ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                        : "bg-emerald-500 text-neutral-950 hover:bg-emerald-400"
+                    }`}
+                  >
+                    {isOnStage ? (
+                      <>
+                        <ArrowDown className="h-3.5 w-3.5" /> Backstage
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUp className="h-3.5 w-3.5" /> Subir
+                      </>
+                    )}
+                  </button>
+
+                  {isOnStage && onSpotlight && (
+                    <button
+                      onClick={() => onSpotlight(p.identity)}
+                      title="Destacar no palco"
+                      className={`flex items-center justify-center rounded-lg p-1.5 transition ${
+                        isSpotlighted
+                          ? "bg-emerald-500 text-neutral-950"
+                          : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                      }`}
+                    >
+                      <Star className={`h-3.5 w-3.5 ${isSpotlighted ? "fill-neutral-950" : ""}`} />
+                    </button>
                   )}
-                </button>
+                </div>
               </div>
             );
           })

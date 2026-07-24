@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { LiveKitRoom, RoomAudioRenderer, useLocalParticipant } from "@livekit/components-react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { LiveKitRoom, useLocalParticipant, useParticipants } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { LiveEvent, StudioAsset, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "./StudioCanvas";
 import { StudioBackstageBar } from "./StudioBackstageBar";
 import { StudioGraphicsPanel } from "./StudioGraphicsPanel";
 import { StudioPrivateChat } from "./StudioPrivateChat";
+import { StudioAudioRenderer, type StudioVolumeMap } from "./StudioAudioRenderer";
+import { StudioMediaSettings } from "./StudioMediaSettings";
+import { useStudioSelfStage } from "./useStudioSelfStage";
 import {
   Mic,
   MicOff,
@@ -18,6 +21,7 @@ import {
   Columns,
   User,
   Tv,
+  Settings,
 } from "lucide-react";
 
 interface StudioControlRoomProps {
@@ -44,12 +48,16 @@ function StudioControlRoomInner({
   handleCopyInviteLink: () => void;
 }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
+  const { setDesiredMicOn } = useStudioSelfStage();
+  const participants = useParticipants();
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [noiseSuppression, setNoiseSuppression] = useState(true);
+  const [volumes, setVolumes] = useState<StudioVolumeMap>({});
 
   const toggleMic = useCallback(() => {
-    if (localParticipant) {
-      localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled).catch(console.error);
-    }
-  }, [localParticipant, isMicrophoneEnabled]);
+    setDesiredMicOn(!isMicrophoneEnabled);
+  }, [setDesiredMicOn, isMicrophoneEnabled]);
 
   const toggleCam = useCallback(() => {
     if (localParticipant) {
@@ -57,8 +65,51 @@ function StudioControlRoomInner({
     }
   }, [localParticipant, isCameraEnabled]);
 
+  const handleToggleNoiseSuppression = useCallback(
+    async (on: boolean) => {
+      setNoiseSuppression(on);
+      if (localParticipant && isMicrophoneEnabled) {
+        try {
+          await localParticipant.setMicrophoneEnabled(true, {
+            noiseSuppression: on,
+            echoCancellation: true,
+            autoGainControl: true,
+          });
+        } catch {
+          // dispositivo pode não suportar a constraint — ignora silenciosamente
+        }
+      }
+    },
+    [localParticipant, isMicrophoneEnabled],
+  );
+
+  const handleChangeVolume = useCallback((identity: string, volume: number) => {
+    setVolumes((prev) => ({ ...prev, [identity]: volume }));
+  }, []);
+
+  const handleSpotlight = useCallback(
+    (identity: string) => {
+      handleUpdateRoom({ active_layout: "spotlight", spotlight_participant_id: identity });
+    },
+    [handleUpdateRoom],
+  );
+
+  const remoteTargets = useMemo(
+    () =>
+      participants
+        .filter((p) => {
+          if (p.isLocal) return false;
+          const isDirector = p.identity.startsWith("diretor-");
+          return isDirector ? p.attributes?.isOnStage !== "false" : p.attributes?.isOnStage === "true";
+        })
+        .map((p) => ({ identity: p.identity, name: p.name || p.identity })),
+    [participants],
+  );
+
   return (
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
+      <StudioAudioRenderer volumes={volumes} />
+
       {/* 1. Sidebar Esquerda — Cenas pré-configuradas */}
       <div className="hidden md:flex w-52 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 space-y-3">
         <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 px-1">
@@ -115,7 +166,7 @@ function StudioControlRoomInner({
         {/* Player Rígido 16:9 */}
         <div className="flex-1 flex flex-col justify-center items-center">
           <div className="relative w-full aspect-video max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
-            <StudioCanvas roomState={roomState} assets={assets} />
+            <StudioCanvas roomState={roomState} assets={assets} onParticipantClick={handleSpotlight} />
           </div>
         </div>
 
@@ -166,14 +217,24 @@ function StudioControlRoomInner({
                {isCameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
              </button>
            </div>
-           
-           <div className="w-[180px]"></div> {/* spacer for centering */}
+
+           <div className="flex w-[180px] justify-end">
+             <button
+               onClick={() => setSettingsOpen(true)}
+               className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 border border-neutral-800 text-neutral-300 transition hover:bg-neutral-800"
+               title="Configurações de áudio e vídeo"
+             >
+               <Settings className="h-4 w-4" />
+             </button>
+           </div>
         </div>
 
         {/* Backstage Bar - Lista de Participantes */}
         <StudioBackstageBar
           eventId={event.id}
           onToggleStage={handleToggleStage}
+          spotlightParticipantId={roomState.spotlight_participant_id}
+          onSpotlight={handleSpotlight}
         />
       </div>
 
@@ -188,6 +249,16 @@ function StudioControlRoomInner({
         <div className="h-px w-full bg-neutral-800" />
         <StudioPrivateChat eventId={event.id} />
       </div>
+
+      <StudioMediaSettings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        noiseSuppression={noiseSuppression}
+        onToggleNoiseSuppression={handleToggleNoiseSuppression}
+        volumes={volumes}
+        onChangeVolume={handleChangeVolume}
+        remoteTargets={remoteTargets}
+      />
     </div>
   );
 }
@@ -349,7 +420,6 @@ export function StudioControlRoom({
         console.error("LiveKit Room Connection Error:", err);
       }}
     >
-      <RoomAudioRenderer />
       <StudioControlRoomInner
         event={event}
         roomState={roomState}

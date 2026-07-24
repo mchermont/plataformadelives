@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { LiveKitRoom } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "./StudioCanvas";
+import { StudioAudioRenderer } from "./StudioAudioRenderer";
 
 interface StudioOutputCanvasProps {
   eventId: string;
@@ -82,7 +83,7 @@ export function StudioOutputCanvas({ eventId, initialRoom, initialAssets }: Stud
       audio={false}
       className="h-screen w-screen bg-black overflow-hidden flex items-center justify-center p-0 m-0"
     >
-      <RoomAudioRenderer />
+      <StudioAudioRenderer />
       <div className="relative aspect-video w-full max-w-[1920px] bg-black">
         <StudioCanvas roomState={roomState} assets={assets} />
       </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { Track } from "livekit-client";
-import { VideoTrack, useParticipants } from "@livekit/components-react";
-import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
-import { User, MicOff } from "lucide-react";
+import { useParticipants } from "@livekit/components-react";
+import { StudioAsset, StudioRoom } from "@/lib/types";
+import { User } from "lucide-react";
+import { StudioParticipantTile } from "./StudioParticipantTile";
 
 interface StudioCanvasProps {
   roomState: StudioRoom;
@@ -66,51 +66,16 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
     return "grid-cols-4 grid-rows-3";
   }, [displayParticipants.length, roomState.active_layout]);
 
-  // Componente interno para renderizar o feed de cada palestrante
-  const renderParticipantFeed = (p: typeof participants[0], isThumbnail = false) => {
-    const name = p.name || p.identity;
-    const isCamEnabled = p.isCameraEnabled;
-    const isMicMuted = !p.isMicrophoneEnabled;
-    const trackPub = p.getTrackPublication(Track.Source.Camera);
-
-    const trackRef = {
-      participant: p,
-      source: Track.Source.Camera,
-      publication: trackPub as any,
-    };
-
-    return (
-      <div
-        key={p.sid}
-        onClick={() => onParticipantClick?.(p.identity)}
-        className="relative h-full w-full overflow-hidden rounded-xl bg-neutral-900 border border-neutral-800 flex items-center justify-center group cursor-pointer"
-      >
-        {isCamEnabled && trackPub?.isSubscribed ? (
-          <VideoTrack trackRef={trackRef} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex flex-col items-center space-y-2 text-neutral-500 p-2 text-center">
-            <User className={isThumbnail ? "h-6 w-6" : "h-10 w-10"} />
-            {!isThumbnail && (
-              <span className="text-[10px] md:text-xs font-semibold text-neutral-400">
-                Câmera Desligada
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Tarja de Nome / Lower-Third */}
-        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-lg bg-neutral-950/80 px-2 py-0.5 md:py-1 backdrop-blur-md border border-neutral-800/80">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[9px] md:text-xs font-semibold text-neutral-100 truncate max-w-[120px] md:max-w-none">
-            {name}
-          </span>
-          {isMicMuted && (
-            <MicOff className="h-2.5 w-2.5 text-rose-400 ml-1.5" />
-          )}
-        </div>
-      </div>
-    );
-  };
+  const renderTile = (p: (typeof participants)[0], isThumbnail = false) => (
+    <StudioParticipantTile
+      key={p.sid}
+      participant={p}
+      variant={isThumbnail ? "thumbnail" : "full"}
+      isSpotlighted={p.identity === roomState.spotlight_participant_id}
+      selectable={Boolean(onParticipantClick)}
+      onSelect={onParticipantClick}
+    />
+  );
 
   return (
     <div className="absolute inset-0 h-full w-full bg-neutral-950 flex items-center justify-center">
@@ -136,7 +101,11 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
           {/* Câmeras dos Palestrantes no Palco (Direita - 25% da largura) */}
           {displayParticipants.length > 0 && (
             <div className="flex w-64 flex-col gap-2 overflow-y-auto pr-1">
-              {displayParticipants.map((p) => renderParticipantFeed(p, true))}
+              {displayParticipants.map((p) => (
+                <div key={p.sid} className="aspect-video shrink-0">
+                  {renderTile(p, true)}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -154,7 +123,7 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
         <div className="relative z-10 flex flex-col h-full w-full gap-3 p-4">
           {/* Palestrante Destaque (Foco) */}
           <div className="flex-1 min-h-0">
-            {renderParticipantFeed(
+            {renderTile(
               displayParticipants.find((p) => p.identity === roomState.spotlight_participant_id) || displayParticipants[0]
             )}
           </div>
@@ -164,7 +133,7 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
               .filter((p) => p.identity !== (roomState.spotlight_participant_id || displayParticipants[0].identity))
               .map((p) => (
                 <div key={p.sid} className="w-40 h-full flex-shrink-0">
-                  {renderParticipantFeed(p, true)}
+                  {renderTile(p, true)}
                 </div>
               ))}
           </div>
@@ -172,7 +141,7 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
       ) : (
         // Layout Padrão: Grid ou Split
         <div className={`relative z-10 grid h-full w-full gap-3 p-4 ${gridLayoutClass}`}>
-          {displayParticipants.map((p) => renderParticipantFeed(p, false))}
+          {displayParticipants.map((p) => renderTile(p, false))}
         </div>
       )}
 
