@@ -244,7 +244,7 @@ function StudioControlRoomInner({
       </div>
 
       {/* 3. Sidebar Direita — Gráficos e Chat Privado */}
-      <div className="thin-scroll hidden lg:flex w-72 flex-col overflow-y-auto border-l border-neutral-800 bg-neutral-900/60 p-3 space-y-4">
+      <div className="thin-scroll hidden lg:flex w-96 flex-col overflow-y-auto border-l border-neutral-800 bg-neutral-900/60 p-3 space-y-4">
         <StudioGraphicsPanel
           eventId={event.id}
           roomState={roomState}

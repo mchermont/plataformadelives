@@ -79,7 +79,8 @@ export function StudioBackstageBar({
           <StudioTileGrid
             items={participants}
             getKey={(p) => p.sid}
-            renderItem={(p) => {
+            align="start"
+            renderItem={(p, { cols }) => {
               const isOnStage = isOnStageOf(p);
               const name = p.name || p.identity;
               const isMuted = !p.isMicrophoneEnabled;
@@ -107,6 +108,7 @@ export function StudioBackstageBar({
                     variant="thumbnail"
                     showName={false}
                     dimmed={!isOnStage}
+                    tightCrop={cols === 2}
                     className="border-0"
                   />
 

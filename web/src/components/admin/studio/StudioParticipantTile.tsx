@@ -16,6 +16,8 @@ interface StudioParticipantTileProps {
   showName?: boolean;
   /** Aplica uma película cinza semi-transparente — indica visualmente "está no backstage" */
   dimmed?: boolean;
+  /** Corta ~15% de cada lado (esquerdo/direito) e aproxima, mantendo a pessoa centralizada — usado em grades de 2 colunas, onde o tile fica mais estreito. */
+  tightCrop?: boolean;
   className?: string;
 }
 
@@ -33,6 +35,7 @@ export function StudioParticipantTile({
   onSelect,
   showName = true,
   dimmed = false,
+  tightCrop = false,
   className = "",
 }: StudioParticipantTileProps) {
   const showSpotlight = isSpotlighted && showSpotlightBadge;
@@ -67,7 +70,7 @@ export function StudioParticipantTile({
       {isCamEnabled && trackPub?.isSubscribed && trackPub.track ? (
         <VideoTrack
           trackRef={{ participant, source: Track.Source.Camera, publication: trackPub }}
-          className="h-full w-full object-cover"
+          className={`h-full w-full object-cover ${tightCrop ? "scale-[1.43]" : ""}`}
         />
       ) : (
         <div className="flex flex-col items-center space-y-1.5 p-2 text-center text-neutral-500">

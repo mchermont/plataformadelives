@@ -89,7 +89,7 @@ export function StudioCanvas({
   // resto do palco sem quem já é o destaque.
   const secondaries = isMediaActive ? stageParticipants : restParticipants;
 
-  const renderTile = (p: (typeof participants)[0], isThumbnail = false) => (
+  const renderTile = (p: (typeof participants)[0], isThumbnail = false, tightCrop = false) => (
     <StudioParticipantTile
       key={p.sid}
       participant={p}
@@ -98,6 +98,7 @@ export function StudioCanvas({
       showSpotlightBadge={showSpotlightBadge}
       selectable={Boolean(onParticipantClick)}
       onSelect={onParticipantClick}
+      tightCrop={tightCrop}
     />
   );
 
@@ -212,7 +213,11 @@ export function StudioCanvas({
 
         const thumbsColumn = secondaries.length > 0 && (
           <div className={`h-full flex-shrink-0 ${secondaries.length > 5 ? "w-72" : "w-56"}`}>
-            <StudioTileGrid items={secondaries} getKey={(p) => p.sid} renderItem={(p) => renderTile(p, true)} />
+            <StudioTileGrid
+              items={secondaries}
+              getKey={(p) => p.sid}
+              renderItem={(p, { cols }) => renderTile(p, true, cols === 2)}
+            />
           </div>
         );
 

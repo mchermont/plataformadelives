@@ -6,9 +6,12 @@ import { useFitTiles } from "./useFitTiles";
 interface StudioTileGridProps<T> {
   items: T[];
   getKey: (item: T) => string;
-  renderItem: (item: T) => ReactNode;
+  renderItem: (item: T, ctx: { cols: number }) => ReactNode;
   gap?: number;
   className?: string;
+  /** "center" (padrão) — cresce a partir do meio, pro rail de destaque do player.
+   *  "start" — ancora no topo, pra listas de gerenciamento como o backstage. */
+  align?: "center" | "start";
 }
 
 /**
@@ -22,16 +25,24 @@ function colsFor(count: number) {
   return count <= 5 ? 1 : 2;
 }
 
-export function StudioTileGrid<T>({ items, getKey, renderItem, gap = 8, className = "" }: StudioTileGridProps<T>) {
+export function StudioTileGrid<T>({
+  items,
+  getKey,
+  renderItem,
+  gap = 8,
+  className = "",
+  align = "center",
+}: StudioTileGridProps<T>) {
   const cols = colsFor(items.length);
   const fit = useFitTiles(items.length, { gap, forceCols: cols });
 
   const fullRowsCount = Math.floor(items.length / cols) * cols;
   const mainItems = items.slice(0, fullRowsCount);
   const orphan = items.slice(fullRowsCount);
+  const justify = align === "start" ? "justify-start" : "justify-center";
 
   return (
-    <div ref={fit.ref} className={`flex h-full w-full flex-col items-center justify-center gap-2 ${className}`}>
+    <div className={`flex h-full w-full flex-col items-center ${justify} gap-2 ${className}`} ref={fit.ref}>
       {fit.itemWidth > 0 && (
         <>
           <div
@@ -40,13 +51,13 @@ export function StudioTileGrid<T>({ items, getKey, renderItem, gap = 8, classNam
           >
             {mainItems.map((item) => (
               <div key={getKey(item)} style={{ width: fit.itemWidth, height: fit.itemHeight }}>
-                {renderItem(item)}
+                {renderItem(item, { cols })}
               </div>
             ))}
           </div>
           {orphan.map((item) => (
             <div key={getKey(item)} style={{ width: fit.itemWidth, height: fit.itemHeight }}>
-              {renderItem(item)}
+              {renderItem(item, { cols })}
             </div>
           ))}
         </>
