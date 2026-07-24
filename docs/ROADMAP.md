@@ -1,6 +1,9 @@
 # Roadmap
 
-> Atualizado em 21/07/2026. Fases concluídas resumidas no fim do arquivo.
+> Atualizado em 24/07/2026. Fases concluídas resumidas no fim do arquivo.
+> Novidades recentes: landing GoLive + `/demo` (migração 0029–0031),
+> rebrand navy+verde, e Fase J.2 — Estúdio WebRTC "GoLive Studio" (migração
+> 0032, EM CONSTRUÇÃO); HLS/provedor (J.1) em stand by.
 
 ## Visão
 
@@ -367,10 +370,18 @@ máximo a identidade da origem. Sem migração (só frontend).
 - Vimeo (`VimeoPlayer.tsx`) não recebeu os mesmos controles nesta rodada
   (API bem diferente — Player.js) — avaliar se pedido depois
 
-## Fase J — Streaming próprio (sob demanda)
+## Fase J — Streaming próprio
 
-Sem dependência de YouTube/Vimeo — white-label de verdade. (Planejada desde o
-início como "Fase 2"; decidido: provedor sob demanda, não self-hosted.)
+Sem dependência de YouTube/Vimeo — white-label de verdade. A execução tomou
+um caminho diferente do planejado: em vez de só um provedor HLS de playback,
+foi iniciado um **Estúdio de transmissão WebRTC multi-convidado** (ver
+"Estúdio GoLive" abaixo). O braço HLS/provedor ficou em **stand by**.
+
+### J.1 — Provedor HLS (RTMP → HLS) — ⏸️ STAND BY (24/07/2026)
+
+Playback próprio via provedor sob demanda. Pausado — o foco virou o Estúdio
+WebRTC. Retomar se/quando fizer sentido ter também ingestão RTMP de OBS/vMix
+externos com entrega HLS em escala.
 
 - [ ] Escolher provedor (Cloudflare Stream vs Mux vs AWS IVS) — custo/minuto,
       latência, DVR, região Brasil
@@ -378,6 +389,49 @@ início como "Fase 2"; decidido: provedor sob demanda, não self-hosted.)
 - [ ] Painel: criar transmissão → URL RTMP + stream key para OBS/vMix
 - [ ] Estado da transmissão via webhook; estimativa de custo por live
 - [ ] Gravação/VOD pós-live
+
+### J.2 — Estúdio de transmissão WebRTC "GoLive Studio" — 🚧 EM CONSTRUÇÃO (migração 0032)
+
+Estúdio ao vivo estilo Restream/StreamYard sobre **LiveKit** (WebRTC, não
+o provedor HLS). Diretor + convidados na mesma sala, mixagem de cena e saída
+limpa pro OBS. **Ainda instável — muitas melhorias pendentes; mexer aqui é
+trabalho conjunto com o Marcelo, não assumir que está pronto.**
+
+Base já construída:
+- [x] Migração 0032: `'studio'` no enum `stream_provider`; tabelas
+      `studio_rooms` (estado de palco por evento) e `studio_assets`
+      (banners, GCs de nome, tickers, logos, overlays, vinhetas,
+      apresentações); RLS de escrita = `has_event_role(_,'stream')`/admin.
+- [x] Dependências LiveKit (`@livekit/components-react`, `-core`,
+      `livekit-client`, `livekit-server-sdk`); env `LIVEKIT_API_KEY`,
+      `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL`.
+- [x] Rotas: `/admin/eventos/[id]/estudio` (Diretor), `/estudio/[id]/guest`
+      (convidado), `/estudio/[id]/output` (saída OBS limpa), +
+      `/[clientSlug]/[eventSlug]/estudio` e `/e/[slug]/estudio`.
+- [x] APIs: `/api/studio/token` (JWT do LiveKit; Diretor e convidado caem
+      na MESMA sala `studio-<uuid>` resolvendo slug→UUID) e
+      `/api/studio/stage` (palco↔backstage via atributo `isOnStage`).
+- [x] Componentes (`src/components/admin/studio/`): ControlRoom, Canvas,
+      OutputCanvas, BackstageBar, GraphicsPanel (banners/GC/ticker/logo/
+      overlay), PresentationManager (slides), PrivateChat (chat da equipe),
+      ClientLoader (`dynamic ssr:false` — SDK WebRTC não roda no SSR).
+- [x] Fase 6 (commit): apresentação de slides, output OBS limpo, chat
+      privado da equipe; toggle backstage/palco; fallback de câmera nativa
+      do browser; upload real de arquivos (PDF/imagens/logos).
+
+Lacunas conhecidas / a fazer:
+- [ ] **Sincronia Realtime não dispara**: guest/output assinam
+      `postgres_changes` em `studio_rooms`, mas a tabela **não está** na
+      publicação `supabase_realtime` — adicionar à publicação (ou trocar a
+      via de sincronia).
+- [ ] **Segurança do token**: `/api/studio/token` com `isDirector=true` só
+      confere se há usuário logado, não valida `has_event_role(_,'stream')`
+      — qualquer autenticado pega `roomAdmin`. Remover também o fallback
+      `devkey`/`secret` hardcoded.
+- [ ] Provisionar/definir o servidor LiveKit de produção (a env aponta pra
+      onde?) e validar custo/escala.
+- [ ] Estabilização geral de UX/mixer, gravação/VOD, e demais melhorias a
+      alinhar com o Marcelo.
 
 ## Gestão administrativa e ciclo de vida do evento ✅ (21/07/2026, migrações 0024–0027)
 

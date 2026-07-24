@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0031.
+  a última aplicada é a 0032.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -192,10 +192,46 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Landing pública ("/", GoLive)**: página institucional virou landing de
   vendas (`web/src/components/landing/`), tema claro isolado do onix do
   produto via classe `.gl-landing` em `globals.css` (não mexe nos tokens
-  onix globais) — paleta full-palette com cor por função (`--gl-brand`
-  indigo, `--gl-quiz` violeta, `--gl-chat` teal, `--gl-raffle` âmbar,
-  `--gl-reaction` coral). "GoLive" é o nome de marketing da plataforma;
-  não menciona a Propano Filmes na landing (pedido explícito do Marcelo).
+  onix globais). "GoLive" é o nome de marketing da plataforma; não menciona
+  a Propano Filmes na landing (pedido explícito do Marcelo).
+  **Marca navy + verde** (rebrand 24/07/2026, extraída da arte oficial do
+  ícone): `--gl-brand` é o verde vibrante `oklch(0.744 0.146 170.7)` mas só
+  entra como PREENCHIMENTO (botão/badge/dot) com texto/ícone `--gl-ink`
+  (navy) por cima — texto branco no verde reprova contraste (2.13:1);
+  texto/link/ícone verde sobre fundo claro usa `--gl-brand-text` (verde
+  mais escuro, ~5.2:1). As cores por função da vitrine de recursos seguem
+  as mesmas (`--gl-quiz` violeta, `--gl-chat` teal, `--gl-raffle` âmbar,
+  `--gl-reaction` coral). Assets em `web/public/`: `logo-horizontal.png`
+  (wordmark do Header/Footer — no Footer escuro leva `brightness-0 invert`),
+  `og-icon.png` (ícone quadrado, favicon + OG/WhatsApp) e `og-image.png`.
+  O favicon do app é `web/src/app/icon.png` (convenção do Next).
+- **Estúdio de transmissão WebRTC — "GoLive Studio" (EM CONSTRUÇÃO,
+  migração 0032)**: primeira investida na Fase J, mas por **LiveKit
+  (WebRTC multi-convidado, estilo Restream/StreamYard)** em vez do provedor
+  HLS que o ROADMAP previa (HLS ficou em stand by). **Ainda não é estável —
+  precisa de muitas melhorias, mexer nele é trabalho conjunto com o
+  Marcelo, não assumir que "funciona".** Enum `stream_provider` ganhou
+  `'studio'`. Tabelas `studio_rooms` (estado por evento: layout/cena/
+  spotlight/banner/ticker/overlay/fundo/logo/apresentação+slide) e
+  `studio_assets` (banners, GCs de nome, tickers, logos, overlays,
+  vinhetas, apresentações; RLS de escrita = `has_event_role(_,'stream')`
+  ou admin do cliente/plataforma). Rotas: `/admin/eventos/[id]/estudio`
+  (Diretor), `/estudio/[id]/guest` (convidado), `/estudio/[id]/output`
+  (saída limpa pro OBS), + `/[clientSlug]/[eventSlug]/estudio` e
+  `/e/[slug]/estudio`. APIs: `/api/studio/token` (JWT do LiveKit) e
+  `/api/studio/stage` (palco↔backstage via atributo `isOnStage` do
+  participante). Componentes em `src/components/admin/studio/` (ControlRoom,
+  Canvas, OutputCanvas, BackstageBar, GraphicsPanel, PresentationManager,
+  PrivateChat, ClientLoader — SDK WebRTC exige `dynamic ssr:false`).
+  Env novas: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
+  `NEXT_PUBLIC_LIVEKIT_URL`. **Lacunas conhecidas a resolver:** (1) a
+  sincronia Diretor→convidado→output assina `postgres_changes` em
+  `studio_rooms`, mas a tabela **não está** na publicação `supabase_realtime`
+  — a sincronia via Realtime provavelmente não dispara ainda; (2)
+  `/api/studio/token` com `isDirector=true` só checa se há usuário logado,
+  **não** valida `has_event_role(_,'stream')` — qualquer autenticado
+  consegue token de `roomAdmin` de qualquer estúdio, e há fallback pra
+  `devkey`/`secret` hardcoded se a env faltar.
 - **Ambiente de teste compartilhado** (`/demo`, migração 0029): cliente
   fixo "Cliente Demo" com dois eventos — `evento-modelo` (`status='draft'`,
   editado normalmente pelo `/admin`, é onde a configuração "oficial" do
@@ -227,7 +263,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   do `/demo` podem trocar logo/cor/fundo à vontade pra entender como
   funciona, sem risco de estragar o padrão que o Marcelo mantém.
 
-## Estado (22/07/2026)
+## Estado (24/07/2026)
 
 Fases concluídas: MVP, multi-tenant A–D, E (motor de atividades completo),
 F (Q&A com upvote), G (chat pré-moderado, galeria de fotos com moderação
@@ -244,7 +280,16 @@ zoneamento visual em cartões, logos maiores nos pontos de entrada — ver
 ROADMAP. Landing pública "GoLive" (`/impeccable`, 21–22/07/2026): landing
 de vendas completa em `/` (hero, vitrine de recursos, demo interativa,
 white-label, painel Diretor, FAQ) + ambiente de teste compartilhado em
-`/demo` com reset automático (migração 0029, ver Convenções do produto).
-Próxima fase de produto: J (streaming próprio). Pendências avulsas: Google
-OAuth (falta credencial), upload de planilha p/ allowlist, evento-piloto
-em produção.
+`/demo` com reset automático (migração 0029). Rebrand navy + verde e logo
+horizontal (24/07/2026).
+
+**Em construção:** Estúdio de transmissão WebRTC via LiveKit (migração
+0032) — primeira investida na Fase J, ainda instável, muitas melhorias
+pendentes (ver seção "Estúdio" acima e ROADMAP). **HLS/streaming próprio
+via provedor (Cloudflare/Mux/IVS) ficou em STAND BY** — o caminho atual é
+o Estúdio WebRTC.
+
+Pendências avulsas: Google OAuth (falta credencial), upload de planilha
+p/ allowlist, evento-piloto em produção. Há um `Task.md` do estúdio
+mencionado pelo Marcelo que não foi localizado no repo (pode estar noutra
+máquina/nome) — confirmar antes de assumir que não existe.

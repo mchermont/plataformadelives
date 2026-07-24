@@ -14,10 +14,18 @@
 │  /login, /senha/nova            → acesso da equipe (organizador)  │
 │  /admin/...                     → agências, clientes, eventos,    │
 │                                    Sala de produção (Diretor)      │
+│  /admin/eventos/[id]/estudio    → Estúdio WebRTC (Diretor) 🚧     │
+│  /estudio/[id]/guest|output     → convidado / saída OBS 🚧        │
 │                                                                    │
-│  Player com adaptadores: YouTube | Vimeo | Dacast | HLS (Fase J)  │
-└──────────────┬─────────────────────────────────────────────────────┘
-               │ supabase-js (RLS aplicado no banco)
+│  Player: YouTube | Vimeo | Dacast | HLS (stand by) | studio 🚧   │
+└──────────────┬───────────────────────────────────┬────────────────┘
+               │ supabase-js (RLS aplicado no banco) │ LiveKit (WebRTC)
+               │                                     ▼
+               │                       ┌─────────────────────────────┐
+               │                       │  LiveKit (servidor de mídia) │
+               │                       │  salas studio-<eventUUID>,   │
+               │                       │  token/stage via server-sdk  │
+               │                       └─────────────────────────────┘
 ┌──────────────▼─────────────────────────────────────────────────────┐
 │                            Supabase                                │
 │  Postgres  → multi-tenant, eventos, atividades, chat, Q&A,        │
@@ -44,9 +52,13 @@
 4. **Multi-tenant como hierarquia real no schema** — Agência → Cliente →
    Evento, com equipes (`*_members`) e convites por e-mail em cada nível;
    evento pode existir sem cliente (`client_id` nulo).
-5. **Fase J (streaming próprio) via provedor sob demanda** — Cloudflare
-   Stream, Mux ou AWS IVS: ingestão RTMP, entrega HLS, cobrança por minuto
-   entregue. Sem servidor de mídia próprio para operar.
+5. **Fase J (streaming próprio)** — dois braços. **J.1 (HLS via provedor:
+   Cloudflare/Mux/IVS)** está em **stand by**. **J.2 — Estúdio WebRTC
+   "GoLive Studio" (LiveKit)** está EM CONSTRUÇÃO: estúdio ao vivo
+   multi-convidado (Diretor + convidados na mesma sala) com mixagem de cena
+   e saída limpa pro OBS, estilo Restream/StreamYard. LiveKit é o servidor
+   de mídia (WebRTC); o Next só emite tokens JWT e comanda o palco via
+   `livekit-server-sdk`. Ver "Estúdio GoLive" no modelo de dados.
 
 ## Modelo de dados
 
@@ -195,6 +207,37 @@ atividade aberta por vez, controlada via RPC `activity_control`
   trilha de auditoria), `result jsonb`, `displayed`, `drawn_by`. **Sem
   policy de UPDATE** — log imutável por design; a única escrita depois do
   insert é `displayed`, feita exclusivamente pela RPC `raffle_display`.
+
+### Estúdio GoLive (WebRTC / LiveKit) — 🚧 EM CONSTRUÇÃO (migração 0032)
+
+Estado do estúdio ao vivo por evento + os assets visuais mixáveis. **Ainda
+instável, muitas melhorias pendentes** (ver ROADMAP J.2). O vídeo/áudio em
+si trafega pelo **LiveKit** (fora do Supabase); o Postgres guarda só o
+*estado de cena* que o Diretor controla e todos os clientes espelham.
+
+- **`studio_rooms`** — 1 linha por evento (`event_id` único): `active_layout`
+  (`solo|grid|split|spotlight|presentation`), `active_scene_id`,
+  `spotlight_participant_id`, `active_banner_id`, `active_ticker_text`,
+  `active_overlay_url`, `active_background_url`, `active_logo_url`,
+  `active_presentation_id`, `active_slide_index`. RLS: leitura liberada
+  (authenticated **e** anon — a rota `/output` do OBS não tem sessão);
+  escrita = `has_event_role(_,'stream')` OU admin do cliente OU
+  `is_admin()`.
+- **`studio_assets`** — biblioteca de peças por evento: `asset_type`
+  (`gc_name|banner|ticker|logo|overlay|background|video_clip|presentation`),
+  `title`/`subtitle`, `content_json`, `file_url`, `sort_order`,
+  `is_default`, `created_by`. Mesma RLS de `studio_rooms`.
+- `stream_provider` ganhou o valor `'studio'` (evento cuja fonte é o
+  próprio estúdio, não YouTube/Vimeo).
+- **Salas LiveKit** têm nome `studio-<eventUUID>` — Diretor e convidado
+  entram na mesma resolvendo slug→UUID no `/api/studio/token`. Palco vs
+  backstage é o atributo `isOnStage` do participante, setado pelo
+  `/api/studio/stage` (via `RoomServiceClient.updateParticipant`).
+- **Lacunas conhecidas** (ROADMAP J.2): `studio_rooms` **não está** na
+  publicação `supabase_realtime` apesar de guest/output assinarem
+  `postgres_changes` nela — a sincronia de cena por Realtime não dispara
+  ainda; e `/api/studio/token` não valida papel do "Diretor" (qualquer
+  autenticado pega `roomAdmin`).
 
 ## RPCs principais (`security definer`)
 
@@ -360,6 +403,12 @@ intervalo curto (RPCs leves como `get_displayed_raffle`), por serem menos
 sensíveis a latência ou por já terem uma via de atualização otimista no
 cliente.
 
+⚠️ **`studio_rooms` ainda NÃO está na publicação** (migração 0032), embora
+as telas do estúdio (`/estudio/[id]/guest` e `/output`) assinem
+`postgres_changes` nela — por isso a sincronia de cena do estúdio via
+Realtime não funciona ainda. Adicionar à publicação é uma das pendências
+do Estúdio (ROADMAP J.2).
+
 ## Storage
 
 - **`branding`** (público) — logos/fundos/cards de evento e cliente;
@@ -371,6 +420,9 @@ cliente.
   upload/exclusão por quem gerencia o evento ou tem `can_stream`.
 - CSVs de relatório são gerados no cliente (Blob) e baixados direto — não
   existe bucket de relatórios.
+- **Estúdio reusa buckets existentes** (sem bucket novo): peças gráficas do
+  `StudioGraphicsPanel` (banners/GC/logos/overlays) vão pro `branding`;
+  apresentações do `StudioPresentationManager` vão pro `materials`.
 
 ## Dívida técnica conhecida
 
@@ -381,3 +433,10 @@ cliente.
 - `is_staff()`/`is_moderator` são um sistema de permissão global anterior
   ao multi-tenant, hoje residual — a maior parte do controle de acesso já
   passa por `has_event_role`/hierarquia de cliente-agência.
+- **Estúdio WebRTC (LiveKit) — infra e segurança pendentes** (🚧): deps
+  `@livekit/components-react`/`-core`/`livekit-client`/`livekit-server-sdk`;
+  env `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET`/`NEXT_PUBLIC_LIVEKIT_URL`. Falta
+  definir/provisionar o servidor LiveKit de produção, colocar `studio_rooms`
+  no Realtime, e travar `/api/studio/token` por `has_event_role` (hoje
+  qualquer autenticado vira `roomAdmin`, com fallback devkey hardcoded).
+  Ver ROADMAP J.2 pra lista completa.
