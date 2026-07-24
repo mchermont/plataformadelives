@@ -12,6 +12,8 @@ interface StudioCanvasProps {
   onParticipantClick?: (participantId: string) => void;
   /** false na saída limpa pro OBS — sem chrome de UI (selo de destaque etc.) */
   showSpotlightBadge?: boolean;
+  /** Overlay "AO VIVO" no canto superior esquerdo — só pra quem está no Estúdio, nunca no output */
+  showLiveBadge?: boolean;
 }
 
 export function StudioCanvas({
@@ -19,6 +21,7 @@ export function StudioCanvas({
   assets,
   onParticipantClick,
   showSpotlightBadge = true,
+  showLiveBadge = false,
 }: StudioCanvasProps) {
   const participants = useParticipants();
 
@@ -150,6 +153,15 @@ export function StudioCanvas({
         // Layout Padrão: Grid ou Split
         <div className={`relative z-10 grid h-full w-full gap-3 p-4 ${gridLayoutClass}`}>
           {displayParticipants.map((p) => renderTile(p, false))}
+        </div>
+      )}
+
+      {/* 2.5 Selo "AO VIVO" — só pra quem está no Estúdio (Diretor/convidado), nunca no output */}
+      {showLiveBadge && (
+        <div className="pointer-events-none absolute left-4 top-4 z-40">
+          <span className="flex items-center gap-1.5 rounded-full border border-emerald-800/80 bg-emerald-950/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-400 backdrop-blur-md">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> AO VIVO
+          </span>
         </div>
       )}
 

@@ -112,11 +112,7 @@ function StudioControlRoomInner({
 
       {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
       <div className="hidden md:flex w-64 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3 overflow-y-auto">
-        <div className="flex flex-col gap-2 border-b border-neutral-800 pb-3">
-          <span className="flex w-fit items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-800/80 px-3 py-1 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> AO VIVO
-          </span>
-          <span className="truncate text-xs font-semibold text-neutral-300">{event.title}</span>
+        <div className="border-b border-neutral-800 pb-3">
           <button
             onClick={handleCopyInviteLink}
             className="flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
@@ -138,7 +134,12 @@ function StudioControlRoomInner({
         {/* Player Rígido 16:9 */}
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
           <div className="relative aspect-[16/9] max-h-full w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
-            <StudioCanvas roomState={roomState} assets={assets} onParticipantClick={handleSpotlight} />
+            <StudioCanvas
+              roomState={roomState}
+              assets={assets}
+              onParticipantClick={handleSpotlight}
+              showLiveBadge
+            />
           </div>
         </div>
 

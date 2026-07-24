@@ -112,7 +112,7 @@ function GuestStudioInner({
 
         {/* Player Rígido 16:9 */}
         <div className="relative aspect-[16/9] max-h-full w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
-          <StudioCanvas roomState={roomState} assets={assets} />
+          <StudioCanvas roomState={roomState} assets={assets} showLiveBadge />
         </div>
       </div>
 
