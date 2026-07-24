@@ -13,7 +13,7 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
 - **Migrações SEMPRE por terminal**, nunca pelo painel do Supabase:
   `cd web && node scripts/migrate.mjs supabase/migrations/00XX_nome.sql`
   (connection string em `web/.db-url`, gitignored). Numerar sequencialmente;
-  a última aplicada é a 0034.
+  a última aplicada é a 0035.
 - **Next.js 16**: APIs mudaram (params/cookies assíncronos, proxy.ts no lugar
   de middleware, Turbopack). Ler `web/node_modules/next/dist/docs/` antes de
   usar API que você "conhece". Verificação: `npx tsc --noEmit` + `npx next build`.
@@ -264,6 +264,21 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   com `isDirector=true` só checa se há usuário logado, **não** valida
   `has_event_role(_,'stream')` — qualquer autenticado consegue token de
   `roomAdmin` de qualquer estúdio.
+  **Intérprete de Libras (24/07/2026, migração 0035)**: papel separado de
+  convidado — identity `interprete-*`, link próprio
+  (`/estudio/[id]/interprete`), nunca entra no palco/grade normal, é um
+  PIP fixo em 4:3 por cima de qualquer arranjo (`active_interpreter_id` +
+  `interpreter_position` em `studio_rooms`), canto esquerdo/direito
+  trocável a qualquer momento pelo Diretor. Até 2 intérpretes alternando
+  — cada um "assume" na própria tela via RPC `set_active_interpreter`
+  (`security definer`, mesmo padrão de `submit_activity_response` e
+  companhia, já que intérprete não é staff autenticado e não tem UPDATE
+  direto em `studio_rooms`); assumir já tira o outro sozinho (só existe
+  um `active_interpreter_id`). Mic do intérprete é audível só pro Diretor
+  (`StudioAudioRenderer` com `includeInterpreters`), nunca pro público;
+  o intérprete continua ouvindo o palco normalmente. Backstage do Diretor
+  lista intérpretes numa seção separada, depois de uma linha divisória
+  após os convidados normais.
 - **Ambiente de teste compartilhado** (`/demo`, migração 0029): cliente
   fixo "Cliente Demo" com dois eventos — `evento-modelo` (`status='draft'`,
   editado normalmente pelo `/admin`, é onde a configuração "oficial" do
