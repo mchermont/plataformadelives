@@ -19,72 +19,95 @@ export function StudioPresentationManager({
   onCreateAsset,
 }: StudioPresentationManagerProps) {
   const [title, setTitle] = useState("");
-  const [urlsInput, setUrlsInput] = useState("");
-  const [uploading, setUploading] = useState(false);
+  const [slides, setSlides] = useState<string[]>([]);
+  const [converting, setConverting] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
 
   const presentations = assets.filter((a) => a.asset_type === "presentation");
   const activePresentation = presentations.find((p) => p.id === roomState.active_presentation_id);
 
-  const slides: string[] = (activePresentation?.content_json?.slides as string[]) || [];
+  const activeSlides: string[] = (activePresentation?.content_json?.slides as string[]) || [];
   const currentSlideIndex = roomState.active_slide_index || 0;
 
-  // Upload direto de imagem de slide para o Supabase Storage
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // Converte cada página do PDF numa imagem PNG e sobe pro Storage —
+  // conversão acontece inteira no navegador (pdfjs-dist), sem servidor
+  // extra nem custo por arquivo.
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    setUploading(true);
+    setConverting(true);
+    setProgress(null);
     try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.min.mjs",
+        import.meta.url
+      ).toString();
+
+      const arrayBuffer = await file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
       const supabase = createClient();
       const uploadedUrls: string[] = [];
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-        const path = `slides/slide-${crypto.randomUUID()}.${ext}`;
+      for (let i = 1; i <= doc.numPages; i++) {
+        setProgress({ current: i, total: doc.numPages });
 
-        const { error } = await supabase.storage.from("materials").upload(path, file);
+        const page = await doc.getPage(i);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const context = canvas.getContext("2d");
+        if (!context) continue;
+
+        await page.render({ canvasContext: context, viewport, canvas }).promise;
+
+        const blob: Blob | null = await new Promise((resolve) =>
+          canvas.toBlob((b) => resolve(b), "image/png")
+        );
+        if (!blob) continue;
+
+        const path = `slides/slide-${crypto.randomUUID()}.png`;
+        const { error } = await supabase.storage.from("materials").upload(path, blob);
         if (!error) {
           const { data } = supabase.storage.from("materials").getPublicUrl(path);
           if (data.publicUrl) uploadedUrls.push(data.publicUrl);
         } else {
-          console.error("Erro no upload do slide:", error);
+          console.error("Erro no upload da página convertida:", error);
         }
       }
 
-      if (uploadedUrls.length > 0) {
-        setUrlsInput((prev) => (prev ? `${prev}\n${uploadedUrls.join("\n")}` : uploadedUrls.join("\n")));
+      if (uploadedUrls.length === 0) {
+        alert("Não foi possível converter nenhuma página do PDF. Tente novamente.");
+        return;
       }
+
+      setSlides(uploadedUrls);
+      if (!title.trim()) setTitle(file.name.replace(/\.pdf$/i, ""));
     } catch (err) {
-      console.error(err);
-      alert("Falha no upload do arquivo. Tente novamente.");
+      console.error("Erro ao converter PDF:", err);
+      alert("Falha ao converter o PDF. Verifique se o arquivo não está corrompido.");
     } finally {
-      setUploading(false);
+      setConverting(false);
+      setProgress(null);
+      e.target.value = "";
     }
   };
 
   const handleCreatePresentation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !urlsInput.trim()) return;
-
-    const slidesList = urlsInput
-      .split("\n")
-      .map((url) => url.trim())
-      .filter((url) => url.startsWith("http"));
-
-    if (slidesList.length === 0) {
-      alert("Insira pelo menos uma URL de imagem válida de slide.");
-      return;
-    }
+    if (!title.trim() || slides.length === 0) return;
 
     onCreateAsset({
       asset_type: "presentation",
       title: title.trim(),
-      content_json: { slides: slidesList },
+      content_json: { slides },
     });
 
     setTitle("");
-    setUrlsInput("");
+    setSlides([]);
   };
 
   const handlePrevSlide = () => {
@@ -94,7 +117,7 @@ export function StudioPresentationManager({
   };
 
   const handleNextSlide = () => {
-    if (currentSlideIndex < slides.length - 1) {
+    if (currentSlideIndex < activeSlides.length - 1) {
       onUpdateRoom({ active_slide_index: currentSlideIndex + 1 });
     }
   };
@@ -109,7 +132,7 @@ export function StudioPresentationManager({
               <FileText className="h-4 w-4" /> Apresentação em Exibição
             </span>
             <button
-              onClick={() => onUpdateRoom({ active_presentation_id: null, active_layout: "grid" })}
+              onClick={() => onUpdateRoom({ active_presentation_id: null })}
               className="text-xs font-semibold text-rose-400 hover:underline"
             >
               Remover do Palco
@@ -120,10 +143,10 @@ export function StudioPresentationManager({
 
           {/* Miniatura do Slide Ativo + Navegação */}
           <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950 flex items-center justify-center">
-            {slides[currentSlideIndex] ? (
+            {activeSlides[currentSlideIndex] ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={slides[currentSlideIndex]}
+                src={activeSlides[currentSlideIndex]}
                 alt={`Slide ${currentSlideIndex + 1}`}
                 className="h-full w-full object-contain"
               />
@@ -143,12 +166,12 @@ export function StudioPresentationManager({
             </button>
 
             <span className="text-xs font-mono text-neutral-400">
-              {currentSlideIndex + 1} / {slides.length}
+              {currentSlideIndex + 1} / {activeSlides.length}
             </span>
 
             <button
               onClick={handleNextSlide}
-              disabled={currentSlideIndex >= slides.length - 1}
+              disabled={currentSlideIndex >= activeSlides.length - 1}
               className="flex items-center gap-1 rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-200 transition hover:bg-neutral-800 disabled:opacity-40"
             >
               Próximo <ChevronRight className="h-4 w-4" />
@@ -157,9 +180,41 @@ export function StudioPresentationManager({
         </div>
       ) : null}
 
-      {/* Formulário de Nova Apresentação com Upload de Arquivo */}
+      {/* Formulário de Nova Apresentação com Upload de PDF */}
       <form onSubmit={handleCreatePresentation} className="space-y-3 bg-neutral-950 p-3 rounded-xl border border-neutral-800">
-        <span className="text-xs font-semibold text-neutral-300 block">Nova Apresentação de Slides</span>
+        <span className="text-xs font-semibold text-neutral-300 block">Nova Apresentação (PDF)</span>
+        <p className="text-[11px] text-neutral-500">
+          Exporte sua apresentação como PDF (PowerPoint, Keynote e Google
+          Slides fazem isso em 1 clique) e envie aqui — cada página vira um
+          slide navegável.
+        </p>
+
+        {/* Botão de Upload do PDF */}
+        <label className="flex items-center justify-center gap-2 cursor-pointer rounded-lg border border-dashed border-neutral-700 bg-neutral-900 py-2.5 px-3 text-xs font-semibold text-neutral-300 hover:border-emerald-500 hover:text-emerald-400 transition">
+          {converting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+              {progress ? `Convertendo página ${progress.current} de ${progress.total}…` : "Lendo PDF…"}
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" /> Escolher arquivo PDF no computador
+            </>
+          )}
+          <input
+            type="file"
+            accept="application/pdf"
+            disabled={converting}
+            onChange={handlePdfUpload}
+            className="hidden"
+          />
+        </label>
+
+        {slides.length > 0 && (
+          <div className="flex items-center gap-2 text-[11px] text-emerald-400">
+            <FileText className="h-3.5 w-3.5" /> {slides.length} página(s) convertida(s)
+          </div>
+        )}
 
         <input
           type="text"
@@ -169,38 +224,9 @@ export function StudioPresentationManager({
           className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs text-neutral-100 placeholder:text-neutral-500 focus:border-emerald-500 focus:outline-none"
         />
 
-        {/* Botão de Upload de Arquivo do Computador */}
-        <label className="flex items-center justify-center gap-2 cursor-pointer rounded-lg border border-dashed border-neutral-700 bg-neutral-900 py-2.5 px-3 text-xs font-semibold text-neutral-300 hover:border-emerald-500 hover:text-emerald-400 transition">
-          {uploading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> Fazendo upload dos slides...
-            </>
-          ) : (
-            <>
-              <Upload className="h-4 w-4" /> Escolher imagens dos slides no computador
-            </>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            disabled={uploading}
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </label>
-
-        <textarea
-          placeholder="Ou cole as URLs das imagens dos slides (uma por linha)"
-          value={urlsInput}
-          onChange={(e) => setUrlsInput(e.target.value)}
-          rows={3}
-          className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs text-neutral-100 placeholder:text-neutral-500 focus:border-emerald-500 focus:outline-none font-mono"
-        />
-
         <button
           type="submit"
-          disabled={!title.trim() || !urlsInput.trim() || uploading}
+          disabled={!title.trim() || slides.length === 0 || converting}
           className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-2 text-xs font-semibold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50"
         >
           <Plus className="h-4 w-4" /> Salvar Apresentação
@@ -236,7 +262,6 @@ export function StudioPresentationManager({
                   onClick={() =>
                     onUpdateRoom({
                       active_presentation_id: isActive ? null : p.id,
-                      active_layout: isActive ? "grid" : "presentation",
                       active_slide_index: 0,
                     })
                   }

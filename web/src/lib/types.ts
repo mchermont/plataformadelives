@@ -522,7 +522,15 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
 
 // ===== Estúdio GoLive (migração 0032) =====
 
-export type StudioLayout = "solo" | "grid" | "split" | "spotlight" | "presentation";
+export type StudioLayout =
+  | "grid"
+  | "solo"
+  | "split"
+  | "split-2-1"
+  | "thumbs-right"
+  | "thumbs-left"
+  | "thumbs-bottom"
+  | "pip";
 
 export type StudioAssetType =
   | "gc_name"

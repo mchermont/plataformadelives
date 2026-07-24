@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useParticipants } from "@livekit/components-react";
-import { StudioAsset, StudioRoom } from "@/lib/types";
+import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
 import { User } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 
@@ -14,6 +14,22 @@ interface StudioCanvasProps {
   showSpotlightBadge?: boolean;
   /** Overlay "AO VIVO" no canto superior esquerdo — só pra quem está no Estúdio, nunca no output */
   showLiveBadge?: boolean;
+}
+
+// Salas antigas podem ter gravado os nomes de cena de antes da unificação
+// pessoa/mídia (migração conceitual, sem migração de banco — active_layout
+// é VARCHAR livre). Normaliza pro arranjo equivalente mais próximo.
+const LEGACY_LAYOUT_MAP: Record<string, StudioLayout> = {
+  spotlight: "thumbs-bottom",
+  presentation: "thumbs-right",
+};
+
+function gridColsForCount(count: number) {
+  if (count <= 1) return "grid-cols-1 grid-rows-1";
+  if (count === 2) return "grid-cols-1 md:grid-cols-2 grid-rows-1";
+  if (count <= 4) return "grid-cols-2 grid-rows-2";
+  if (count <= 6) return "grid-cols-3 grid-rows-2";
+  return "grid-cols-4 grid-rows-3";
 }
 
 export function StudioCanvas({
@@ -54,27 +70,24 @@ export function StudioCanvas({
     return slides[roomState.active_slide_index || 0] || null;
   }, [activePresentation, roomState.active_slide_index]);
 
-  // Filtra os participantes a exibir com base no layout ativo (Solo foca em um)
-  const displayParticipants = useMemo(() => {
-    if (roomState.active_layout === "solo") {
-      const spotlight = stageParticipants.find((p) => p.identity === roomState.spotlight_participant_id);
-      if (spotlight) return [spotlight];
-      return stageParticipants.slice(0, 1);
-    }
-    return stageParticipants;
-  }, [stageParticipants, roomState.active_layout, roomState.spotlight_participant_id]);
+  const isMediaActive = Boolean(activeSlideUrl);
+  const layout: StudioLayout = LEGACY_LAYOUT_MAP[roomState.active_layout] || roomState.active_layout;
 
-  // Define a classe CSS do grid com base na quantidade de pessoas no palco
-  const gridLayoutClass = useMemo(() => {
-    const count = displayParticipants.length;
-    const layout = roomState.active_layout;
+  // Conteúdo primário (o "destaque"): mídia tem prioridade; senão, a pessoa
+  // marcada pelo Diretor como Apresentador (ou a primeira do palco).
+  const primaryPerson = useMemo(() => {
+    if (stageParticipants.length === 0) return null;
+    return (
+      stageParticipants.find((p) => p.identity === roomState.spotlight_participant_id) ||
+      stageParticipants[0]
+    );
+  }, [stageParticipants, roomState.spotlight_participant_id]);
 
-    if (layout === "solo" || count <= 1) return "grid-cols-1 grid-rows-1";
-    if (layout === "split" || count === 2) return "grid-cols-1 md:grid-cols-2 grid-rows-1";
-    if (count <= 4) return "grid-cols-2 grid-rows-2";
-    if (count <= 6) return "grid-cols-3 grid-rows-2";
-    return "grid-cols-4 grid-rows-3";
-  }, [displayParticipants.length, roomState.active_layout]);
+  // Resto do palco — usado pelos arranjos com miniaturas.
+  const restParticipants = useMemo(() => {
+    if (!primaryPerson) return stageParticipants;
+    return stageParticipants.filter((p) => p.identity !== primaryPerson.identity);
+  }, [stageParticipants, primaryPerson]);
 
   const renderTile = (p: (typeof participants)[0], isThumbnail = false) => (
     <StudioParticipantTile
@@ -88,6 +101,157 @@ export function StudioCanvas({
     />
   );
 
+  const renderMedia = () => (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 p-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={activeSlideUrl!} alt="Slide ativo" className="h-full w-full object-contain" />
+    </div>
+  );
+
+  const stageEmpty = !isMediaActive && stageParticipants.length === 0;
+
+  const renderStage = () => {
+    if (stageEmpty) {
+      return (
+        <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 space-y-3">
+          <div className="h-16 w-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-600 shadow-lg">
+            <User className="h-8 w-8" />
+          </div>
+          <p className="text-sm font-medium text-neutral-400 max-w-sm">
+            O palco está vazio. Adicione participantes do backstage abaixo para ir ao ar.
+          </p>
+        </div>
+      );
+    }
+
+    switch (layout) {
+      case "grid": {
+        const cells: Array<{ key: string; node: React.ReactNode }> = [];
+        if (isMediaActive) cells.push({ key: "media", node: renderMedia() });
+        stageParticipants.forEach((p) => cells.push({ key: p.sid, node: renderTile(p, false) }));
+        return (
+          <div
+            className={`relative z-10 grid h-full w-full gap-3 p-4 ${gridColsForCount(cells.length)}`}
+          >
+            {cells.map((c) => (
+              <div key={c.key}>{c.node}</div>
+            ))}
+          </div>
+        );
+      }
+
+      case "solo": {
+        const content = isMediaActive ? renderMedia() : primaryPerson ? renderTile(primaryPerson) : null;
+        return <div className="relative z-10 h-full w-full p-4">{content}</div>;
+      }
+
+      case "split": {
+        if (!isMediaActive) {
+          // Sem mídia: comportamento original — grade forçada em 2 colunas com todo o palco.
+          return (
+            <div className="relative z-10 grid h-full w-full grid-cols-1 gap-3 p-4 md:grid-cols-2">
+              {stageParticipants.map((p) => renderTile(p, false))}
+            </div>
+          );
+        }
+        return (
+          <div className="relative z-10 grid h-full w-full grid-cols-1 gap-3 p-4 md:grid-cols-2">
+            <div>{primaryPerson ? renderTile(primaryPerson) : null}</div>
+            <div>{renderMedia()}</div>
+          </div>
+        );
+      }
+
+      case "split-2-1": {
+        const primaryContent = isMediaActive
+          ? renderMedia()
+          : primaryPerson
+            ? renderTile(primaryPerson)
+            : null;
+        const secondaryPerson = isMediaActive ? primaryPerson : restParticipants[0] || null;
+        return (
+          <div className="relative z-10 flex h-full w-full gap-3 p-4">
+            <div className="min-w-0 flex-[2]">{primaryContent}</div>
+            {secondaryPerson && <div className="min-w-0 flex-1">{renderTile(secondaryPerson, true)}</div>}
+          </div>
+        );
+      }
+
+      case "thumbs-right":
+      case "thumbs-left": {
+        const primaryContent = isMediaActive
+          ? renderMedia()
+          : primaryPerson
+            ? renderTile(primaryPerson)
+            : null;
+        const secondaries = isMediaActive ? stageParticipants : restParticipants;
+
+        const thumbsColumn = secondaries.length > 0 && (
+          <div className="thin-scroll flex w-64 flex-shrink-0 flex-col gap-2 overflow-y-auto pr-1">
+            {secondaries.map((p) => (
+              <div key={p.sid} className="aspect-video shrink-0">
+                {renderTile(p, true)}
+              </div>
+            ))}
+          </div>
+        );
+
+        return (
+          <div className="relative z-10 flex h-full w-full gap-3 p-4">
+            {layout === "thumbs-left" && thumbsColumn}
+            <div className="relative min-w-0 flex-1">{primaryContent}</div>
+            {layout === "thumbs-right" && thumbsColumn}
+          </div>
+        );
+      }
+
+      case "thumbs-bottom": {
+        const primaryContent = isMediaActive
+          ? renderMedia()
+          : primaryPerson
+            ? renderTile(primaryPerson)
+            : null;
+        const secondaries = isMediaActive ? stageParticipants : restParticipants;
+        return (
+          <div className="relative z-10 flex h-full w-full flex-col gap-3 p-4">
+            <div className="min-h-0 flex-1">{primaryContent}</div>
+            {secondaries.length > 0 && (
+              <div className="flex h-28 justify-center gap-3 overflow-x-auto py-1">
+                {secondaries.map((p) => (
+                  <div key={p.sid} className="h-full w-40 flex-shrink-0">
+                    {renderTile(p, true)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      case "pip": {
+        const primaryContent = isMediaActive
+          ? renderMedia()
+          : primaryPerson
+            ? renderTile(primaryPerson)
+            : null;
+        const pipPerson = isMediaActive ? primaryPerson : restParticipants[0] || null;
+        return (
+          <div className="relative z-10 h-full w-full p-4">
+            <div className="h-full w-full">{primaryContent}</div>
+            {pipPerson && (
+              <div className="absolute bottom-8 right-8 h-32 w-52 shadow-2xl md:h-36 md:w-60">
+                {renderTile(pipPerson, true)}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="absolute inset-0 h-full w-full bg-neutral-950 flex items-center justify-center">
       {/* 1. Imagem de Fundo (Fundo de Tela) */}
@@ -100,61 +264,8 @@ export function StudioCanvas({
         />
       )}
 
-      {/* 2. Grid de Vídeos ou Apresentação de Slides no Palco */}
-      {activeSlideUrl ? (
-        <div className="relative z-10 flex h-full w-full gap-3 p-4">
-          {/* Apresentação Principal (Esquerda - 75% da largura) */}
-          <div className="relative flex-1 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 flex items-center justify-center p-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={activeSlideUrl} alt="Slide ativo" className="h-full w-full object-contain" />
-          </div>
-
-          {/* Câmeras dos Palestrantes no Palco (Direita - 25% da largura) */}
-          {displayParticipants.length > 0 && (
-            <div className="thin-scroll flex w-64 flex-col gap-2 overflow-y-auto pr-1">
-              {displayParticipants.map((p) => (
-                <div key={p.sid} className="aspect-video shrink-0">
-                  {renderTile(p, true)}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : displayParticipants.length === 0 ? (
-        <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 space-y-3">
-          <div className="h-16 w-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-600 shadow-lg">
-            <User className="h-8 w-8" />
-          </div>
-          <p className="text-sm font-medium text-neutral-400 max-w-sm">
-            O palco está vazio. Adicione participantes do backstage abaixo para ir ao ar.
-          </p>
-        </div>
-      ) : roomState.active_layout === "spotlight" && displayParticipants.length > 1 ? (
-        // Layout de Destaque: Um grande acima, outros em miniatura embaixo
-        <div className="relative z-10 flex flex-col h-full w-full gap-3 p-4">
-          {/* Palestrante Destaque (Foco) */}
-          <div className="flex-1 min-h-0">
-            {renderTile(
-              displayParticipants.find((p) => p.identity === roomState.spotlight_participant_id) || displayParticipants[0]
-            )}
-          </div>
-          {/* Linha de Miniaturas (Thumbnails) */}
-          <div className="h-28 flex gap-3 overflow-x-auto justify-center py-1">
-            {displayParticipants
-              .filter((p) => p.identity !== (roomState.spotlight_participant_id || displayParticipants[0].identity))
-              .map((p) => (
-                <div key={p.sid} className="w-40 h-full flex-shrink-0">
-                  {renderTile(p, true)}
-                </div>
-              ))}
-          </div>
-        </div>
-      ) : (
-        // Layout Padrão: Grid ou Split
-        <div className={`relative z-10 grid h-full w-full gap-3 p-4 ${gridLayoutClass}`}>
-          {displayParticipants.map((p) => renderTile(p, false))}
-        </div>
-      )}
+      {/* 2. Palco: participantes e/ou mídia, de acordo com o arranjo ativo */}
+      {renderStage()}
 
       {/* 2.5 Selo "AO VIVO" — só pra quem está no Estúdio (Diretor/convidado), nunca no output */}
       {showLiveBadge && (

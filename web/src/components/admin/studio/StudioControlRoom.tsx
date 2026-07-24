@@ -18,11 +18,27 @@ import {
   VideoOff,
   Share2,
   LayoutGrid,
-  Columns,
+  Columns2,
+  LayoutPanelLeft,
   User,
-  Tv,
+  PanelRight,
+  PanelLeft,
+  PanelBottom,
+  PictureInPicture,
   Settings,
 } from "lucide-react";
+import type { StudioLayout } from "@/lib/types";
+
+const SCENE_OPTIONS: { layout: StudioLayout; label: string; Icon: typeof LayoutGrid }[] = [
+  { layout: "grid", label: "Grid", Icon: LayoutGrid },
+  { layout: "solo", label: "Solo", Icon: User },
+  { layout: "split", label: "Lado a Lado", Icon: Columns2 },
+  { layout: "split-2-1", label: "Split 2:1", Icon: LayoutPanelLeft },
+  { layout: "thumbs-right", label: "Destaque + thumbs à direita", Icon: PanelRight },
+  { layout: "thumbs-left", label: "Destaque + thumbs à esquerda", Icon: PanelLeft },
+  { layout: "thumbs-bottom", label: "Destaque + thumbs embaixo", Icon: PanelBottom },
+  { layout: "pip", label: "PIP (Picture-in-Picture)", Icon: PictureInPicture },
+];
 
 interface StudioControlRoomProps {
   event: LiveEvent & { client?: { slug: string } | null };
@@ -89,7 +105,7 @@ function StudioControlRoomInner({
 
   const handleSpotlight = useCallback(
     (identity: string) => {
-      handleUpdateRoom({ active_layout: "spotlight", spotlight_participant_id: identity });
+      handleUpdateRoom({ spotlight_participant_id: identity });
     },
     [handleUpdateRoom],
   );
@@ -146,34 +162,16 @@ function StudioControlRoomInner({
         {/* Controls - Layouts, Microfone, Câmera */}
         <div className="mx-auto flex w-full max-w-5xl flex-shrink-0 items-center justify-between">
            <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 p-1.5 rounded-2xl">
-             <button
-                onClick={() => handleUpdateRoom({ active_layout: "solo" })}
-                className={`p-2.5 rounded-xl transition ${roomState.active_layout === "solo" ? "bg-emerald-500 text-neutral-950" : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"}`}
-                title="Solo"
-             >
-                <User className="h-4 w-4" />
-             </button>
-             <button
-                onClick={() => handleUpdateRoom({ active_layout: "split" })}
-                className={`p-2.5 rounded-xl transition ${roomState.active_layout === "split" ? "bg-emerald-500 text-neutral-950" : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"}`}
-                title="Lado a Lado"
-             >
-                <Columns className="h-4 w-4" />
-             </button>
-             <button
-                onClick={() => handleUpdateRoom({ active_layout: "grid" })}
-                className={`p-2.5 rounded-xl transition ${roomState.active_layout === "grid" ? "bg-emerald-500 text-neutral-950" : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"}`}
-                title="Grid"
-             >
-                <LayoutGrid className="h-4 w-4" />
-             </button>
-             <button
-                onClick={() => handleUpdateRoom({ active_layout: "spotlight" })}
-                className={`p-2.5 rounded-xl transition ${roomState.active_layout === "spotlight" ? "bg-emerald-500 text-neutral-950" : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"}`}
-                title="Destaque (Spotlight)"
-             >
-                <Tv className="h-4 w-4" />
-             </button>
+             {SCENE_OPTIONS.map(({ layout, label, Icon }) => (
+               <button
+                  key={layout}
+                  onClick={() => handleUpdateRoom({ active_layout: layout })}
+                  className={`p-2.5 rounded-xl transition ${roomState.active_layout === layout ? "bg-emerald-500 text-neutral-950" : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"}`}
+                  title={label}
+               >
+                  <Icon className="h-4 w-4" />
+               </button>
+             ))}
            </div>
 
            <div className="flex items-center gap-4">
