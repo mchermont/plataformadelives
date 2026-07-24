@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, ArrowRight, Mic, Video } from "lucide-react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useLocalParticipant } from "@livekit/components-react";
 
 const LiveKitRoom = dynamic(
   () => import("@livekit/components-react").then((m) => m.LiveKitRoom),
@@ -13,6 +14,70 @@ const RoomAudioRenderer = dynamic(
   () => import("@livekit/components-react").then((m) => m.RoomAudioRenderer),
   { ssr: false }
 );
+
+function GuestRoomContent({ name }: { name: string }) {
+  const { localParticipant } = useLocalParticipant();
+  const isOnStage = localParticipant?.attributes?.isOnStage !== "false";
+
+  return (
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-neutral-950 text-neutral-100 p-6 text-center gap-5">
+      <RoomAudioRenderer />
+
+      {/* Preview da câmera do convidado */}
+      <div className={`w-64 h-48 rounded-2xl overflow-hidden border-2 bg-neutral-900 transition-all ${
+        isOnStage ? "border-emerald-500 shadow-lg shadow-emerald-500/20" : "border-neutral-800"
+      }`}>
+        <video
+          autoPlay
+          muted
+          playsInline
+          ref={(el) => {
+            if (!el) return;
+            navigator.mediaDevices
+              .getUserMedia({ video: true, audio: true })
+              .then((stream) => {
+                el.srcObject = stream;
+              })
+              .catch(() => {});
+          }}
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      <div className={`h-14 w-14 rounded-full border-2 flex items-center justify-center transition-all ${
+        isOnStage ? "bg-emerald-950 border-emerald-500 text-emerald-400" : "bg-neutral-900 border-neutral-800 text-neutral-400"
+      }`}>
+        <Check className="h-7 w-7" />
+      </div>
+
+      <div className="space-y-1">
+        <h1 className="text-xl font-bold transition-colors">
+          {isOnStage ? "Você está no Palco!" : "Você está no Backstage!"}
+        </h1>
+        <p className="max-w-sm text-sm text-neutral-400">
+          {isOnStage 
+            ? "Sua imagem e voz estão sendo transmitidas ao vivo!" 
+            : "Sua câmera e microfone estão ativos. O diretor irá colocá-lo no palco quando for a hora certa."}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3 mt-2">
+        <div className="flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-800 px-3 py-1.5">
+          <Mic className="h-3.5 w-3.5 text-emerald-400" />
+          <span className="text-xs font-semibold text-emerald-300">Microfone ativo</span>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-800 px-3 py-1.5">
+          <Video className="h-3.5 w-3.5 text-emerald-400" />
+          <span className="text-xs font-semibold text-emerald-300">Câmera ativa</span>
+        </div>
+      </div>
+
+      <p className="text-xs text-neutral-600 mt-4">
+        Conectado como: <strong className="text-neutral-400">{name}</strong>
+      </p>
+    </div>
+  );
+}
 
 export default function GuestRoomPage() {
   const params = useParams();
@@ -69,54 +134,9 @@ export default function GuestRoomPage() {
         video={true}
         audio={true}
         onError={(err) => console.error("Guest LiveKit error:", err)}
-        className="flex h-screen w-full flex-col items-center justify-center bg-neutral-950 text-neutral-100 p-6 text-center gap-5"
+        className="h-screen w-full"
       >
-        <RoomAudioRenderer />
-
-        {/* Preview da câmera do convidado */}
-        <div className="w-64 h-48 rounded-2xl overflow-hidden border border-emerald-700 bg-neutral-900">
-          <video
-            autoPlay
-            muted
-            playsInline
-            ref={(el) => {
-              if (!el) return;
-              navigator.mediaDevices
-                .getUserMedia({ video: true })
-                .then((stream) => {
-                  el.srcObject = stream;
-                })
-                .catch(() => {});
-            }}
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        <div className="h-14 w-14 rounded-full bg-emerald-950 border-2 border-emerald-500 flex items-center justify-center text-emerald-400">
-          <Check className="h-7 w-7" />
-        </div>
-
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold">Você está no Backstage!</h1>
-          <p className="max-w-sm text-sm text-neutral-400">
-            Sua câmera e microfone estão ativos. O diretor irá colocá-lo no palco quando for a hora certa.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 mt-2">
-          <div className="flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-800 px-3 py-1.5">
-            <Mic className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-300">Microfone ativo</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-emerald-950/60 border border-emerald-800 px-3 py-1.5">
-            <Video className="h-3.5 w-3.5 text-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-300">Câmera ativa</span>
-          </div>
-        </div>
-
-        <p className="text-xs text-neutral-600 mt-4">
-          Conectado como: <strong className="text-neutral-400">{name}</strong>
-        </p>
+        <GuestRoomContent name={name} />
       </LiveKitRoom>
     );
   }
