@@ -276,7 +276,10 @@ export function StudioCanvas({
           <div className="relative z-10 h-full w-full p-4">
             <div className="h-full w-full">{primaryContent}</div>
             {pipPerson && (
-              <div className="absolute bottom-8 right-8 h-32 w-52 shadow-2xl md:h-36 md:w-60">
+              <div
+                className="absolute shadow-2xl"
+                style={{ height: "26%", aspectRatio: "16 / 9", bottom: "6%", right: "6%" }}
+              >
                 {renderTile(pipPerson, true)}
               </div>
             )}
@@ -313,13 +316,21 @@ export function StudioCanvas({
         </div>
       )}
 
-      {/* 2.7 Intérprete de Libras — PIP fixo, sempre por cima, em 4:3 */}
+      {/* 2.7 Intérprete de Libras — PIP fixo, sempre por cima, em 4:3.
+          Tamanho/posição em % do player (não px fixo): o player renderiza
+          em tamanhos de tela bem diferentes pro Diretor/convidado/output,
+          então px fixo faz o PIP parecer proporcionalmente maior ou menor
+          dependendo de quem está vendo — em % ele fica idêntico pra todo
+          mundo, exatamente como o Diretor está vendo. */}
       {activeInterpreter && (
         <div
-          className={`absolute bottom-6 z-40 h-40 ${
-            roomState.interpreter_position === "bottom-left" ? "left-6" : "right-6"
-          }`}
-          style={{ aspectRatio: "4 / 3" }}
+          className="absolute z-40"
+          style={{
+            height: "22%",
+            aspectRatio: "4 / 3",
+            bottom: "4%",
+            [roomState.interpreter_position === "bottom-left" ? "left" : "right"]: "4%",
+          }}
         >
           <StudioParticipantTile participant={activeInterpreter} variant="thumbnail" showName />
         </div>
