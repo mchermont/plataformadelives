@@ -100,7 +100,7 @@ function GuestStudioInner({
       <StudioAudioRenderer volumes={volumes} />
 
       {/* Esquerda/Centro: Player de Vídeo em 16:9 (Stage) */}
-      <div className="flex-1 flex flex-col justify-center items-center gap-3">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
         <div className="w-full flex items-center justify-between px-1">
           <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
             Palco da Transmissão (Ao Vivo)
@@ -111,7 +111,7 @@ function GuestStudioInner({
         </div>
 
         {/* Player Rígido 16:9 */}
-        <div className="relative w-full aspect-video max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
+        <div className="relative aspect-[16/9] max-h-full w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
           <StudioCanvas roomState={roomState} assets={assets} />
         </div>
       </div>
@@ -155,8 +155,9 @@ function GuestStudioInner({
           <div className="flex items-center justify-center gap-2">
             <button
               onClick={toggleMic}
+              disabled={!isOnStage}
               title={!isOnStage ? "No backstage o áudio fica mudo automaticamente" : undefined}
-              className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-xs font-bold transition ${
+              className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 isMicrophoneEnabled ? "bg-neutral-800 text-emerald-400 hover:bg-neutral-700" : "bg-rose-950 text-rose-400 border border-rose-800"
               }`}
             >

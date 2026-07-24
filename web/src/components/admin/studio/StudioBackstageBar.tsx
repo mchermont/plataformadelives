@@ -40,20 +40,17 @@ export function StudioBackstageBar({
   };
 
   return (
-    <div className="flex flex-col space-y-2 rounded-2xl bg-neutral-900/90 border border-neutral-800 p-3">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between px-1">
-        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
           Participantes ({participants.length})
-        </span>
-        <span className="text-[11px] text-neutral-500">
-          Gerencie quem está no palco
         </span>
       </div>
 
-      <div className="flex items-center gap-3 overflow-x-auto pb-1">
+      <div className="flex flex-col gap-2">
         {participants.length === 0 ? (
           <div className="py-4 text-xs text-neutral-500 italic">
-            Nenhum participante conectado. Copie o link e convide alguém!
+            Ninguém conectado ainda. Copie o link e convide alguém!
           </div>
         ) : (
           participants.map((p) => {
@@ -72,19 +69,24 @@ export function StudioBackstageBar({
             return (
               <div
                 key={p.sid}
-                className={`relative flex min-w-[210px] flex-col justify-between rounded-xl border p-3 transition ${
+                className={`flex w-full flex-col rounded-xl border p-2 transition ${
                   isOnStage
                     ? "border-emerald-500/80 bg-emerald-950/20"
                     : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"
                 }`}
               >
-                <div className="mb-2 aspect-video w-full overflow-hidden rounded-lg">
-                  <StudioParticipantTile participant={p} variant="thumbnail" showName={false} />
+                <div className="relative mb-2 aspect-video w-full flex-shrink-0 overflow-hidden rounded-lg">
+                  <StudioParticipantTile
+                    participant={p}
+                    variant="thumbnail"
+                    showName={false}
+                    dimmed={!isOnStage}
+                  />
                 </div>
 
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 pr-2">
-                    <p className="text-xs font-bold text-neutral-100 truncate flex items-center gap-1.5">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0 pr-1">
+                    <p className="flex items-center gap-1.5 truncate text-xs font-bold text-neutral-100">
                       {name}
                       {p.isLocal && (
                         <span className="rounded bg-neutral-800 px-1 py-0.5 text-[9px] font-semibold text-neutral-400">
@@ -101,7 +103,7 @@ export function StudioBackstageBar({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex flex-shrink-0 items-center gap-1">
                     {isMuted ? (
                       <MicOff className="h-3.5 w-3.5 text-rose-400" />
                     ) : (
@@ -115,7 +117,7 @@ export function StudioBackstageBar({
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center gap-1.5">
+                <div className="mt-2 flex items-center gap-1.5">
                   <button
                     onClick={() => handleToggle(p.identity, isOnStage)}
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${

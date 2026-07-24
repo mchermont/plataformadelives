@@ -10,9 +10,16 @@ interface StudioCanvasProps {
   roomState: StudioRoom;
   assets: StudioAsset[];
   onParticipantClick?: (participantId: string) => void;
+  /** false na saída limpa pro OBS — sem chrome de UI (selo de destaque etc.) */
+  showSpotlightBadge?: boolean;
 }
 
-export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCanvasProps) {
+export function StudioCanvas({
+  roomState,
+  assets,
+  onParticipantClick,
+  showSpotlightBadge = true,
+}: StudioCanvasProps) {
   const participants = useParticipants();
 
   // Filtra participantes que estão no PALCO
@@ -72,6 +79,7 @@ export function StudioCanvas({ roomState, assets, onParticipantClick }: StudioCa
       participant={p}
       variant={isThumbnail ? "thumbnail" : "full"}
       isSpotlighted={p.identity === roomState.spotlight_participant_id}
+      showSpotlightBadge={showSpotlightBadge}
       selectable={Boolean(onParticipantClick)}
       onSelect={onParticipantClick}
     />

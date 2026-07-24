@@ -85,7 +85,7 @@ export function StudioOutputCanvas({ eventId, initialRoom, initialAssets }: Stud
     >
       <StudioAudioRenderer />
       <div className="relative aspect-video w-full max-w-[1920px] bg-black">
-        <StudioCanvas roomState={roomState} assets={assets} />
+        <StudioCanvas roomState={roomState} assets={assets} showSpotlightBadge={false} />
       </div>
     </LiveKitRoom>
   );

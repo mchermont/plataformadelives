@@ -9,9 +9,13 @@ interface StudioParticipantTileProps {
   /** "full" = tile grande do Canvas · "thumbnail" = miniatura do Backstage/self-preview */
   variant?: "full" | "thumbnail";
   isSpotlighted?: boolean;
+  /** Esconde o selo/anel de destaque — usado na saída limpa pro OBS (sem chrome de UI) */
+  showSpotlightBadge?: boolean;
   selectable?: boolean;
   onSelect?: (identity: string) => void;
   showName?: boolean;
+  /** Aplica uma película cinza semi-transparente — indica visualmente "está no backstage" */
+  dimmed?: boolean;
   className?: string;
 }
 
@@ -24,11 +28,14 @@ export function StudioParticipantTile({
   participant,
   variant = "full",
   isSpotlighted = false,
+  showSpotlightBadge = true,
   selectable = false,
   onSelect,
   showName = true,
+  dimmed = false,
   className = "",
 }: StudioParticipantTileProps) {
+  const showSpotlight = isSpotlighted && showSpotlightBadge;
   const isThumbnail = variant === "thumbnail";
   const name = participant.name || participant.identity;
   const isCamEnabled = participant.isCameraEnabled;
@@ -52,7 +59,7 @@ export function StudioParticipantTile({
       className={`group relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl border bg-neutral-900 transition ${
         selectable ? "cursor-pointer hover:border-neutral-600" : ""
       } ${
-        isSpotlighted
+        showSpotlight
           ? "border-emerald-500 ring-2 ring-emerald-500/50"
           : "border-neutral-800"
       } ${className}`}
@@ -87,13 +94,15 @@ export function StudioParticipantTile({
         </div>
       )}
 
-      {isSpotlighted && (
+      {dimmed && <div className="pointer-events-none absolute inset-0 bg-neutral-950/65" />}
+
+      {showSpotlight && (
         <div className="absolute right-1.5 top-1.5 rounded-full bg-emerald-500 p-1">
           <Star className="h-3 w-3 fill-neutral-950 text-neutral-950" />
         </div>
       )}
 
-      {selectable && !isSpotlighted && (
+      {selectable && !showSpotlight && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-neutral-950/0 opacity-0 transition group-hover:bg-neutral-950/30 group-hover:opacity-100">
           <span className="rounded-lg bg-neutral-950/80 px-2 py-1 text-[10px] font-bold text-neutral-100">
             Destacar

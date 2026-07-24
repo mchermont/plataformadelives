@@ -110,68 +110,40 @@ function StudioControlRoomInner({
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
       <StudioAudioRenderer volumes={volumes} />
 
-      {/* 1. Sidebar Esquerda — Cenas pré-configuradas */}
-      <div className="hidden md:flex w-52 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 space-y-3">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 px-1">
-          Cenas do Estúdio
-        </span>
-        <div className="space-y-2">
+      {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
+      <div className="hidden md:flex w-64 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3 overflow-y-auto">
+        <div className="flex flex-col gap-2 border-b border-neutral-800 pb-3">
+          <span className="flex w-fit items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-800/80 px-3 py-1 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> AO VIVO
+          </span>
+          <span className="truncate text-xs font-semibold text-neutral-300">{event.title}</span>
           <button
-            onClick={() => handleUpdateRoom({ active_scene_id: "default", active_layout: "grid" })}
-            className={`w-full rounded-xl border p-2.5 text-left transition ${
-              roomState.active_scene_id === "default"
-                ? "border-emerald-500 bg-emerald-950/20"
-                : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"
-            }`}
+            onClick={handleCopyInviteLink}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
           >
-            <span className="text-xs font-bold text-neutral-200 block">Principal</span>
-            <span className="text-[10px] text-neutral-400">Layout em Grid</span>
-          </button>
-
-          <button
-            onClick={() => handleUpdateRoom({ active_scene_id: "interview", active_layout: "split" })}
-            className={`w-full rounded-xl border p-2.5 text-left transition ${
-              roomState.active_scene_id === "interview"
-                ? "border-emerald-500 bg-emerald-950/20"
-                : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"
-            }`}
-          >
-            <span className="text-xs font-bold text-neutral-200 block">Entrevista</span>
-            <span className="text-[10px] text-neutral-400">Lado a Lado</span>
+            <Share2 className="h-3.5 w-3.5 text-emerald-400" /> Convidar Participante
           </button>
         </div>
+
+        <StudioBackstageBar
+          eventId={event.id}
+          onToggleStage={handleToggleStage}
+          spotlightParticipantId={roomState.spotlight_participant_id}
+          onSpotlight={handleSpotlight}
+        />
       </div>
 
-      {/* 2. Área Central — Canvas do Palco + Controls Bar + Backstage Bar */}
-      <div className="flex flex-1 flex-col overflow-y-auto p-4 space-y-4">
-        {/* Top Header Status */}
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 rounded-full bg-emerald-950/80 border border-emerald-800/80 px-3 py-1 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> ESTÚDIO AO VIVO
-            </span>
-            <span className="text-xs font-semibold text-neutral-400">{event.title}</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCopyInviteLink}
-              className="flex items-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
-            >
-              <Share2 className="h-3.5 w-3.5 text-emerald-400" /> Convidar Participante
-            </button>
-          </div>
-        </div>
-
+      {/* 2. Área Central — Canvas do Palco + Controls Bar */}
+      <div className="flex min-h-0 flex-1 flex-col p-4 gap-3">
         {/* Player Rígido 16:9 */}
-        <div className="flex-1 flex flex-col justify-center items-center">
-          <div className="relative w-full aspect-video max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+          <div className="relative aspect-[16/9] max-h-full w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
             <StudioCanvas roomState={roomState} assets={assets} onParticipantClick={handleSpotlight} />
           </div>
         </div>
 
         {/* Controls - Layouts, Microfone, Câmera */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-shrink-0 items-center justify-between">
            <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 p-1.5 rounded-2xl">
              <button
                 onClick={() => handleUpdateRoom({ active_layout: "solo" })}
@@ -228,14 +200,6 @@ function StudioControlRoomInner({
              </button>
            </div>
         </div>
-
-        {/* Backstage Bar - Lista de Participantes */}
-        <StudioBackstageBar
-          eventId={event.id}
-          onToggleStage={handleToggleStage}
-          spotlightParticipantId={roomState.spotlight_participant_id}
-          onSpotlight={handleSpotlight}
-        />
       </div>
 
       {/* 3. Sidebar Direita — Gráficos e Chat Privado */}
