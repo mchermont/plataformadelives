@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 
 interface StudioPresentationManagerProps {
+  eventId: string;
   roomState: StudioRoom;
   assets: StudioAsset[];
   onUpdateRoom: (updates: Partial<StudioRoom>) => void;
@@ -13,6 +14,7 @@ interface StudioPresentationManagerProps {
 }
 
 export function StudioPresentationManager({
+  eventId,
   roomState,
   assets,
   onUpdateRoom,
@@ -50,6 +52,7 @@ export function StudioPresentationManager({
 
       const supabase = createClient();
       const uploadedUrls: string[] = [];
+      const uploadErrors: string[] = [];
 
       for (let i = 1; i <= doc.numPages; i++) {
         setProgress({ current: i, total: doc.numPages });
@@ -69,18 +72,27 @@ export function StudioPresentationManager({
         );
         if (!blob) continue;
 
-        const path = `slides/slide-${crypto.randomUUID()}.png`;
+        // O bucket "materials" exige que o primeiro segmento do caminho
+        // seja o event_id (RLS: has_event_role/can_manage_event lê
+        // storage.foldername(name)[1]) — sem isso o cast pra uuid falha e
+        // o upload é sempre rejeitado, mesmo com permissão de sobra.
+        const path = `${eventId}/slides/slide-${crypto.randomUUID()}.png`;
         const { error } = await supabase.storage.from("materials").upload(path, blob);
         if (!error) {
           const { data } = supabase.storage.from("materials").getPublicUrl(path);
           if (data.publicUrl) uploadedUrls.push(data.publicUrl);
         } else {
           console.error("Erro no upload da página convertida:", error);
+          uploadErrors.push(error.message);
         }
       }
 
       if (uploadedUrls.length === 0) {
-        alert("Não foi possível converter nenhuma página do PDF. Tente novamente.");
+        alert(
+          uploadErrors[0]
+            ? `Não foi possível enviar nenhuma página do PDF: ${uploadErrors[0]}`
+            : "Não foi possível converter nenhuma página do PDF. Tente novamente."
+        );
         return;
       }
 

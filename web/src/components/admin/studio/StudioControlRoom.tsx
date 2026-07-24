@@ -127,8 +127,8 @@ function StudioControlRoomInner({
       <StudioAudioRenderer volumes={volumes} />
 
       {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
-      <div className="thin-scroll hidden md:flex w-[294px] flex-col overflow-y-auto border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3">
-        <div className="border-b border-neutral-800 pb-3">
+      <div className="hidden md:flex w-[294px] flex-col overflow-hidden border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3">
+        <div className="flex-shrink-0 border-b border-neutral-800 pb-3">
           <button
             onClick={handleCopyInviteLink}
             className="flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
@@ -137,12 +137,14 @@ function StudioControlRoomInner({
           </button>
         </div>
 
-        <StudioBackstageBar
-          eventId={event.id}
-          onToggleStage={handleToggleStage}
-          spotlightParticipantId={roomState.spotlight_participant_id}
-          onSpotlight={handleSpotlight}
-        />
+        <div className="min-h-0 flex-1">
+          <StudioBackstageBar
+            eventId={event.id}
+            onToggleStage={handleToggleStage}
+            spotlightParticipantId={roomState.spotlight_participant_id}
+            onSpotlight={handleSpotlight}
+          />
+        </div>
       </div>
 
       {/* 2. Área Central — Canvas do Palco + Controls Bar (topo fixo, sem scroll) */}
@@ -204,6 +206,7 @@ function StudioControlRoomInner({
       {/* 3. Sidebar Direita — Gráficos e Chat Privado */}
       <div className="thin-scroll hidden lg:flex w-72 flex-col overflow-y-auto border-l border-neutral-800 bg-neutral-900/60 p-3 space-y-4">
         <StudioGraphicsPanel
+          eventId={event.id}
           roomState={roomState}
           assets={assets}
           onCreateAsset={handleCreateAsset}
@@ -378,6 +381,7 @@ export function StudioControlRoom({
       connect={true}
       video={true}
       audio={true}
+      options={{ adaptiveStream: true, dynacast: true }}
       className="h-full w-full"
       onError={(err) => {
         console.error("LiveKit Room Connection Error:", err);

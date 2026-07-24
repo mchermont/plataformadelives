@@ -319,6 +319,7 @@ export default function GuestRoomPage() {
         connect={true}
         video={true}
         audio={true}
+        options={{ adaptiveStream: true, dynacast: true }}
         onError={(err) => console.error("Guest LiveKit error:", err)}
         className="h-screen w-full"
       >

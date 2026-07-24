@@ -1,8 +1,10 @@
 "use client";
 
+import { useRef } from "react";
 import { useParticipants } from "@livekit/components-react";
 import { Mic, MicOff, Video, VideoOff, Star } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
+import { useFitTiles } from "./useFitTiles";
 
 interface StudioBackstageBarProps {
   eventId: string;
@@ -18,6 +20,8 @@ export function StudioBackstageBar({
   onSpotlight,
 }: StudioBackstageBarProps) {
   const participants = useParticipants();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const fit = useFitTiles(containerRef, participants.length, { gap: 8 });
 
   const handleToggle = async (identity: string, isOnStage: boolean) => {
     const newStatus = !isOnStage;
@@ -40,20 +44,24 @@ export function StudioBackstageBar({
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between px-1">
+    <div className="flex h-full flex-col gap-2">
+      <div className="flex flex-shrink-0 items-center justify-between px-1">
         <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
           Participantes ({participants.length})
         </span>
       </div>
 
-      <div className={`grid gap-2 ${participants.length >= 5 ? "grid-cols-2" : "grid-cols-1"}`}>
+      <div ref={containerRef} className="min-h-0 flex-1 overflow-hidden">
         {participants.length === 0 ? (
-          <div className="col-span-full py-4 text-xs text-neutral-500 italic">
+          <div className="py-4 text-xs text-neutral-500 italic">
             Ninguém conectado ainda. Copie o link e convide alguém!
           </div>
-        ) : (
-          participants.map((p) => {
+        ) : fit.itemWidth === 0 ? null : (
+          <div
+            className="grid content-start justify-center gap-2"
+            style={{ gridTemplateColumns: `repeat(${fit.cols}, ${fit.itemWidth}px)` }}
+          >
+            {participants.map((p) => {
             // Diretor entra no palco por padrão (isOnStage !== false)
             // Convidados entram no backstage por padrão (isOnStage === true)
             const isDirector = p.identity.startsWith("diretor-");
@@ -76,7 +84,8 @@ export function StudioBackstageBar({
                   if (e.key === "Enter" || e.key === " ") handleToggle(p.identity, isOnStage);
                 }}
                 title={isOnStage ? "Clique para mandar pro backstage" : "Clique para subir ao palco"}
-                className={`group relative aspect-video w-full flex-shrink-0 cursor-pointer overflow-hidden rounded-xl border transition ${
+                style={{ width: fit.itemWidth, height: fit.itemHeight }}
+                className={`group relative cursor-pointer overflow-hidden rounded-xl border transition ${
                   isOnStage
                     ? "border-emerald-500/80"
                     : "border-neutral-800 hover:border-neutral-700"
@@ -151,7 +160,8 @@ export function StudioBackstageBar({
                 </div>
               </div>
             );
-          })
+            })}
+          </div>
         )}
       </div>
     </div>

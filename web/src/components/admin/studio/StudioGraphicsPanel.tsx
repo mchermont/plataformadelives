@@ -7,6 +7,7 @@ import { StudioAsset, StudioRoom } from "@/lib/types";
 import { StudioPresentationManager } from "./StudioPresentationManager";
 
 interface StudioGraphicsPanelProps {
+  eventId: string;
   roomState: StudioRoom;
   assets: StudioAsset[];
   onUpdateRoom: (updates: Partial<StudioRoom>) => void;
@@ -14,6 +15,7 @@ interface StudioGraphicsPanelProps {
 }
 
 export function StudioGraphicsPanel({
+  eventId,
   roomState,
   assets,
   onUpdateRoom,
@@ -352,6 +354,7 @@ export function StudioGraphicsPanel({
 
         {activeTab === "presentation" && (
           <StudioPresentationManager
+            eventId={eventId}
             roomState={roomState}
             assets={assets}
             onUpdateRoom={onUpdateRoom}

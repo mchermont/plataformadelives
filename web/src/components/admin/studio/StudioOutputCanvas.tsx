@@ -81,6 +81,7 @@ export function StudioOutputCanvas({ eventId, initialRoom, initialAssets }: Stud
       connect={true}
       video={false}
       audio={false}
+      options={{ adaptiveStream: true, dynacast: true }}
       className="h-screen w-screen bg-black overflow-hidden flex items-center justify-center p-0 m-0"
     >
       <StudioAudioRenderer />
