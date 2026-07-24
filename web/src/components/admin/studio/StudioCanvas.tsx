@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { useParticipants } from "@livekit/components-react";
 import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
 import { User } from "lucide-react";
@@ -15,6 +15,12 @@ interface StudioCanvasProps {
   showSpotlightBadge?: boolean;
   /** Overlay "AO VIVO" no canto superior esquerdo — só pra quem está no Estúdio, nunca no output */
   showLiveBadge?: boolean;
+  /**
+   * Estado otimista local de quem foi movido pro palco/backstage — o
+   * Diretor vê o efeito na hora, sem esperar o round-trip até o LiveKit
+   * (que pode levar segundos) confirmar o atributo de verdade.
+   */
+  stageOverrides?: Record<string, boolean>;
 }
 
 // Salas antigas podem ter gravado os nomes de cena de antes da unificação
@@ -31,56 +37,52 @@ export function StudioCanvas({
   onParticipantClick,
   showSpotlightBadge = true,
   showLiveBadge = false,
+  stageOverrides,
 }: StudioCanvasProps) {
   const participants = useParticipants();
 
-  // Filtra participantes que estão no PALCO
-  const stageParticipants = useMemo(() => {
-    return participants.filter((p) => {
-      const isDirector = p.identity.startsWith("diretor-");
-      // Diretor: fica no palco por padrão (a menos que explicitamente movido para backstage)
-      if (isDirector) {
-        return p.attributes?.isOnStage !== "false";
-      }
-      // Convidado: fica no backstage por padrão (precisa ser explicitamente colocado no palco)
-      return p.attributes?.isOnStage === "true";
-    });
-  }, [participants]);
+  // Filtra participantes que estão no PALCO (sem memo — precisa recalcular
+  // em toda renderização causada por useParticipants(), nunca ficar preso
+  // a uma referência antiga).
+  const stageParticipants = participants.filter((p) => {
+    const override = stageOverrides?.[p.identity];
+    if (override !== undefined) return override;
+    const isDirector = p.identity.startsWith("diretor-");
+    // Diretor: fica no palco por padrão (a menos que explicitamente movido para backstage)
+    if (isDirector) {
+      return p.attributes?.isOnStage !== "false";
+    }
+    // Convidado: fica no backstage por padrão (precisa ser explicitamente colocado no palco)
+    return p.attributes?.isOnStage === "true";
+  });
 
-  const activeBanner = useMemo(() => {
-    if (!roomState.active_banner_id) return null;
-    return assets.find((a) => a.id === roomState.active_banner_id);
-  }, [roomState.active_banner_id, assets]);
+  const activeBanner = roomState.active_banner_id
+    ? assets.find((a) => a.id === roomState.active_banner_id)
+    : null;
 
-  const activePresentation = useMemo(() => {
-    if (!roomState.active_presentation_id) return null;
-    return assets.find((a) => a.id === roomState.active_presentation_id);
-  }, [roomState.active_presentation_id, assets]);
+  const activePresentation = roomState.active_presentation_id
+    ? assets.find((a) => a.id === roomState.active_presentation_id)
+    : null;
 
-  const activeSlideUrl = useMemo(() => {
-    if (!activePresentation) return null;
-    const slides = (activePresentation.content_json?.slides as string[]) || [];
-    return slides[roomState.active_slide_index || 0] || null;
-  }, [activePresentation, roomState.active_slide_index]);
+  const activeSlideUrl = activePresentation
+    ? ((activePresentation.content_json?.slides as string[]) || [])[roomState.active_slide_index || 0] || null
+    : null;
 
   const isMediaActive = Boolean(activeSlideUrl);
   const layout: StudioLayout = LEGACY_LAYOUT_MAP[roomState.active_layout] || roomState.active_layout;
 
   // Conteúdo primário (o "destaque"): mídia tem prioridade; senão, a pessoa
   // marcada pelo Diretor como Apresentador (ou a primeira do palco).
-  const primaryPerson = useMemo(() => {
-    if (stageParticipants.length === 0) return null;
-    return (
-      stageParticipants.find((p) => p.identity === roomState.spotlight_participant_id) ||
-      stageParticipants[0]
-    );
-  }, [stageParticipants, roomState.spotlight_participant_id]);
+  const primaryPerson =
+    stageParticipants.length === 0
+      ? null
+      : stageParticipants.find((p) => p.identity === roomState.spotlight_participant_id) ||
+        stageParticipants[0];
 
   // Resto do palco — usado pelos arranjos com miniaturas.
-  const restParticipants = useMemo(() => {
-    if (!primaryPerson) return stageParticipants;
-    return stageParticipants.filter((p) => p.identity !== primaryPerson.identity);
-  }, [stageParticipants, primaryPerson]);
+  const restParticipants = primaryPerson
+    ? stageParticipants.filter((p) => p.identity !== primaryPerson.identity)
+    : stageParticipants;
 
   // Secundários dos arranjos "thumbs-*": todo mundo do palco quando a mídia
   // é o destaque (inclusive o Apresentador, que vira miniatura); senão, o
@@ -100,7 +102,7 @@ export function StudioCanvas({
   );
 
   const renderMedia = () => (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 p-2">
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={activeSlideUrl!} alt="Slide ativo" className="h-full w-full object-contain" />
     </div>
@@ -143,19 +145,21 @@ export function StudioCanvas({
         if (isMediaActive) cells.push({ key: "media", node: renderMedia() });
         stageParticipants.forEach((p) => cells.push({ key: p.sid, node: renderTile(p, false) }));
         return (
-          <div ref={gridContainerRef} className="relative z-10 h-full w-full p-4">
-            {gridFit.itemWidth > 0 && (
-              <div
-                className="grid content-center justify-center gap-3"
-                style={{ gridTemplateColumns: `repeat(${gridFit.cols}, ${gridFit.itemWidth}px)` }}
-              >
-                {cells.map((c) => (
-                  <div key={c.key} style={{ width: gridFit.itemWidth, height: gridFit.itemHeight }}>
-                    {c.node}
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="relative z-10 h-full w-full p-4">
+            <div ref={gridContainerRef} className="h-full w-full">
+              {gridFit.itemWidth > 0 && (
+                <div
+                  className="grid h-full content-center justify-center gap-3"
+                  style={{ gridTemplateColumns: `repeat(${gridFit.cols}, ${gridFit.itemWidth}px)` }}
+                >
+                  {cells.map((c) => (
+                    <div key={c.key} style={{ width: gridFit.itemWidth, height: gridFit.itemHeight }}>
+                      {c.node}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       }
@@ -166,16 +170,20 @@ export function StudioCanvas({
       }
 
       case "split": {
+        // Lado a lado de verdade, sempre — não depende do viewport do
+        // navegador (o `md:` reage ao tamanho da JANELA, não do canvas,
+        // que pode estar estreito mesmo numa tela grande por causa das
+        // sidebars, deixando "lado a lado" empilhado por engano).
         if (!isMediaActive) {
           // Sem mídia: comportamento original — grade forçada em 2 colunas com todo o palco.
           return (
-            <div className="relative z-10 grid h-full w-full grid-cols-1 gap-3 p-4 md:grid-cols-2">
+            <div className="relative z-10 grid h-full w-full grid-cols-2 gap-3 p-4">
               {stageParticipants.map((p) => renderTile(p, false))}
             </div>
           );
         }
         return (
-          <div className="relative z-10 grid h-full w-full grid-cols-1 gap-3 p-4 md:grid-cols-2">
+          <div className="relative z-10 grid h-full w-full grid-cols-2 gap-3 p-4">
             <div>{primaryPerson ? renderTile(primaryPerson) : null}</div>
             <div>{renderMedia()}</div>
           </div>
@@ -208,7 +216,7 @@ export function StudioCanvas({
         const thumbsColumn = secondaries.length > 0 && (
           <div ref={railContainerRef} className="h-full w-56 flex-shrink-0">
             {railFit.itemHeight > 0 && (
-              <div className="flex h-full flex-col items-center justify-start gap-2">
+              <div className="flex h-full flex-col items-center justify-center gap-2">
                 {secondaries.map((p) => (
                   <div key={p.sid} style={{ width: railFit.itemWidth, height: railFit.itemHeight }}>
                     {renderTile(p, true)}

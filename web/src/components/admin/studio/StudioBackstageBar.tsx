@@ -11,6 +11,8 @@ interface StudioBackstageBarProps {
   onToggleStage: (participantIdentity: string, currentOnStage: boolean) => void;
   spotlightParticipantId?: string | null;
   onSpotlight?: (participantIdentity: string) => void;
+  /** Estado otimista local — reflete o clique na hora, antes do LiveKit confirmar de verdade. */
+  stageOverrides?: Record<string, boolean>;
 }
 
 export function StudioBackstageBar({
@@ -18,29 +20,29 @@ export function StudioBackstageBar({
   onToggleStage,
   spotlightParticipantId,
   onSpotlight,
+  stageOverrides,
 }: StudioBackstageBarProps) {
   const participants = useParticipants();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const fit = useFitTiles(containerRef, participants.length, { gap: 8 });
+  const fit = useFitTiles(containerRef, participants.length, {
+    gap: 8,
+    minCols: participants.length >= 5 ? 2 : 1,
+  });
 
-  const handleToggle = async (identity: string, isOnStage: boolean) => {
-    const newStatus = !isOnStage;
-
-    try {
-      await fetch("/api/studio/stage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          participantIdentity: identity,
-          isOnStage: newStatus,
-        }),
-      });
-    } catch (err) {
-      console.error("Erro ao mover participante:", err);
-    }
-    // Notifica o pai para atualização otimista
+  const handleToggle = (identity: string, isOnStage: boolean) => {
+    // Notifica o pai IMEDIATAMENTE (otimista) — não espera o POST voltar,
+    // que passa pelo LiveKit e pode levar segundos até propagar de volta.
     onToggleStage(identity, isOnStage);
+
+    fetch("/api/studio/stage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId,
+        participantIdentity: identity,
+        isOnStage: !isOnStage,
+      }),
+    }).catch((err) => console.error("Erro ao mover participante:", err));
   };
 
   return (
@@ -58,16 +60,20 @@ export function StudioBackstageBar({
           </div>
         ) : fit.itemWidth === 0 ? null : (
           <div
-            className="grid content-start justify-center gap-2"
+            className="grid content-center justify-center gap-2"
             style={{ gridTemplateColumns: `repeat(${fit.cols}, ${fit.itemWidth}px)` }}
           >
             {participants.map((p) => {
+            const override = stageOverrides?.[p.identity];
             // Diretor entra no palco por padrão (isOnStage !== false)
             // Convidados entram no backstage por padrão (isOnStage === true)
             const isDirector = p.identity.startsWith("diretor-");
-            const isOnStage = isDirector
-              ? p.attributes?.isOnStage !== "false"
-              : p.attributes?.isOnStage === "true";
+            const isOnStage =
+              override !== undefined
+                ? override
+                : isDirector
+                  ? p.attributes?.isOnStage !== "false"
+                  : p.attributes?.isOnStage === "true";
 
             const name = p.name || p.identity;
             const isMuted = !p.isMicrophoneEnabled;

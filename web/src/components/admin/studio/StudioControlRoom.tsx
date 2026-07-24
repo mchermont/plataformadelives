@@ -52,7 +52,6 @@ function StudioControlRoomInner({
   assets,
   handleUpdateRoom,
   handleCreateAsset,
-  handleToggleStage,
   handleCopyInviteLink,
 }: {
   event: LiveEvent;
@@ -60,7 +59,6 @@ function StudioControlRoomInner({
   assets: StudioAsset[];
   handleUpdateRoom: (updates: Partial<StudioRoom>) => Promise<void>;
   handleCreateAsset: (assetData: Partial<StudioAsset>) => Promise<void>;
-  handleToggleStage: (identity: string, currentOnStage: boolean) => void;
   handleCopyInviteLink: () => void;
 }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
@@ -68,6 +66,35 @@ function StudioControlRoomInner({
   const participants = useParticipants();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Estado otimista local de quem foi movido pro palco/backstage — reflete
+  // o clique do Diretor na hora, sem esperar o round-trip até o LiveKit
+  // (POST /api/studio/stage → broadcast pra todo mundo) confirmar de
+  // verdade, que pode levar segundos. Some sozinho assim que o atributo
+  // real do participante bater com o que foi pedido.
+  const [stageOverrides, setStageOverrides] = useState<Record<string, boolean>>({});
+
+  const handleToggleStage = useCallback((identity: string, currentOnStage: boolean) => {
+    setStageOverrides((prev) => ({ ...prev, [identity]: !currentOnStage }));
+  }, []);
+
+  useEffect(() => {
+    setStageOverrides((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const identity of Object.keys(prev)) {
+        const p = participants.find((pp) => pp.identity === identity);
+        if (!p) continue;
+        const isDirector = identity.startsWith("diretor-");
+        const real = isDirector ? p.attributes?.isOnStage !== "false" : p.attributes?.isOnStage === "true";
+        if (real === prev[identity]) {
+          delete next[identity];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [participants]);
   const [noiseSuppression, setNoiseSuppression] = useState(true);
   const [volumes, setVolumes] = useState<StudioVolumeMap>({});
 
@@ -143,6 +170,7 @@ function StudioControlRoomInner({
             onToggleStage={handleToggleStage}
             spotlightParticipantId={roomState.spotlight_participant_id}
             onSpotlight={handleSpotlight}
+            stageOverrides={stageOverrides}
           />
         </div>
       </div>
@@ -157,6 +185,7 @@ function StudioControlRoomInner({
               assets={assets}
               onParticipantClick={handleSpotlight}
               showLiveBadge
+              stageOverrides={stageOverrides}
             />
           </div>
         </div>
@@ -350,11 +379,6 @@ export function StudioControlRoom({
     [event.id]
   );
 
-  const handleToggleStage = useCallback((participantIdentity: string, currentOnStage: boolean) => {
-    // This is optimistically handled in StudioBackstageBar, but we could do more here if needed
-    console.log("Toggle stage:", participantIdentity, currentOnStage);
-  }, []);
-
   const handleCopyInviteLink = () => {
     const origin = window.location.origin;
     const link = `${origin}/estudio/${event.id}/guest`;
@@ -393,7 +417,6 @@ export function StudioControlRoom({
         assets={assets}
         handleUpdateRoom={handleUpdateRoom}
         handleCreateAsset={handleCreateAsset}
-        handleToggleStage={handleToggleStage}
         handleCopyInviteLink={handleCopyInviteLink}
       />
     </LiveKitRoom>

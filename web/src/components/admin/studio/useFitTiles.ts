@@ -20,16 +20,21 @@ const EMPTY: FitResult = { cols: 1, itemWidth: 0, itemHeight: 0 };
  *
  * `forceCols: 1` vira uma coluna única que só encolhe em altura (rail
  * vertical de miniaturas). `forceCols: count` vira uma linha única que só
- * encolhe em largura (fileira horizontal de miniaturas).
+ * encolhe em largura (fileira horizontal de miniaturas). `minCols` impede
+ * o algoritmo de "maximizar tile" escolher menos colunas que isso, mesmo
+ * quando tecnicamente daria tiles um pouco maiores — usado quando o
+ * produto quer uma regra fixa de quebra (ex.: sempre virar 2 colunas a
+ * partir de 5 participantes).
  */
 export function useFitTiles(
   containerRef: RefObject<HTMLElement | null>,
   count: number,
-  opts?: { gap?: number; aspect?: number; forceCols?: number }
+  opts?: { gap?: number; aspect?: number; forceCols?: number; minCols?: number }
 ): FitResult {
   const gap = opts?.gap ?? 8;
   const aspect = opts?.aspect ?? 16 / 9;
   const forceCols = opts?.forceCols;
+  const minCols = opts?.minCols ?? 1;
   const [result, setResult] = useState<FitResult>(EMPTY);
 
   useEffect(() => {
@@ -46,7 +51,7 @@ export function useFitTiles(
 
       const candidates = forceCols
         ? [Math.max(1, Math.min(forceCols, count))]
-        : Array.from({ length: count }, (_, i) => i + 1);
+        : Array.from({ length: count - Math.min(minCols, count) + 1 }, (_, i) => Math.min(minCols, count) + i);
 
       let best: FitResult = EMPTY;
       for (const cols of candidates) {
@@ -65,7 +70,7 @@ export function useFitTiles(
     const ro = new ResizeObserver(compute);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [containerRef, count, gap, aspect, forceCols]);
+  }, [containerRef, count, gap, aspect, forceCols, minCols]);
 
   return result;
 }

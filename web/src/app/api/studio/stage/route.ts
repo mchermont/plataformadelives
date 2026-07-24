@@ -10,11 +10,15 @@ function cleanEnv(val?: string): string {
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
+    // getSession() lê a sessão do cookie sem round-trip até o servidor de
+    // Auth (getUser() faz essa chamada de rede toda vez) — este endpoint é
+    // acionado a cada clique de subir/descer alguém do palco, e cada
+    // milissegundo aqui é delay percebido pelo Diretor em tempo real.
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (!user) {
+    if (!session) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
