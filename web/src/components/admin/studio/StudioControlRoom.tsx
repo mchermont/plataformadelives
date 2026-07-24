@@ -26,6 +26,8 @@ import {
   PanelBottom,
   PictureInPicture,
   Settings,
+  Hand,
+  ArrowLeftRight,
 } from "lucide-react";
 import type { StudioLayout } from "@/lib/types";
 
@@ -53,6 +55,7 @@ function StudioControlRoomInner({
   handleUpdateRoom,
   handleCreateAsset,
   handleCopyInviteLink,
+  handleCopyInterpreterLink,
 }: {
   event: LiveEvent;
   roomState: StudioRoom;
@@ -60,6 +63,7 @@ function StudioControlRoomInner({
   handleUpdateRoom: (updates: Partial<StudioRoom>) => Promise<void>;
   handleCreateAsset: (assetData: Partial<StudioAsset>) => Promise<void>;
   handleCopyInviteLink: () => void;
+  handleCopyInterpreterLink: () => void;
 }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { setDesiredMicOn } = useStudioSelfStage();
@@ -146,6 +150,21 @@ function StudioControlRoomInner({
     [handleUpdateRoom, roomState.secondary_participant_id],
   );
 
+  const handleSetActiveInterpreter = useCallback(
+    (identity: string) => {
+      handleUpdateRoom({
+        active_interpreter_id: roomState.active_interpreter_id === identity ? null : identity,
+      });
+    },
+    [handleUpdateRoom, roomState.active_interpreter_id],
+  );
+
+  const handleToggleInterpreterPosition = useCallback(() => {
+    handleUpdateRoom({
+      interpreter_position: roomState.interpreter_position === "bottom-left" ? "bottom-right" : "bottom-left",
+    });
+  }, [handleUpdateRoom, roomState.interpreter_position]);
+
   const remoteTargets = useMemo(
     () =>
       participants
@@ -160,16 +179,22 @@ function StudioControlRoomInner({
 
   return (
     <div className="flex h-[calc(100vh-5rem)] w-full overflow-hidden bg-neutral-950 text-neutral-100">
-      <StudioAudioRenderer volumes={volumes} />
+      <StudioAudioRenderer volumes={volumes} includeInterpreters />
 
       {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
       <div className="hidden md:flex w-[294px] flex-col overflow-hidden border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3">
-        <div className="flex-shrink-0 border-b border-neutral-800 pb-3">
+        <div className="flex-shrink-0 space-y-2 border-b border-neutral-800 pb-3">
           <button
             onClick={handleCopyInviteLink}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
           >
             <Share2 className="h-3.5 w-3.5 text-emerald-400" /> Convidar Participante
+          </button>
+          <button
+            onClick={handleCopyInterpreterLink}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
+          >
+            <Hand className="h-3.5 w-3.5 text-sky-400" /> Convidar Intérprete
           </button>
         </div>
 
@@ -181,6 +206,8 @@ function StudioControlRoomInner({
             onSpotlight={handleSpotlight}
             secondaryParticipantId={roomState.secondary_participant_id}
             onSetSecondary={handleSetSecondary}
+            activeInterpreterId={roomState.active_interpreter_id}
+            onSetActiveInterpreter={handleSetActiveInterpreter}
             stageOverrides={stageOverrides}
           />
         </div>
@@ -231,7 +258,14 @@ function StudioControlRoomInner({
              </button>
            </div>
 
-           <div className="flex w-[180px] justify-end">
+           <div className="flex w-[180px] items-center justify-end gap-2">
+             <button
+               onClick={handleToggleInterpreterPosition}
+               className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 border border-neutral-800 text-neutral-300 transition hover:bg-neutral-800"
+               title={`Intérprete: canto inferior ${roomState.interpreter_position === "bottom-left" ? "esquerdo" : "direito"} (clique pra mudar)`}
+             >
+               <ArrowLeftRight className="h-4 w-4" />
+             </button>
              <button
                onClick={() => setSettingsOpen(true)}
                className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 border border-neutral-800 text-neutral-300 transition hover:bg-neutral-800"
@@ -282,6 +316,8 @@ export function StudioControlRoom({
       active_layout: "grid",
       spotlight_participant_id: null,
       secondary_participant_id: null,
+      active_interpreter_id: null,
+      interpreter_position: "bottom-right",
       active_banner_id: null,
       active_ticker_text: null,
       active_overlay_url: null,
@@ -398,6 +434,13 @@ export function StudioControlRoom({
     alert(`Link copiado!\n\nCompartilhe com o convidado:\n${link}`);
   };
 
+  const handleCopyInterpreterLink = () => {
+    const origin = window.location.origin;
+    const link = `${origin}/estudio/${event.id}/interprete`;
+    navigator.clipboard.writeText(link);
+    alert(`Link copiado!\n\nCompartilhe com o intérprete de Libras:\n${link}`);
+  };
+
   const spinner = (
     <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
       <div className="flex items-center gap-3">
@@ -430,6 +473,7 @@ export function StudioControlRoom({
         handleUpdateRoom={handleUpdateRoom}
         handleCreateAsset={handleCreateAsset}
         handleCopyInviteLink={handleCopyInviteLink}
+        handleCopyInterpreterLink={handleCopyInterpreterLink}
       />
     </LiveKitRoom>
   );

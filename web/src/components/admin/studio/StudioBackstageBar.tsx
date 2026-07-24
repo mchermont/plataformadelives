@@ -1,7 +1,7 @@
 "use client";
 
 import { useParticipants } from "@livekit/components-react";
-import { Mic, MicOff, Video, VideoOff, Star } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Star, Hand } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 import { StudioTileGrid } from "./StudioTileGrid";
 
@@ -15,6 +15,9 @@ interface StudioBackstageBarProps {
   /** Segundo destaque do arranjo "Split 2:1" — slot menor (1fr), escolhido à parte do Apresentador. */
   secondaryParticipantId?: string | null;
   onSetSecondary?: (participantIdentity: string) => void;
+  /** Intérprete de Libras em exibição (overlay PIP) — separado do palco normal. */
+  activeInterpreterId?: string | null;
+  onSetActiveInterpreter?: (participantIdentity: string) => void;
   /** Estado otimista local — reflete o clique na hora, antes do LiveKit confirmar de verdade. */
   stageOverrides?: Record<string, boolean>;
 }
@@ -26,9 +29,13 @@ export function StudioBackstageBar({
   onSpotlight,
   secondaryParticipantId,
   onSetSecondary,
+  activeInterpreterId,
+  onSetActiveInterpreter,
   stageOverrides,
 }: StudioBackstageBarProps) {
-  const participants = useParticipants();
+  const allParticipants = useParticipants();
+  const participants = allParticipants.filter((p) => !p.identity.startsWith("interprete-"));
+  const interpreters = allParticipants.filter((p) => p.identity.startsWith("interprete-"));
 
   const isOnStageOf = (p: (typeof participants)[0]) => {
     const override = stageOverrides?.[p.identity];
@@ -197,6 +204,55 @@ export function StudioBackstageBar({
           />
         )}
       </div>
+
+      {interpreters.length > 0 && (
+        <div className="flex-shrink-0 space-y-2 border-t border-neutral-800 pt-2">
+          <span className="flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+            <Hand className="h-3 w-3" /> Intérpretes de Libras ({interpreters.length})
+          </span>
+          <div className="flex flex-col gap-2">
+            {interpreters.map((p) => {
+              const isActive = p.identity === activeInterpreterId;
+              const name = p.name || p.identity;
+              return (
+                <div
+                  key={p.sid}
+                  className={`flex items-center gap-2 rounded-xl border p-2 transition ${
+                    isActive ? "border-sky-500/80 bg-sky-950/20" : "border-neutral-800"
+                  }`}
+                >
+                  <div className="relative aspect-video w-20 flex-shrink-0 overflow-hidden rounded-lg">
+                    <StudioParticipantTile participant={p} variant="thumbnail" showName={false} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold text-neutral-100">{name}</p>
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-wider ${
+                        isActive ? "text-sky-400" : "text-neutral-500"
+                      }`}
+                    >
+                      {isActive ? "● No ar" : "○ Em espera"}
+                    </span>
+                  </div>
+                  {onSetActiveInterpreter && (
+                    <button
+                      onClick={() => onSetActiveInterpreter(p.identity)}
+                      disabled={isActive}
+                      className={`flex-shrink-0 rounded-lg px-2 py-1.5 text-[10px] font-bold transition ${
+                        isActive
+                          ? "cursor-default bg-sky-500 text-neutral-950"
+                          : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                      }`}
+                    >
+                      {isActive ? "No ar" : "Pôr no ar"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

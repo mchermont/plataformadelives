@@ -120,6 +120,12 @@ export function StudioCanvas({
 
   const stageEmpty = !isMediaActive && stageParticipants.length === 0;
 
+  // Intérprete de Libras — overlay PIP fixo, independente do arranjo ativo
+  // (nunca faz parte do palco/grade normal).
+  const activeInterpreter = roomState.active_interpreter_id
+    ? participants.find((p) => p.identity === roomState.active_interpreter_id)
+    : null;
+
   const renderStage = () => {
     if (stageEmpty) {
       return (
@@ -304,6 +310,18 @@ export function StudioCanvas({
           <span className="flex items-center gap-1.5 rounded-full border border-emerald-800/80 bg-emerald-950/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-400 backdrop-blur-md">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> AO VIVO
           </span>
+        </div>
+      )}
+
+      {/* 2.7 Intérprete de Libras — PIP fixo, sempre por cima, em 4:3 */}
+      {activeInterpreter && (
+        <div
+          className={`absolute bottom-6 z-40 h-40 ${
+            roomState.interpreter_position === "bottom-left" ? "left-6" : "right-6"
+          }`}
+          style={{ aspectRatio: "4 / 3" }}
+        >
+          <StudioParticipantTile participant={activeInterpreter} variant="thumbnail" showName />
         </div>
       )}
 

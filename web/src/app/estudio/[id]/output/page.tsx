@@ -42,6 +42,8 @@ export default async function StudioOutputPage({
     active_scene_id: "default",
     spotlight_participant_id: null,
     secondary_participant_id: null,
+    active_interpreter_id: null,
+    interpreter_position: "bottom-right",
     active_banner_id: null,
     active_ticker_text: null,
     active_overlay_url: null,

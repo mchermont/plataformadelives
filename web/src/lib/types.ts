@@ -550,6 +550,9 @@ export interface StudioRoom {
   spotlight_participant_id: string | null;
   /** Segundo destaque do arranjo "Split 2:1" — escolhido explicitamente pelo Diretor. */
   secondary_participant_id: string | null;
+  /** Intérprete de Libras em exibição — overlay PIP fixo, independente do arranjo ativo. */
+  active_interpreter_id: string | null;
+  interpreter_position: "bottom-left" | "bottom-right";
   active_banner_id: string | null;
   active_ticker_text: string | null;
   active_overlay_url: string | null;
