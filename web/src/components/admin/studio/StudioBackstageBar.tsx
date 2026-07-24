@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { useParticipants } from "@livekit/components-react";
 import { Mic, MicOff, Video, VideoOff, Star } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
@@ -28,8 +27,7 @@ export function StudioBackstageBar({
   stageOverrides,
 }: StudioBackstageBarProps) {
   const participants = useParticipants();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const fit = useFitTiles(containerRef, participants.length, {
+  const fit = useFitTiles(participants.length, {
     gap: 8,
     minCols: participants.length >= 5 ? 2 : 1,
   });
@@ -58,7 +56,7 @@ export function StudioBackstageBar({
         </span>
       </div>
 
-      <div ref={containerRef} className="min-h-0 flex-1 overflow-hidden">
+      <div ref={fit.ref} className="min-h-0 flex-1 overflow-hidden">
         {participants.length === 0 ? (
           <div className="py-4 text-xs text-neutral-500 italic">
             Ninguém conectado ainda. Copie o link e convide alguém!

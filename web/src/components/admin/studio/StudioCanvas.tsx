@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { useParticipants } from "@livekit/components-react";
 import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
 import { User } from "lucide-react";
@@ -108,17 +107,12 @@ export function StudioCanvas({
     </div>
   );
 
-  // Refs + hooks de encaixe (sempre chamados, incondicionalmente — só o
-  // ref do arranjo ativo de fato recebe um elemento montado no DOM).
+  // Hooks de encaixe (sempre chamados, incondicionalmente — só o `ref` do
+  // arranjo ativo de fato é anexado a um elemento montado no DOM).
   const gridCellCount = (isMediaActive ? 1 : 0) + stageParticipants.length;
-  const gridContainerRef = useRef<HTMLDivElement | null>(null);
-  const gridFit = useFitTiles(gridContainerRef, gridCellCount, { gap: 12 });
-
-  const railContainerRef = useRef<HTMLDivElement | null>(null);
-  const railFit = useFitTiles(railContainerRef, secondaries.length, { gap: 8, forceCols: 1 });
-
-  const bottomRowRef = useRef<HTMLDivElement | null>(null);
-  const bottomRowFit = useFitTiles(bottomRowRef, secondaries.length, {
+  const gridFit = useFitTiles(gridCellCount, { gap: 12 });
+  const railFit = useFitTiles(secondaries.length, { gap: 8, forceCols: 1 });
+  const bottomRowFit = useFitTiles(secondaries.length, {
     gap: 8,
     forceCols: secondaries.length || 1,
   });
@@ -146,7 +140,7 @@ export function StudioCanvas({
         stageParticipants.forEach((p) => cells.push({ key: p.sid, node: renderTile(p, false) }));
         return (
           <div className="relative z-10 h-full w-full p-4">
-            <div ref={gridContainerRef} className="h-full w-full">
+            <div ref={gridFit.ref} className="h-full w-full">
               {gridFit.itemWidth > 0 && (
                 <div
                   className="grid h-full content-center justify-center gap-3"
@@ -217,7 +211,7 @@ export function StudioCanvas({
             : null;
 
         const thumbsColumn = secondaries.length > 0 && (
-          <div ref={railContainerRef} className="h-full w-56 flex-shrink-0">
+          <div ref={railFit.ref} className="h-full w-56 flex-shrink-0">
             {railFit.itemHeight > 0 && (
               <div className="flex h-full flex-col items-center justify-center gap-2">
                 {secondaries.map((p) => (
@@ -249,7 +243,7 @@ export function StudioCanvas({
           <div className="relative z-10 flex h-full w-full flex-col gap-3 p-4">
             <div className="min-h-0 flex-1">{primaryContent}</div>
             {secondaries.length > 0 && (
-              <div ref={bottomRowRef} className="h-32 w-full flex-shrink-0">
+              <div ref={bottomRowFit.ref} className="h-32 w-full flex-shrink-0">
                 {bottomRowFit.itemWidth > 0 && (
                   <div className="flex h-full w-full items-center justify-center gap-2">
                     {secondaries.map((p) => (
