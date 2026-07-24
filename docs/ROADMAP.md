@@ -428,17 +428,38 @@ Base já construída:
 - [x] Fase 6 (commit): apresentação de slides, output OBS limpo, chat
       privado da equipe; toggle backstage/palco; fallback de câmera nativa
       do browser; upload real de arquivos (PDF/imagens/logos).
-
-Lacunas conhecidas / a fazer:
+- [x] Fase 7 (24/07/2026, testado pelo Marcelo com LiveKit real): palco
+      interativo estilo StreamYard/Restream — `StudioParticipantTile.tsx`
+      (tile compartilhado por Canvas/Backstage/self-preview, sempre lê a
+      track já publicada, nunca chama `getUserMedia` — matou o flicker do
+      preview do convidado) com clique pra destacar/spotlight qualquer
+      participante (`spotlight_participant_id`, já existia na 0032, faltava
+      só a UI); `StudioMediaSettings.tsx` (painel de câmera/mic/saída de
+      áudio via `useMediaDeviceSelect`, redução de ruído por constraints
+      nativas do browser — sem Krisp —, volume de monitoramento local por
+      participante) pro Diretor e pro convidado; `StudioAudioRenderer.tsx`
+      substitui o `RoomAudioRenderer` genérico por áudio seletivo (só quem
+      está no palco é ouvido); `useStudioSelfStage.ts` força o mic a
+      acompanhar a transição de palco sempre (mudo no backstage, ligado ao
+      subir), sem exigir clique do convidado. Backstage virou sidebar
+      esquerda (substituiu "Cenas do Estúdio", que só duplicava os ícones
+      de layout abaixo do player) com miniatura de câmera ao vivo + selo
+      cinza semi-transparente quando fora do palco, clique no próprio feed
+      alterna palco/backstage (sem botão dedicado), grid de 2 colunas a
+      partir do 5º participante pra evitar scroll crescente. Selo "AO VIVO"
+      virou overlay dentro do player (nunca aparece na saída limpa do
+      `/output`). Player fixo em 16:9 colado no topo da coluna central, sem
+      scroll — só as sidebars/painéis internos rolam, com scrollbar fina
+      customizada (`.thin-scroll`, `globals.css`).
 - [x] **Sincronia Realtime não disparava** (corrigido, migração 0033):
       guest/output/Diretor assinam `postgres_changes` em `studio_rooms`/
       `studio_assets`, mas as tabelas não estavam na publicação
       `supabase_realtime` e ainda faltava `REPLICA IDENTITY FULL` (o
       upsert do Diretor vira UPDATE e as assinaturas filtram por
       `event_id`, não a PK — sem FULL o filtro descarta o evento).
-      Verificado ponta a ponta no nível de dados (anon **e** autenticado
-      recebem o UPDATE). Falta ainda o teste visual real (Diretor troca
-      layout no browser → convidado/output refletem) com LiveKit + 2 abas.
+      Confirmado pelo Marcelo com LiveKit real e 2 abas (24/07/2026).
+
+Lacunas conhecidas / a fazer:
 - [ ] **Segurança do token**: `/api/studio/token` com `isDirector=true` só
       confere se há usuário logado, não valida `has_event_role(_,'stream')`
       — qualquer autenticado pega `roomAdmin`. Remover também o fallback

@@ -226,16 +226,44 @@ Q&A), multi-tenant (Agência → Cliente → Evento), operada pela Propano Filme
   Env novas: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
   `NEXT_PUBLIC_LIVEKIT_URL` (intenção: LiveKit Cloud, tier dev; produção a
   definir — hoje o código tem fallback `devkey`/localhost, só dev). Alvo de
-  escala: até 12 participantes. **Lacunas:** (1) ~~sincronia via Realtime
-  não disparava~~ **corrigida na migração 0033** — `studio_rooms`/
-  `studio_assets` entraram na publicação `supabase_realtime` + `REPLICA
-  IDENTITY FULL` (o upsert do Diretor vira UPDATE e as assinaturas filtram
-  por `event_id`, não a PK; sem FULL o filtro descartava o evento);
-  verificado no nível de dados (anon e autenticado recebem), falta só o
-  teste visual com LiveKit + 2 abas; (2) **ainda aberta** —
-  `/api/studio/token` com `isDirector=true` só checa se há usuário logado,
-  **não** valida `has_event_role(_,'stream')` — qualquer autenticado
-  consegue token de `roomAdmin` de qualquer estúdio.
+  escala: até 12 participantes. **Palco interativo estilo StreamYard/
+  Restream (24/07/2026, testado pelo Marcelo com LiveKit real)**:
+  `StudioParticipantTile.tsx` é o tile de vídeo compartilhado (Canvas,
+  Backstage, self-preview do convidado) — sempre lê a track já publicada
+  no LiveKit, nunca chama `getUserMedia` direto (é isso que evita o
+  flicker de recapturar a câmera a cada render). Clicar num participante
+  no Canvas ou no card do Backstage seta `spotlight_participant_id`
+  (campo já existia desde a 0032, só faltava a UI). `useStudioSelfStage.ts`
+  força o microfone a acompanhar a transição de palco sempre — mudo no
+  backstage, ligado ao subir — sem exigir clique manual do convidado (é
+  captura local, só o próprio navegador consegue mutar de verdade).
+  `StudioMediaSettings.tsx` (câmera/mic/saída de áudio via
+  `useMediaDeviceSelect`, redução de ruído por constraints nativas do
+  browser — sem o plugin Krisp —, volume de monitoramento local por
+  participante) fica atrás de um ícone de engrenagem, igual pro Diretor e
+  pro convidado. `StudioAudioRenderer.tsx` substitui o `RoomAudioRenderer`
+  genérico por áudio seletivo (só quem está no palco é ouvido — defesa
+  extra além do mute na origem). Backstage virou sidebar esquerda (~294px,
+  substituiu "Cenas do Estúdio", que só duplicava os ícones de layout
+  abaixo do player) com miniatura de câmera ao vivo por participante +
+  película cinza semi-transparente quando fora do palco; clicar no próprio
+  feed alterna palco/backstage (sem botão "Subir" dedicado); grid de 2
+  colunas a partir do 5º participante, pra evitar scroll crescente
+  conforme mais gente entra. Selo "AO VIVO" é overlay dentro do player
+  (canto superior esquerdo, só na visão do Diretor/convidado — nunca
+  aparece em `/estudio/[id]/output`, a saída limpa pro OBS). Player fixo
+  em 16:9 colado no topo da coluna central, sem scroll — só as
+  sidebars/painéis internos (chat privado, gráficos, configurações) rolam,
+  com scrollbar fina customizada (`.thin-scroll` em `globals.css`) no
+  lugar da barra padrão do navegador. **Lacunas:** (1) ~~sincronia via
+  Realtime não disparava~~ **corrigida na migração 0033 e confirmada com
+  LiveKit real** — `studio_rooms`/`studio_assets` entraram na publicação
+  `supabase_realtime` + `REPLICA IDENTITY FULL` (o upsert do Diretor vira
+  UPDATE e as assinaturas filtram por `event_id`, não a PK; sem FULL o
+  filtro descartava o evento); (2) **ainda aberta** — `/api/studio/token`
+  com `isDirector=true` só checa se há usuário logado, **não** valida
+  `has_event_role(_,'stream')` — qualquer autenticado consegue token de
+  `roomAdmin` de qualquer estúdio.
 - **Ambiente de teste compartilhado** (`/demo`, migração 0029): cliente
   fixo "Cliente Demo" com dois eventos — `evento-modelo` (`status='draft'`,
   editado normalmente pelo `/admin`, é onde a configuração "oficial" do
@@ -288,10 +316,14 @@ white-label, painel Diretor, FAQ) + ambiente de teste compartilhado em
 horizontal (24/07/2026).
 
 **Em construção:** Estúdio de transmissão WebRTC via LiveKit (migração
-0032) — primeira investida na Fase J, ainda instável, muitas melhorias
-pendentes (ver seção "Estúdio" acima e ROADMAP). **HLS/streaming próprio
-via provedor (Cloudflare/Mux/IVS) ficou em STAND BY** — o caminho atual é
-o Estúdio WebRTC.
+0032) — primeira investida na Fase J. Palco interativo, mute automático,
+configurações de áudio/vídeo e sincronia Realtime testados e confirmados
+pelo Marcelo com LiveKit real em 24/07/2026 (ver seção "Estúdio" acima e
+ROADMAP); ainda falta corrigir a validação de `has_event_role` no token do
+Diretor e demais itens da lista de lacunas, então segue "em construção",
+não pronto pra produção sem essa revisão. **HLS/streaming próprio via
+provedor (Cloudflare/Mux/IVS) ficou em STAND BY** — o caminho atual é o
+Estúdio WebRTC.
 
 Pendências avulsas: Google OAuth (falta credencial), upload de planilha
 p/ allowlist, evento-piloto em produção. Há um `Task.md` do estúdio
