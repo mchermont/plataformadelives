@@ -137,6 +137,15 @@ function StudioControlRoomInner({
     [handleUpdateRoom],
   );
 
+  const handleSetSecondary = useCallback(
+    (identity: string) => {
+      handleUpdateRoom({
+        secondary_participant_id: roomState.secondary_participant_id === identity ? null : identity,
+      });
+    },
+    [handleUpdateRoom, roomState.secondary_participant_id],
+  );
+
   const remoteTargets = useMemo(
     () =>
       participants
@@ -170,6 +179,8 @@ function StudioControlRoomInner({
             onToggleStage={handleToggleStage}
             spotlightParticipantId={roomState.spotlight_participant_id}
             onSpotlight={handleSpotlight}
+            secondaryParticipantId={roomState.secondary_participant_id}
+            onSetSecondary={handleSetSecondary}
             stageOverrides={stageOverrides}
           />
         </div>
@@ -270,6 +281,7 @@ export function StudioControlRoom({
       active_scene_id: "default",
       active_layout: "grid",
       spotlight_participant_id: null,
+      secondary_participant_id: null,
       active_banner_id: null,
       active_ticker_text: null,
       active_overlay_url: null,

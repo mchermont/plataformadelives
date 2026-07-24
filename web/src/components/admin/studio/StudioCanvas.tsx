@@ -196,7 +196,10 @@ export function StudioCanvas({
           : primaryPerson
             ? renderTile(primaryPerson)
             : null;
-        const secondaryPerson = isMediaActive ? primaryPerson : restParticipants[0] || null;
+        const explicitSecondary = roomState.secondary_participant_id
+          ? restParticipants.find((p) => p.identity === roomState.secondary_participant_id)
+          : null;
+        const secondaryPerson = isMediaActive ? primaryPerson : explicitSecondary || restParticipants[0] || null;
         return (
           <div className="relative z-10 flex h-full w-full gap-3 p-4">
             <div className="min-w-0 flex-[2]">{primaryContent}</div>

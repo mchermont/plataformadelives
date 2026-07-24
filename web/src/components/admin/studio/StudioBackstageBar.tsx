@@ -11,6 +11,9 @@ interface StudioBackstageBarProps {
   onToggleStage: (participantIdentity: string, currentOnStage: boolean) => void;
   spotlightParticipantId?: string | null;
   onSpotlight?: (participantIdentity: string) => void;
+  /** Segundo destaque do arranjo "Split 2:1" — slot menor (1fr), escolhido à parte do Apresentador. */
+  secondaryParticipantId?: string | null;
+  onSetSecondary?: (participantIdentity: string) => void;
   /** Estado otimista local — reflete o clique na hora, antes do LiveKit confirmar de verdade. */
   stageOverrides?: Record<string, boolean>;
 }
@@ -20,6 +23,8 @@ export function StudioBackstageBar({
   onToggleStage,
   spotlightParticipantId,
   onSpotlight,
+  secondaryParticipantId,
+  onSetSecondary,
   stageOverrides,
 }: StudioBackstageBarProps) {
   const participants = useParticipants();
@@ -79,6 +84,7 @@ export function StudioBackstageBar({
             const isMuted = !p.isMicrophoneEnabled;
             const isCamOff = !p.isCameraEnabled;
             const isSpotlighted = p.identity === spotlightParticipantId;
+            const isSecondary = p.identity === secondaryParticipantId;
 
             return (
               <div
@@ -122,22 +128,42 @@ export function StudioBackstageBar({
                   )}
                 </div>
 
-                {/* Estrela de destaque (canto superior direito) */}
-                {isOnStage && onSpotlight && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSpotlight(p.identity);
-                    }}
-                    title="Destacar no palco"
-                    className={`absolute right-1.5 top-1.5 flex items-center justify-center rounded-full p-1 transition ${
-                      isSpotlighted
-                        ? "bg-emerald-500 text-neutral-950"
-                        : "bg-neutral-950/80 text-neutral-300 backdrop-blur-md hover:bg-neutral-800"
-                    }`}
-                  >
-                    <Star className={`h-3 w-3 ${isSpotlighted ? "fill-neutral-950" : ""}`} />
-                  </button>
+                {/* Estrela de destaque + segundo destaque (canto superior direito) */}
+                {isOnStage && (onSpotlight || onSetSecondary) && (
+                  <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
+                    {onSetSecondary && !isSpotlighted && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSetSecondary(p.identity);
+                        }}
+                        title="Definir como 2º destaque (Split 2:1)"
+                        className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition ${
+                          isSecondary
+                            ? "bg-sky-500 text-neutral-950"
+                            : "bg-neutral-950/80 text-neutral-300 backdrop-blur-md hover:bg-neutral-800"
+                        }`}
+                      >
+                        2
+                      </button>
+                    )}
+                    {onSpotlight && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSpotlight(p.identity);
+                        }}
+                        title="Destacar no palco (Apresentador)"
+                        className={`flex items-center justify-center rounded-full p-1 transition ${
+                          isSpotlighted
+                            ? "bg-emerald-500 text-neutral-950"
+                            : "bg-neutral-950/80 text-neutral-300 backdrop-blur-md hover:bg-neutral-800"
+                        }`}
+                      >
+                        <Star className={`h-3 w-3 ${isSpotlighted ? "fill-neutral-950" : ""}`} />
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Status palco/backstage (canto inferior esquerdo) */}

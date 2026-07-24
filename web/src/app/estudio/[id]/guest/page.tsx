@@ -283,6 +283,7 @@ export default function GuestRoomPage() {
           active_layout: "grid",
           active_scene_id: "default",
           spotlight_participant_id: null,
+          secondary_participant_id: null,
           active_banner_id: null,
           active_ticker_text: null,
           active_overlay_url: null,

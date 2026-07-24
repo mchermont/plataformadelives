@@ -548,6 +548,8 @@ export interface StudioRoom {
   active_layout: StudioLayout;
   active_scene_id: string;
   spotlight_participant_id: string | null;
+  /** Segundo destaque do arranjo "Split 2:1" — escolhido explicitamente pelo Diretor. */
+  secondary_participant_id: string | null;
   active_banner_id: string | null;
   active_ticker_text: string | null;
   active_overlay_url: string | null;
