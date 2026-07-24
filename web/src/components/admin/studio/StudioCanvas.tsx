@@ -111,7 +111,7 @@ export function StudioCanvas({
 
           {/* Câmeras dos Palestrantes no Palco (Direita - 25% da largura) */}
           {displayParticipants.length > 0 && (
-            <div className="flex w-64 flex-col gap-2 overflow-y-auto pr-1">
+            <div className="thin-scroll flex w-64 flex-col gap-2 overflow-y-auto pr-1">
               {displayParticipants.map((p) => (
                 <div key={p.sid} className="aspect-video shrink-0">
                   {renderTile(p, true)}

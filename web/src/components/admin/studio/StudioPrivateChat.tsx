@@ -68,7 +68,7 @@ export function StudioPrivateChat({ eventId }: { eventId: string }) {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="thin-scroll flex-1 overflow-y-auto p-3 space-y-3">
             {messages.map((m) => (
               <div key={m.id} className="space-y-0.5">
                 <div className="flex items-center justify-between text-[10px]">

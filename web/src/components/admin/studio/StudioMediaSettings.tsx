@@ -67,7 +67,7 @@ export function StudioMediaSettings({
           </button>
         </div>
 
-        <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+        <div className="thin-scroll max-h-[70vh] space-y-4 overflow-y-auto pr-1">
           <div>
             <label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-neutral-300">
               <Camera className="h-3.5 w-3.5" /> Câmera

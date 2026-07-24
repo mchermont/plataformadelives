@@ -117,7 +117,7 @@ export function StudioGraphicsPanel({
       </div>
 
       {/* Conteúdo da Aba */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="thin-scroll flex-1 overflow-y-auto p-4 space-y-6">
         {activeTab === "graphics" && (
           <>
             {/* Seção Logo */}

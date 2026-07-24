@@ -111,7 +111,7 @@ function StudioControlRoomInner({
       <StudioAudioRenderer volumes={volumes} />
 
       {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
-      <div className="hidden md:flex w-64 flex-col border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3 overflow-y-auto">
+      <div className="thin-scroll hidden md:flex w-64 flex-col overflow-y-auto border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3">
         <div className="border-b border-neutral-800 pb-3">
           <button
             onClick={handleCopyInviteLink}
@@ -129,11 +129,11 @@ function StudioControlRoomInner({
         />
       </div>
 
-      {/* 2. Área Central — Canvas do Palco + Controls Bar */}
-      <div className="flex min-h-0 flex-1 flex-col p-4 gap-3">
-        {/* Player Rígido 16:9 */}
-        <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-          <div className="relative aspect-[16/9] max-h-full w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
+      {/* 2. Área Central — Canvas do Palco + Controls Bar (topo fixo, sem scroll) */}
+      <div className="flex flex-1 flex-col overflow-hidden p-4 gap-2">
+        {/* Player Rígido 16:9 — alinhado ao topo */}
+        <div className="flex justify-center">
+          <div className="relative aspect-[16/9] w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
             <StudioCanvas
               roomState={roomState}
               assets={assets}
@@ -144,7 +144,7 @@ function StudioControlRoomInner({
         </div>
 
         {/* Controls - Layouts, Microfone, Câmera */}
-        <div className="flex flex-shrink-0 items-center justify-between">
+        <div className="mx-auto flex w-full max-w-5xl flex-shrink-0 items-center justify-between">
            <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 p-1.5 rounded-2xl">
              <button
                 onClick={() => handleUpdateRoom({ active_layout: "solo" })}
@@ -204,7 +204,7 @@ function StudioControlRoomInner({
       </div>
 
       {/* 3. Sidebar Direita — Gráficos e Chat Privado */}
-      <div className="hidden lg:flex w-72 flex-col border-l border-neutral-800 bg-neutral-900/60 p-3 space-y-4">
+      <div className="thin-scroll hidden lg:flex w-72 flex-col overflow-y-auto border-l border-neutral-800 bg-neutral-900/60 p-3 space-y-4">
         <StudioGraphicsPanel
           roomState={roomState}
           assets={assets}
