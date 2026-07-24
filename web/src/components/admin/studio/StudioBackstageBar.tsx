@@ -1,33 +1,65 @@
 "use client";
 
 import { useParticipants } from "@livekit/components-react";
-import { Mic, MicOff, Video, VideoOff, ArrowUp, ArrowDown, Shield } from "lucide-react";
+import { LocalParticipant } from "livekit-client";
+import { Mic, MicOff, Video, VideoOff, ArrowUp, ArrowDown } from "lucide-react";
 
 interface StudioBackstageBarProps {
+  eventId: string;
   onToggleStage: (participantIdentity: string, currentOnStage: boolean) => void;
 }
 
-export function StudioBackstageBar({ onToggleStage }: StudioBackstageBarProps) {
+export function StudioBackstageBar({ eventId, onToggleStage }: StudioBackstageBarProps) {
   const participants = useParticipants();
+
+  const handleToggle = async (identity: string, isLocal: boolean, isOnStage: boolean) => {
+    const newStatus = !isOnStage;
+
+    if (isLocal) {
+      // Participante local (diretor): usa setAttributes direto
+      const localP = participants.find((p) => p.identity === identity);
+      if (localP && localP instanceof LocalParticipant) {
+        localP.setAttributes({ isOnStage: newStatus ? "true" : "false" });
+      }
+    } else {
+      // Participante remoto (convidado): usa API do servidor LiveKit
+      try {
+        await fetch("/api/studio/stage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId,
+            participantIdentity: identity,
+            isOnStage: newStatus,
+          }),
+        });
+      } catch (err) {
+        console.error("Erro ao mover participante:", err);
+      }
+      // Notifica o pai para atualização otimista
+      onToggleStage(identity, isOnStage);
+    }
+  };
 
   return (
     <div className="flex flex-col space-y-2 rounded-2xl bg-neutral-900/90 border border-neutral-800 p-3">
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-          Participantes & Backstage ({participants.length})
+          Participantes ({participants.length})
         </span>
         <span className="text-[11px] text-neutral-500">
-          Clique no botão para mover o participante para o palco
+          Gerencie quem está no palco
         </span>
       </div>
 
       <div className="flex items-center gap-3 overflow-x-auto pb-1">
         {participants.length === 0 ? (
           <div className="py-4 text-xs text-neutral-500 italic">
-            Nenhum participante conectado no momento.
+            Nenhum participante conectado. Copie o link e convide alguém!
           </div>
         ) : (
           participants.map((p) => {
+            // Por padrão todos estão no palco; só sai se explicitamente movido para backstage
             const isOnStage = p.attributes?.isOnStage !== "false";
             const name = p.name || p.identity;
             const isMuted = !p.isMicrophoneEnabled;
@@ -36,7 +68,7 @@ export function StudioBackstageBar({ onToggleStage }: StudioBackstageBarProps) {
             return (
               <div
                 key={p.sid}
-                className={`relative flex min-w-[200px] flex-col justify-between rounded-xl border p-3 transition ${
+                className={`relative flex min-w-[210px] flex-col justify-between rounded-xl border p-3 transition ${
                   isOnStage
                     ? "border-emerald-500/80 bg-emerald-950/20"
                     : "border-neutral-800 bg-neutral-950 hover:border-neutral-700"
@@ -57,7 +89,7 @@ export function StudioBackstageBar({ onToggleStage }: StudioBackstageBarProps) {
                         isOnStage ? "text-emerald-400" : "text-amber-400"
                       }`}
                     >
-                      {isOnStage ? "No Palco" : "No Backstage"}
+                      {isOnStage ? "● No Palco" : "○ No Backstage"}
                     </span>
                   </div>
 
@@ -76,14 +108,7 @@ export function StudioBackstageBar({ onToggleStage }: StudioBackstageBarProps) {
                 </div>
 
                 <button
-                  onClick={() => {
-                    const newStatus = isOnStage ? "false" : "true";
-                    if (p.isLocal) {
-                      (p as unknown as { setAttributes: (attr: Record<string, string>) => void }).setAttributes?.({ isOnStage: newStatus });
-                    } else {
-                      onToggleStage(p.identity, isOnStage);
-                    }
-                  }}
+                  onClick={() => handleToggle(p.identity, p.isLocal, isOnStage)}
                   className={`mt-3 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition ${
                     isOnStage
                       ? "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"

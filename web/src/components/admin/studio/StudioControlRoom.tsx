@@ -144,16 +144,12 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
     console.log("Toggle stage:", participantIdentity, currentOnStage);
   }, []);
 
-  // Gera o link de convite correto para o convidado
+  // Gera o link de convite para o convidado — usa UUID do evento para garantir a sala correta no LiveKit
   const handleCopyInviteLink = () => {
     const origin = window.location.origin;
-    const clientSlug = event.client?.slug;
-    const link = clientSlug
-      ? `${origin}/${clientSlug}/${event.slug}/estudio`
-      : `${origin}/e/${event.slug}/estudio`;
-
+    const link = `${origin}/estudio/${event.id}/guest`;
     navigator.clipboard.writeText(link);
-    alert(`Link do convidado copiado para a área de transferência:\n${link}`);
+    alert(`Link copiado!\n\nCompartilhe com o convidado:\n${link}`);
   };
 
   // --- Early returns ANTES do studioContent para evitar hooks LiveKit fora do contexto ---
@@ -280,7 +276,7 @@ export function StudioControlRoom({ event, initialRoom, initialAssets }: StudioC
         </div>
 
         {/* Fila do Backstage (DENTRO do LiveKitRoom para acessar useParticipants) */}
-        <StudioBackstageBar onToggleStage={handleToggleStage} />
+        <StudioBackstageBar eventId={event.id} onToggleStage={handleToggleStage} />
       </div>
 
       {/* 3. Sidebar Direita — Painel de Gráficos e GCs */}
