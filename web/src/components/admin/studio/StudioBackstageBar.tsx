@@ -4,8 +4,9 @@ import { useParticipants } from "@livekit/components-react";
 import { Mic, MicOff, Video, VideoOff, Star, Hand } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 import { StudioTileGrid } from "./StudioTileGrid";
+import { useFitTiles } from "./useFitTiles";
 
-const MAX_STAGE_PARTICIPANTS = 10;
+const MAX_STAGE_PARTICIPANTS = 14;
 
 interface StudioBackstageBarProps {
   eventId: string;
@@ -47,6 +48,7 @@ export function StudioBackstageBar({
   };
 
   const stageCount = participants.filter(isOnStageOf).length;
+  const interpreterFit = useFitTiles(interpreters.length, { gap: 8, forceCols: interpreters.length || 1 });
 
   const handleToggle = (identity: string, isOnStage: boolean) => {
     if (!isOnStage && stageCount >= MAX_STAGE_PARTICIPANTS) {
@@ -210,46 +212,45 @@ export function StudioBackstageBar({
           <span className="flex items-center gap-1.5 px-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
             <Hand className="h-3 w-3" /> Intérpretes de Libras ({interpreters.length})
           </span>
-          <div className="flex flex-col gap-2">
-            {interpreters.map((p) => {
-              const isActive = p.identity === activeInterpreterId;
-              const name = p.name || p.identity;
-              return (
-                <div
-                  key={p.sid}
-                  className={`flex items-center gap-2 rounded-xl border p-2 transition ${
-                    isActive ? "border-sky-500/80 bg-sky-950/20" : "border-neutral-800"
-                  }`}
-                >
-                  <div className="relative aspect-video w-20 flex-shrink-0 overflow-hidden rounded-lg">
-                    <StudioParticipantTile participant={p} variant="thumbnail" showName={false} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-neutral-100">{name}</p>
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider ${
-                        isActive ? "text-sky-400" : "text-neutral-500"
+          <div ref={interpreterFit.ref} className="h-24">
+            {interpreterFit.itemWidth > 0 && (
+              <div className="flex h-full items-center justify-center gap-2">
+                {interpreters.map((p) => {
+                  const isActive = p.identity === activeInterpreterId;
+                  const name = p.name || p.identity;
+                  return (
+                    <div
+                      key={p.sid}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onSetActiveInterpreter?.(p.identity)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") onSetActiveInterpreter?.(p.identity);
+                      }}
+                      title={isActive ? "No ar — clique pra tirar" : "Clique pra pôr no ar"}
+                      style={{ width: interpreterFit.itemWidth, height: interpreterFit.itemHeight }}
+                      className={`relative cursor-pointer overflow-hidden rounded-xl border transition ${
+                        isActive ? "border-sky-500/80" : "border-neutral-800 hover:border-neutral-700"
                       }`}
                     >
-                      {isActive ? "● No ar" : "○ Em espera"}
-                    </span>
-                  </div>
-                  {onSetActiveInterpreter && (
-                    <button
-                      onClick={() => onSetActiveInterpreter(p.identity)}
-                      disabled={isActive}
-                      className={`flex-shrink-0 rounded-lg px-2 py-1.5 text-[10px] font-bold transition ${
-                        isActive
-                          ? "cursor-default bg-sky-500 text-neutral-950"
-                          : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                      }`}
-                    >
-                      {isActive ? "No ar" : "Pôr no ar"}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+                      <StudioParticipantTile participant={p} variant="thumbnail" showName={false} className="border-0" />
+                      <div className="pointer-events-none absolute left-1.5 top-1.5 flex max-w-[80%] items-center gap-1 rounded-lg border border-neutral-800/80 bg-neutral-950/80 px-1.5 py-0.5 backdrop-blur-md">
+                        <span className="truncate text-[9px] font-semibold text-neutral-100">{name}</span>
+                      </div>
+                      <div className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-lg border border-neutral-800/80 bg-neutral-950/80 px-1.5 py-0.5 backdrop-blur-md">
+                        <span
+                          className={`block text-[8px] font-bold uppercase leading-none tracking-wider ${
+                            isActive ? "text-sky-400" : "text-neutral-500"
+                          }`}
+                        >
+                          {isActive ? "● No ar" : "○ Em espera"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
