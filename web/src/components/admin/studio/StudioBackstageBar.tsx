@@ -47,9 +47,9 @@ export function StudioBackstageBar({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className={`grid gap-2 ${participants.length >= 5 ? "grid-cols-2" : "grid-cols-1"}`}>
         {participants.length === 0 ? (
-          <div className="py-4 text-xs text-neutral-500 italic">
+          <div className="col-span-full py-4 text-xs text-neutral-500 italic">
             Ninguém conectado ainda. Copie o link e convide alguém!
           </div>
         ) : (

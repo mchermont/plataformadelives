@@ -111,7 +111,7 @@ function StudioControlRoomInner({
       <StudioAudioRenderer volumes={volumes} />
 
       {/* 1. Sidebar Esquerda — Status/Convite + Backstage (participantes) */}
-      <div className="thin-scroll hidden md:flex w-64 flex-col overflow-y-auto border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3">
+      <div className="thin-scroll hidden md:flex w-[294px] flex-col overflow-y-auto border-r border-neutral-800 bg-neutral-900/60 p-3 gap-3">
         <div className="border-b border-neutral-800 pb-3">
           <button
             onClick={handleCopyInviteLink}
