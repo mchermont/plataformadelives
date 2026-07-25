@@ -236,8 +236,8 @@ function StudioControlRoomInner({
       {/* 2. Área Central — Canvas do Palco + Controls Bar (topo fixo, sem scroll) */}
       <div className="flex flex-1 flex-col overflow-hidden p-4 gap-2">
         {/* Player Rígido 16:9 — alinhado ao topo */}
-        <div className="flex justify-center">
-          <div className="relative aspect-[16/9] w-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <div className="relative aspect-[16/9] max-h-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
             <StudioCanvas
               roomState={roomState}
               assets={assets}
