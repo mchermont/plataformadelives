@@ -44,6 +44,7 @@ export default async function StudioOutputPage({
     secondary_participant_id: null,
     active_interpreter_id: null,
     interpreter_position: "bottom-right",
+    intercom_target_id: null,
     active_banner_id: null,
     active_ticker_text: null,
     active_overlay_url: null,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Mic, MicOff, Video, VideoOff, ArrowRight, Settings, Hand, Radio } from "lucide-react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useLocalParticipant, useParticipants, useRoomContext } from "@livekit/components-react";
+import { useLocalParticipant, useParticipants, useRoomContext, AudioTrack } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
 import { StudioCanvas } from "@/components/admin/studio/StudioCanvas";
@@ -13,6 +13,7 @@ import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/st
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
 import { STUDIO_LIVEKIT_OPTIONS } from "@/components/admin/studio/livekitOptions";
 import { useFitWidth } from "@/components/admin/studio/useFitTiles";
+import { useIntercomListener } from "@/components/admin/studio/useIntercomListener";
 
 const MAX_INTERPRETERS = 2;
 
@@ -40,6 +41,7 @@ function InterpreterStudioInner({
   const playerFit = useFitWidth(1, { gap: 0 });
 
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
+  const { isSpeaking: isDirectorSpeaking, trackRef: intercomTrackRef } = useIntercomListener(roomState);
   const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [noiseSuppression, setNoiseSuppression] = useState(true);
@@ -143,6 +145,7 @@ function InterpreterStudioInner({
   return (
     <div className="flex min-h-screen w-full flex-col gap-4 overflow-y-auto bg-neutral-950 p-3 text-neutral-100 lg:h-screen lg:flex-row lg:overflow-hidden lg:p-4">
       <StudioAudioRenderer volumes={volumes} />
+      {intercomTrackRef && <AudioTrack trackRef={intercomTrackRef} />}
 
       {/* Esquerda/Centro: Player de Vídeo em 16:9 (Stage) — largura sempre
           disponível primeiro (nunca encolhe pra caber numa altura curta) */}
@@ -170,6 +173,11 @@ function InterpreterStudioInner({
           o conteúdo não couber (nunca o player) */}
       <div className="thin-scroll w-full lg:w-80 flex flex-col gap-4 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex-shrink-0 justify-between lg:overflow-y-auto">
         <div className="space-y-4">
+          {isDirectorSpeaking && (
+            <div className="flex animate-pulse items-center justify-center gap-1.5 rounded-xl border border-sky-800 bg-sky-950 px-3 py-2 text-xs font-bold uppercase tracking-wider text-sky-400">
+              <Radio className="h-3.5 w-3.5" /> Diretor falando
+            </div>
+          )}
           <div className="text-center pb-2 border-b border-neutral-800">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${
@@ -320,6 +328,7 @@ export default function InterpreterRoomPage() {
             secondary_participant_id: null,
             active_interpreter_id: null,
             interpreter_position: "bottom-right",
+            intercom_target_id: null,
             active_banner_id: null,
             active_ticker_text: null,
             active_overlay_url: null,

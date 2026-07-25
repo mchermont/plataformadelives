@@ -553,6 +553,8 @@ export interface StudioRoom {
   /** Intérprete de Libras em exibição — overlay PIP fixo, independente do arranjo ativo. */
   active_interpreter_id: string | null;
   interpreter_position: "bottom-left" | "bottom-right";
+  /** Alvo do Intercom (PTT do Diretor) — identity de um participante, `"__all__"` (Todos), ou null (desligado). */
+  intercom_target_id: string | null;
   active_banner_id: string | null;
   active_ticker_text: string | null;
   active_overlay_url: string | null;

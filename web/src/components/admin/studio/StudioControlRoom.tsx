@@ -13,6 +13,8 @@ import { StudioMediaSettings } from "./StudioMediaSettings";
 import { useStudioSelfStage } from "./useStudioSelfStage";
 import { STUDIO_LIVEKIT_OPTIONS } from "./livekitOptions";
 import { useFitWidth } from "./useFitTiles";
+import { useIntercomPTT } from "./useIntercomPTT";
+import { INTERCOM_ALL } from "./useIntercomListener";
 import {
   Mic,
   MicOff,
@@ -30,6 +32,7 @@ import {
   Settings,
   Hand,
   ArrowLeftRight,
+  Radio,
 } from "lucide-react";
 import type { StudioLayout } from "@/lib/types";
 
@@ -70,6 +73,7 @@ function StudioControlRoomInner({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { setDesiredMicOn } = useStudioSelfStage();
   const participants = useParticipants();
+  const { startTalking, stopTalking, isTalking } = useIntercomPTT();
 
   // Tamanho do player medido via JS, pela LARGURA disponível só — nunca
   // pela altura (senão, numa tela curta, o player inteiro encolhia em vez
@@ -189,6 +193,26 @@ function StudioControlRoomInner({
     });
   }, [handleUpdateRoom, roomState.interpreter_position]);
 
+  const intercomOptions = useMemo(
+    () =>
+      participants
+        .filter((p) => !p.isLocal)
+        .map((p) => {
+          const isInterpreter = p.identity.startsWith("interprete-");
+          const isOnStage = p.attributes?.isOnStage === "true";
+          const status = isInterpreter ? "Intérprete" : isOnStage ? "Palco" : "Backstage";
+          return { identity: p.identity, label: `${p.name || p.identity} (${status})` };
+        }),
+    [participants],
+  );
+
+  const handleSetIntercomTarget = useCallback(
+    (identity: string) => {
+      handleUpdateRoom({ intercom_target_id: identity || null });
+    },
+    [handleUpdateRoom],
+  );
+
   const remoteTargets = useMemo(
     () =>
       participants
@@ -237,12 +261,50 @@ function StudioControlRoomInner({
             activeInterpreterId={roomState.active_interpreter_id}
             onSetActiveInterpreter={handleSetActiveInterpreter}
             stageOverrides={stageOverrides}
+            intercomTargetId={roomState.intercom_target_id}
+            isIntercomTalking={isTalking}
           />
         </div>
       </div>
 
       {/* 2. Área Central — Canvas do Palco + Controls Bar (topo fixo, sem scroll) */}
       <div className="flex flex-1 flex-col overflow-hidden p-4 gap-2">
+        {/* Intercom (PTT) — logo acima do player */}
+        <div className="mx-auto flex w-full max-w-5xl flex-shrink-0 items-center gap-2">
+          <span className="flex-shrink-0 text-xs font-bold uppercase tracking-wider text-neutral-400">
+            Intercom
+          </span>
+          <select
+            value={roomState.intercom_target_id || ""}
+            onChange={(e) => handleSetIntercomTarget(e.target.value)}
+            className="flex-1 rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-neutral-300 focus:border-sky-500 focus:outline-none"
+          >
+            <option value="">Escolha quem ouve…</option>
+            <option value={INTERCOM_ALL}>🔊 Todos</option>
+            {intercomOptions.map((opt) => (
+              <option key={opt.identity} value={opt.identity}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            onMouseDown={startTalking}
+            onMouseUp={stopTalking}
+            onMouseLeave={stopTalking}
+            onTouchStart={startTalking}
+            onTouchEnd={stopTalking}
+            disabled={!roomState.intercom_target_id}
+            title="Segure pra falar"
+            className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+              isTalking
+                ? "bg-sky-500 text-neutral-950"
+                : "bg-neutral-900 border border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+            }`}
+          >
+            <Radio className="h-3.5 w-3.5" /> {isTalking ? "Falando…" : "Segure pra Falar"}
+          </button>
+        </div>
+
         {/* Player Rígido 16:9 — alinhado ao topo, tamanho pela largura disponível
             (nunca pela altura sobrando: numa tela curta isso encolhia o player
             todo em vez de só deixar o painel ao lado rolar) */}
@@ -355,6 +417,7 @@ export function StudioControlRoom({
       secondary_participant_id: null,
       active_interpreter_id: null,
       interpreter_position: "bottom-right",
+      intercom_target_id: null,
       active_banner_id: null,
       active_ticker_text: null,
       active_overlay_url: null,

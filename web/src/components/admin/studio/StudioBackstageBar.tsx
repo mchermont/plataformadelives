@@ -1,9 +1,10 @@
 "use client";
 
 import { useParticipants } from "@livekit/components-react";
-import { Mic, MicOff, Video, VideoOff, Star, Hand } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Star, Hand, Radio } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 import { useFitTiles, useFitWidth } from "./useFitTiles";
+import { INTERCOM_ALL } from "./useIntercomListener";
 
 const MAX_STAGE_PARTICIPANTS = 10;
 
@@ -20,6 +21,10 @@ interface StudioBackstageBarProps {
   onSetActiveInterpreter?: (participantIdentity: string) => void;
   /** Estado otimista local — reflete o clique na hora, antes do LiveKit confirmar de verdade. */
   stageOverrides?: Record<string, boolean>;
+  /** Alvo do Intercom (PTT) — identity, `"__all__"` (Todos), ou null. */
+  intercomTargetId?: string | null;
+  /** true enquanto o Diretor está segurando o botão de falar. */
+  isIntercomTalking?: boolean;
 }
 
 export function StudioBackstageBar({
@@ -32,6 +37,8 @@ export function StudioBackstageBar({
   activeInterpreterId,
   onSetActiveInterpreter,
   stageOverrides,
+  intercomTargetId,
+  isIntercomTalking,
 }: StudioBackstageBarProps) {
   const allParticipants = useParticipants();
   const participants = allParticipants.filter((p) => !p.identity.startsWith("interprete-"));
@@ -89,6 +96,8 @@ export function StudioBackstageBar({
     const isCamOff = !p.isCameraEnabled;
     const isSpotlighted = p.identity === spotlightParticipantId;
     const isSecondary = p.identity === secondaryParticipantId;
+    const isIntercomTarget = intercomTargetId === p.identity || intercomTargetId === INTERCOM_ALL;
+    const isIntercomActive = isIntercomTarget && isIntercomTalking;
 
     return (
       <div
@@ -102,9 +111,20 @@ export function StudioBackstageBar({
         title={isOnStage ? "Clique para mandar pro backstage" : "Clique para subir ao palco"}
         style={{ width: widthFit.itemWidth, height: widthFit.itemHeight }}
         className={`group relative cursor-pointer overflow-hidden rounded-xl border transition ${
-          isOnStage ? "border-emerald-500/80" : "border-neutral-800 hover:border-neutral-700"
+          isIntercomActive
+            ? "border-sky-400 ring-2 ring-sky-400/60"
+            : isOnStage
+              ? "border-emerald-500/80"
+              : "border-neutral-800 hover:border-neutral-700"
         }`}
       >
+        {isIntercomActive && (
+          <div className="pointer-events-none absolute inset-x-0 top-1.5 z-10 flex justify-center">
+            <span className="flex items-center gap-1 rounded-full bg-sky-500 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-950">
+              <Radio className="h-2.5 w-2.5" /> Diretor falando
+            </span>
+          </div>
+        )}
         <StudioParticipantTile
           participant={p}
           variant="thumbnail"
@@ -238,6 +258,8 @@ export function StudioBackstageBar({
                 {interpreters.map((p) => {
                   const isActive = p.identity === activeInterpreterId;
                   const name = p.name || p.identity;
+                  const isIntercomTarget = intercomTargetId === p.identity || intercomTargetId === INTERCOM_ALL;
+                  const isIntercomActive = isIntercomTarget && isIntercomTalking;
                   return (
                     <div
                       key={p.sid}
@@ -250,9 +272,20 @@ export function StudioBackstageBar({
                       title={isActive ? "No ar — clique pra tirar" : "Clique pra pôr no ar"}
                       style={{ width: interpreterFit.itemWidth, height: interpreterFit.itemHeight }}
                       className={`relative cursor-pointer overflow-hidden rounded-xl border transition ${
-                        isActive ? "border-sky-500/80" : "border-neutral-800 hover:border-neutral-700"
+                        isIntercomActive
+                          ? "ring-2 ring-sky-400/60"
+                          : isActive
+                            ? "border-sky-500/80"
+                            : "border-neutral-800 hover:border-neutral-700"
                       }`}
                     >
+                      {isIntercomActive && (
+                        <div className="pointer-events-none absolute inset-x-0 top-1.5 z-10 flex justify-center">
+                          <span className="flex items-center gap-1 rounded-full bg-sky-500 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-neutral-950">
+                            <Radio className="h-2.5 w-2.5" /> Diretor falando
+                          </span>
+                        </div>
+                      )}
                       <StudioParticipantTile participant={p} variant="thumbnail" showName={false} className="border-0" />
                       <div className="pointer-events-none absolute left-1.5 top-1.5 flex max-w-[80%] items-center gap-1 rounded-lg border border-neutral-800/80 bg-neutral-950/80 px-1.5 py-0.5 backdrop-blur-md">
                         <span className="truncate text-[9px] font-semibold text-neutral-100">{name}</span>
