@@ -12,7 +12,7 @@ import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipa
 import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
 import { STUDIO_LIVEKIT_OPTIONS } from "@/components/admin/studio/livekitOptions";
-import { useFitTiles } from "@/components/admin/studio/useFitTiles";
+import { useFitWidth } from "@/components/admin/studio/useFitTiles";
 
 const MAX_INTERPRETERS = 2;
 
@@ -34,9 +34,10 @@ function InterpreterStudioInner({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const participants = useParticipants();
   const room = useRoomContext();
-  // Tamanho do player medido via JS (não CSS aspect-ratio puro — o conteúdo
-  // do StudioCanvas é absolute, sem isso a caixa colapsa pra 0).
-  const playerFit = useFitTiles(1, { gap: 0, forceCols: 1 });
+  // Tamanho do player medido via JS, pela LARGURA disponível só (não pela
+  // altura — senão, numa tela curta/mobile, o player encolhia competindo
+  // por altura com o painel ao lado, em vez do painel simplesmente rolar).
+  const playerFit = useFitWidth(1, { gap: 0 });
 
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
   const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
@@ -140,11 +141,12 @@ function InterpreterStudioInner({
   }
 
   return (
-    <div className="flex h-screen w-full flex-col lg:flex-row overflow-hidden bg-neutral-950 text-neutral-100 p-3 lg:p-4 gap-4">
+    <div className="flex min-h-screen w-full flex-col gap-4 overflow-y-auto bg-neutral-950 p-3 text-neutral-100 lg:h-screen lg:flex-row lg:overflow-hidden lg:p-4">
       <StudioAudioRenderer volumes={volumes} />
 
-      {/* Esquerda/Centro: Player de Vídeo em 16:9 (Stage) */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+      {/* Esquerda/Centro: Player de Vídeo em 16:9 (Stage) — largura sempre
+          disponível primeiro (nunca encolhe pra caber numa altura curta) */}
+      <div className="flex w-full flex-shrink-0 flex-col items-center gap-3 lg:min-h-0 lg:flex-1 lg:justify-center">
         <div className="w-full flex items-center justify-between px-1">
           <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
             Palco da Transmissão (Ao Vivo)
@@ -152,10 +154,10 @@ function InterpreterStudioInner({
           <span className="text-[10px] text-neutral-500">Você está assistindo ao palco principal</span>
         </div>
 
-        <div ref={playerFit.ref} className="flex min-h-0 w-full max-w-5xl flex-1 items-center justify-center">
+        <div ref={playerFit.ref} className="w-full max-w-5xl">
           {playerFit.itemWidth > 0 && (
             <div
-              className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-black shadow-2xl"
+              className="relative mx-auto overflow-hidden rounded-2xl border border-neutral-800 bg-black shadow-2xl"
               style={{ width: playerFit.itemWidth, height: playerFit.itemHeight }}
             >
               <StudioCanvas roomState={roomState} assets={assets} showLiveBadge />
@@ -164,8 +166,9 @@ function InterpreterStudioInner({
         </div>
       </div>
 
-      {/* Direita: Painel de Controle Lateral do Intérprete */}
-      <div className="w-full lg:w-80 flex flex-col gap-4 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex-shrink-0 justify-between">
+      {/* Direita: Painel de Controle Lateral do Intérprete — rola sozinho se
+          o conteúdo não couber (nunca o player) */}
+      <div className="thin-scroll w-full lg:w-80 flex flex-col gap-4 bg-neutral-900 border border-neutral-800 rounded-2xl p-4 flex-shrink-0 justify-between lg:overflow-y-auto">
         <div className="space-y-4">
           <div className="text-center pb-2 border-b border-neutral-800">
             <span
