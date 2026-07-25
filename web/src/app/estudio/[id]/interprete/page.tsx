@@ -11,6 +11,7 @@ import { StudioCanvas } from "@/components/admin/studio/StudioCanvas";
 import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipantTile";
 import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
+import { STUDIO_LIVEKIT_OPTIONS } from "@/components/admin/studio/livekitOptions";
 
 const MAX_INTERPRETERS = 2;
 
@@ -342,7 +343,7 @@ export default function InterpreterRoomPage() {
         connect={true}
         video={true}
         audio={true}
-        options={{ adaptiveStream: true, dynacast: true }}
+        options={STUDIO_LIVEKIT_OPTIONS}
         onError={(err) => console.error("Interpreter LiveKit error:", err)}
         className="h-screen w-full"
       >

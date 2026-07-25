@@ -11,6 +11,7 @@ import { StudioPrivateChat } from "./StudioPrivateChat";
 import { StudioAudioRenderer, type StudioVolumeMap } from "./StudioAudioRenderer";
 import { StudioMediaSettings } from "./StudioMediaSettings";
 import { useStudioSelfStage } from "./useStudioSelfStage";
+import { STUDIO_LIVEKIT_OPTIONS } from "./livekitOptions";
 import {
   Mic,
   MicOff,
@@ -479,7 +480,7 @@ export function StudioControlRoom({
       connect={true}
       video={true}
       audio={true}
-      options={{ adaptiveStream: true, dynacast: true }}
+      options={STUDIO_LIVEKIT_OPTIONS}
       className="h-full w-full"
       onError={(err) => {
         console.error("LiveKit Room Connection Error:", err);

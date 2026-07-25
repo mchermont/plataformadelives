@@ -12,6 +12,7 @@ import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipa
 import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
 import { useStudioSelfStage } from "@/components/admin/studio/useStudioSelfStage";
+import { STUDIO_LIVEKIT_OPTIONS } from "@/components/admin/studio/livekitOptions";
 
 const MAX_BACKSTAGE_PARTICIPANTS = 14;
 
@@ -358,7 +359,7 @@ export default function GuestRoomPage() {
         connect={true}
         video={true}
         audio={true}
-        options={{ adaptiveStream: true, dynacast: true }}
+        options={STUDIO_LIVEKIT_OPTIONS}
         onError={(err) => console.error("Guest LiveKit error:", err)}
         className="h-screen w-full"
       >
