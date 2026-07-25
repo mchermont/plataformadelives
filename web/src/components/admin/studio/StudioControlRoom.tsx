@@ -12,6 +12,7 @@ import { StudioAudioRenderer, type StudioVolumeMap } from "./StudioAudioRenderer
 import { StudioMediaSettings } from "./StudioMediaSettings";
 import { useStudioSelfStage } from "./useStudioSelfStage";
 import { STUDIO_LIVEKIT_OPTIONS } from "./livekitOptions";
+import { useFitTiles } from "./useFitTiles";
 import {
   Mic,
   MicOff,
@@ -69,6 +70,13 @@ function StudioControlRoomInner({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { setDesiredMicOn } = useStudioSelfStage();
   const participants = useParticipants();
+
+  // Tamanho do player medido via JS, não CSS aspect-ratio puro: o conteúdo
+  // do StudioCanvas é `position: absolute` (fora do fluxo), então a caixa
+  // não tem nenhum conteúdo pra derivar um tamanho "automático" — sem
+  // largura/altura explícitas ela colapsava pra 0. `useFitTiles(1, ...)`
+  // já resolve exatamente "a maior caixa 16:9 que cabe no espaço medido".
+  const playerFit = useFitTiles(1, { gap: 0, forceCols: 1 });
 
   // Altura real disponível abaixo do que já está acima na página (navbar +
   // breadcrumb + abas do evento, que variam de altura e não são só o
@@ -237,14 +245,21 @@ function StudioControlRoomInner({
       <div className="flex flex-1 flex-col overflow-hidden p-4 gap-2">
         {/* Player Rígido 16:9 — alinhado ao topo */}
         <div className="flex min-h-0 flex-1 items-center justify-center">
-          <div className="relative aspect-[16/9] max-h-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
-            <StudioCanvas
-              roomState={roomState}
-              assets={assets}
-              onParticipantClick={handleSpotlight}
-              showLiveBadge
-              stageOverrides={stageOverrides}
-            />
+          <div ref={playerFit.ref} className="h-full w-full max-w-5xl">
+            {playerFit.itemWidth > 0 && (
+              <div
+                className="relative mx-auto overflow-hidden rounded-2xl border border-neutral-800 bg-black shadow-2xl"
+                style={{ width: playerFit.itemWidth, height: playerFit.itemHeight }}
+              >
+                <StudioCanvas
+                  roomState={roomState}
+                  assets={assets}
+                  onParticipantClick={handleSpotlight}
+                  showLiveBadge
+                  stageOverrides={stageOverrides}
+                />
+              </div>
+            )}
           </div>
         </div>
 

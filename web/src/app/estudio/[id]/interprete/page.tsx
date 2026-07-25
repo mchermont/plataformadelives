@@ -12,6 +12,7 @@ import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipa
 import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
 import { STUDIO_LIVEKIT_OPTIONS } from "@/components/admin/studio/livekitOptions";
+import { useFitTiles } from "@/components/admin/studio/useFitTiles";
 
 const MAX_INTERPRETERS = 2;
 
@@ -33,6 +34,9 @@ function InterpreterStudioInner({
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const participants = useParticipants();
   const room = useRoomContext();
+  // Tamanho do player medido via JS (não CSS aspect-ratio puro — o conteúdo
+  // do StudioCanvas é absolute, sem isso a caixa colapsa pra 0).
+  const playerFit = useFitTiles(1, { gap: 0, forceCols: 1 });
 
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
   const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
@@ -148,8 +152,15 @@ function InterpreterStudioInner({
           <span className="text-[10px] text-neutral-500">Você está assistindo ao palco principal</span>
         </div>
 
-        <div className="relative aspect-[16/9] max-h-full max-w-5xl rounded-2xl overflow-hidden bg-black shadow-2xl border border-neutral-800">
-          <StudioCanvas roomState={roomState} assets={assets} showLiveBadge />
+        <div ref={playerFit.ref} className="flex min-h-0 w-full max-w-5xl flex-1 items-center justify-center">
+          {playerFit.itemWidth > 0 && (
+            <div
+              className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-black shadow-2xl"
+              style={{ width: playerFit.itemWidth, height: playerFit.itemHeight }}
+            >
+              <StudioCanvas roomState={roomState} assets={assets} showLiveBadge />
+            </div>
+          )}
         </div>
       </div>
 
