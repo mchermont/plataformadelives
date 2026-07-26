@@ -69,6 +69,7 @@ function StudioControlRoomInner({
   handleStopStream,
   handleCopyInviteLink,
   handleCopyInterpreterLink,
+  handleCopyOutputLink,
 }: {
   event: LiveEvent;
   roomState: StudioRoom;
@@ -83,6 +84,7 @@ function StudioControlRoomInner({
   handleStopStream: () => Promise<void>;
   handleCopyInviteLink: () => void;
   handleCopyInterpreterLink: () => void;
+  handleCopyOutputLink: () => void;
 }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { setDesiredMicOn } = useStudioSelfStage();
@@ -262,6 +264,12 @@ function StudioControlRoomInner({
             className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
           >
             <Hand className="h-3.5 w-3.5 text-sky-400" /> Convidar Intérprete
+          </button>
+          <button
+            onClick={handleCopyOutputLink}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
+          >
+            <Radio className="h-3.5 w-3.5 text-amber-400" /> Copiar Output (OBS/vMix)
           </button>
         </div>
 
@@ -667,6 +675,13 @@ export function StudioControlRoom({
     alert(`Link copiado!\n\nCompartilhe com o intérprete de Libras:\n${link}`);
   };
 
+  const handleCopyOutputLink = () => {
+    const origin = window.location.origin;
+    const link = `${origin}/estudio/${event.id}/output`;
+    navigator.clipboard.writeText(link);
+    alert(`Link copiado!\n\nUse como fonte de navegador no OBS/vMix:\n${link}`);
+  };
+
   const spinner = (
     <div className="flex h-screen w-full items-center justify-center bg-neutral-950 text-neutral-400">
       <div className="flex items-center gap-3">
@@ -706,6 +721,7 @@ export function StudioControlRoom({
         handleStopStream={handleStopStream}
         handleCopyInviteLink={handleCopyInviteLink}
         handleCopyInterpreterLink={handleCopyInterpreterLink}
+        handleCopyOutputLink={handleCopyOutputLink}
       />
     </LiveKitRoom>
   );
