@@ -562,6 +562,10 @@ export interface StudioRoom {
   active_logo_url: string | null;
   active_presentation_id: string | null;
   active_slide_index: number;
+  /** Id do job de Egress ativo (LiveKit) — um só por evento, manda pra todos os destinos habilitados. */
+  egress_id: string | null;
+  egress_status: "starting" | "active" | "stopping" | "error" | null;
+  egress_error: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -577,6 +581,19 @@ export interface StudioAsset {
   sort_order: number;
   is_default: boolean;
   created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Destino RTMP cadastrado pelo Diretor (YouTube, Instagram, RTMP genérico) pra multistream via Egress. */
+export interface StudioStreamDestination {
+  id: string;
+  event_id: string;
+  name: string;
+  rtmp_url: string;
+  stream_key: string;
+  enabled: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }

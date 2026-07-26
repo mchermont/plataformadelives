@@ -52,6 +52,9 @@ export default async function StudioOutputPage({
     active_logo_url: event.brand_logo_url,
     active_presentation_id: null,
     active_slide_index: 0,
+    egress_id: null,
+    egress_status: null,
+    egress_error: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

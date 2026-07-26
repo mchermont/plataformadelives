@@ -336,6 +336,9 @@ export default function InterpreterRoomPage() {
             active_logo_url: null,
             active_presentation_id: null,
             active_slide_index: 0,
+            egress_id: null,
+            egress_status: null,
+            egress_error: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }

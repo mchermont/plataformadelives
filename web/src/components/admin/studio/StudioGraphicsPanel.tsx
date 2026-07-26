@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Image, Layers, Sparkles, Type, Plus, Check, Upload, Loader2 } from "lucide-react";
+import { Image, Layers, Sparkles, Type, Plus, Check, Upload, Loader2, Radio } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { StudioAsset, StudioRoom } from "@/lib/types";
+import { StudioAsset, StudioRoom, StudioStreamDestination } from "@/lib/types";
 import { StudioPresentationManager } from "./StudioPresentationManager";
+import { StudioStreamPanel } from "./StudioStreamPanel";
 
 interface StudioGraphicsPanelProps {
   eventId: string;
@@ -12,6 +13,12 @@ interface StudioGraphicsPanelProps {
   assets: StudioAsset[];
   onUpdateRoom: (updates: Partial<StudioRoom>) => void;
   onCreateAsset: (asset: Partial<StudioAsset>) => void;
+  destinations: StudioStreamDestination[];
+  onCreateDestination: (data: Partial<StudioStreamDestination>) => void;
+  onUpdateDestination: (id: string, data: Partial<StudioStreamDestination>) => void;
+  onDeleteDestination: (id: string) => void;
+  onStartStream: () => void;
+  onStopStream: () => void;
 }
 
 export function StudioGraphicsPanel({
@@ -20,8 +27,14 @@ export function StudioGraphicsPanel({
   assets,
   onUpdateRoom,
   onCreateAsset,
+  destinations,
+  onCreateDestination,
+  onUpdateDestination,
+  onDeleteDestination,
+  onStartStream,
+  onStopStream,
 }: StudioGraphicsPanelProps) {
-  const [activeTab, setActiveTab] = useState<"graphics" | "captions" | "presentation">("graphics");
+  const [activeTab, setActiveTab] = useState<"graphics" | "captions" | "presentation" | "streaming">("graphics");
   const [newGcText, setNewGcText] = useState("");
   const [newGcSubtext, setNewGcSubtext] = useState("");
   const [uploadingKind, setUploadingKind] = useState<"logo" | "overlay" | "background" | null>(null);
@@ -115,6 +128,17 @@ export function StudioGraphicsPanel({
         >
           <Sparkles className="h-3.5 w-3.5" />
           Slides
+        </button>
+        <button
+          onClick={() => setActiveTab("streaming")}
+          className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-semibold transition border-b-2 ${
+            activeTab === "streaming"
+              ? "border-emerald-500 text-emerald-400 bg-neutral-800/50"
+              : "border-transparent text-neutral-400 hover:text-neutral-200"
+          }`}
+        >
+          <Radio className="h-3.5 w-3.5" />
+          Transmitir
         </button>
       </div>
 
@@ -359,6 +383,18 @@ export function StudioGraphicsPanel({
             assets={assets}
             onUpdateRoom={onUpdateRoom}
             onCreateAsset={onCreateAsset}
+          />
+        )}
+
+        {activeTab === "streaming" && (
+          <StudioStreamPanel
+            roomState={roomState}
+            destinations={destinations}
+            onCreateDestination={onCreateDestination}
+            onUpdateDestination={onUpdateDestination}
+            onDeleteDestination={onDeleteDestination}
+            onStartStream={onStartStream}
+            onStopStream={onStopStream}
           />
         )}
       </div>

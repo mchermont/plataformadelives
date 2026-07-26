@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { LiveKitRoom, useLocalParticipant, useParticipants } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
-import { LiveEvent, StudioAsset, StudioRoom } from "@/lib/types";
+import { LiveEvent, StudioAsset, StudioRoom, StudioStreamDestination } from "@/lib/types";
 import { StudioCanvas } from "./StudioCanvas";
 import { StudioBackstageBar } from "./StudioBackstageBar";
 import { StudioGraphicsPanel } from "./StudioGraphicsPanel";
@@ -15,6 +15,8 @@ import { STUDIO_LIVEKIT_OPTIONS } from "./livekitOptions";
 import { useFitWidth } from "./useFitTiles";
 import { useIntercomPTT } from "./useIntercomPTT";
 import { INTERCOM_ALL } from "./useIntercomListener";
+import { useStudioEgressStatus } from "./useStudioEgressStatus";
+import { friendlyError } from "@/lib/friendlyError";
 import {
   Mic,
   MicOff,
@@ -57,16 +59,28 @@ function StudioControlRoomInner({
   event,
   roomState,
   assets,
+  destinations,
   handleUpdateRoom,
   handleCreateAsset,
+  handleCreateDestination,
+  handleUpdateDestination,
+  handleDeleteDestination,
+  handleStartStream,
+  handleStopStream,
   handleCopyInviteLink,
   handleCopyInterpreterLink,
 }: {
   event: LiveEvent;
   roomState: StudioRoom;
   assets: StudioAsset[];
+  destinations: StudioStreamDestination[];
   handleUpdateRoom: (updates: Partial<StudioRoom>) => Promise<void>;
   handleCreateAsset: (assetData: Partial<StudioAsset>) => Promise<void>;
+  handleCreateDestination: (data: Partial<StudioStreamDestination>) => Promise<void>;
+  handleUpdateDestination: (id: string, data: Partial<StudioStreamDestination>) => Promise<void>;
+  handleDeleteDestination: (id: string) => Promise<void>;
+  handleStartStream: () => Promise<void>;
+  handleStopStream: () => Promise<void>;
   handleCopyInviteLink: () => void;
   handleCopyInterpreterLink: () => void;
 }) {
@@ -74,6 +88,7 @@ function StudioControlRoomInner({
   const { setDesiredMicOn } = useStudioSelfStage();
   const participants = useParticipants();
   const { startTalking, stopTalking, isTalking } = useIntercomPTT();
+  useStudioEgressStatus(event.id, roomState.egress_status);
 
   // Tamanho do player medido via JS, pela LARGURA disponível só — nunca
   // pela altura (senão, numa tela curta, o player inteiro encolhia em vez
@@ -384,6 +399,12 @@ function StudioControlRoomInner({
           assets={assets}
           onCreateAsset={handleCreateAsset}
           onUpdateRoom={handleUpdateRoom}
+          destinations={destinations}
+          onCreateDestination={handleCreateDestination}
+          onUpdateDestination={handleUpdateDestination}
+          onDeleteDestination={handleDeleteDestination}
+          onStartStream={handleStartStream}
+          onStopStream={handleStopStream}
         />
         <div className="h-px w-full bg-neutral-800" />
         <StudioPrivateChat eventId={event.id} />
@@ -425,11 +446,15 @@ export function StudioControlRoom({
       active_logo_url: null,
       active_presentation_id: null,
       active_slide_index: 0,
+      egress_id: null,
+      egress_status: null,
+      egress_error: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
   );
   const [assets, setAssets] = useState<StudioAsset[]>(initialAssets || []);
+  const [destinations, setDestinations] = useState<StudioStreamDestination[]>([]);
   const [token, setToken] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -454,6 +479,18 @@ export function StudioControlRoom({
   }, [event.id]);
 
   useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("studio_stream_destinations")
+      .select("*")
+      .eq("event_id", event.id)
+      .order("sort_order", { ascending: true })
+      .then(({ data }) => {
+        if (data) setDestinations(data as StudioStreamDestination[]);
+      });
+  }, [event.id]);
+
+  useEffect(() => {
     if (!mounted) return;
     const supabase = createClient();
     const channel = supabase
@@ -473,6 +510,18 @@ export function StudioControlRoom({
         async () => {
           const { data } = await supabase.from("studio_assets").select("*").eq("event_id", event.id);
           if (data) setAssets(data as StudioAsset[]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "studio_stream_destinations", filter: `event_id=eq.${event.id}` },
+        async () => {
+          const { data } = await supabase
+            .from("studio_stream_destinations")
+            .select("*")
+            .eq("event_id", event.id)
+            .order("sort_order", { ascending: true });
+          if (data) setDestinations(data as StudioStreamDestination[]);
         }
       )
       .subscribe();
@@ -527,6 +576,83 @@ export function StudioControlRoom({
     [event.id]
   );
 
+  const handleCreateDestination = useCallback(
+    async (data: Partial<StudioStreamDestination>) => {
+      try {
+        const supabase = createClient();
+        const { data: created, error } = await supabase
+          .from("studio_stream_destinations")
+          .insert({ event_id: event.id, ...data })
+          .select()
+          .single();
+
+        if (created && !error) {
+          setDestinations((prev) => [...prev, created as StudioStreamDestination]);
+        } else if (error) {
+          alert(friendlyError(error.message));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [event.id]
+  );
+
+  const handleUpdateDestination = useCallback(async (id: string, data: Partial<StudioStreamDestination>) => {
+    setDestinations((prev) => prev.map((d) => (d.id === id ? { ...d, ...data } : d)));
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("studio_stream_destinations").update(data).eq("id", id);
+      if (error) alert(friendlyError(error.message));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleDeleteDestination = useCallback(async (id: string) => {
+    if (!confirm("Excluir este destino de transmissão?")) return;
+    setDestinations((prev) => prev.filter((d) => d.id !== id));
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("studio_stream_destinations").delete().eq("id", id);
+      if (error) alert(friendlyError(error.message));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const handleStartStream = useCallback(async () => {
+    setRoomState((prev) => ({ ...prev, egress_status: "starting", egress_error: null }));
+    try {
+      const res = await fetch("/api/studio/egress/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: event.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRoomState((prev) => ({ ...prev, egress_status: "error", egress_error: data.error }));
+      }
+    } catch (err) {
+      console.error(err);
+      setRoomState((prev) => ({ ...prev, egress_status: "error", egress_error: "Erro de conexão." }));
+    }
+  }, [event.id]);
+
+  const handleStopStream = useCallback(async () => {
+    if (!roomState.egress_id) return;
+    setRoomState((prev) => ({ ...prev, egress_status: "stopping" }));
+    try {
+      await fetch("/api/studio/egress/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: event.id, egressId: roomState.egress_id }),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }, [event.id, roomState.egress_id]);
+
   const handleCopyInviteLink = () => {
     const origin = window.location.origin;
     const link = `${origin}/estudio/${event.id}/guest`;
@@ -570,8 +696,14 @@ export function StudioControlRoom({
         event={event}
         roomState={roomState}
         assets={assets}
+        destinations={destinations}
         handleUpdateRoom={handleUpdateRoom}
         handleCreateAsset={handleCreateAsset}
+        handleCreateDestination={handleCreateDestination}
+        handleUpdateDestination={handleUpdateDestination}
+        handleDeleteDestination={handleDeleteDestination}
+        handleStartStream={handleStartStream}
+        handleStopStream={handleStopStream}
         handleCopyInviteLink={handleCopyInviteLink}
         handleCopyInterpreterLink={handleCopyInterpreterLink}
       />
