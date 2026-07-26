@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { LiveKitRoom } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
@@ -14,6 +15,12 @@ interface StudioOutputCanvasProps {
 }
 
 export function StudioOutputCanvas({ eventId, initialRoom, initialAssets }: StudioOutputCanvasProps) {
+  // `?muted=1` é usado só pelo preview embutido na aba Transmitir do
+  // Diretor — senão o áudio da própria sala (que ele já ouve direto) toca
+  // duplicado. OBS/vMix/Egress nunca passam esse parâmetro, então
+  // continuam recebendo o áudio real normalmente.
+  const searchParams = useSearchParams();
+  const previewMuted = searchParams.get("muted") === "1";
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
@@ -84,7 +91,7 @@ export function StudioOutputCanvas({ eventId, initialRoom, initialAssets }: Stud
       options={{ adaptiveStream: true, dynacast: true }}
       className="h-screen w-screen bg-black overflow-hidden flex items-center justify-center p-0 m-0"
     >
-      <StudioAudioRenderer />
+      <StudioAudioRenderer muted={previewMuted} />
       <div className="relative aspect-video w-full max-w-[1920px] bg-black">
         <StudioCanvas roomState={roomState} assets={assets} showSpotlightBadge={false} />
       </div>

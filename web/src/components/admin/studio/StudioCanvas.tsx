@@ -2,7 +2,6 @@
 
 import { useParticipants } from "@livekit/components-react";
 import { StudioAsset, StudioLayout, StudioRoom } from "@/lib/types";
-import { User } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 import { useFitTiles } from "./useFitTiles";
 import { StudioTileGrid } from "./StudioTileGrid";
@@ -127,18 +126,10 @@ export function StudioCanvas({
     : null;
 
   const renderStage = () => {
-    if (stageEmpty) {
-      return (
-        <div className="relative z-10 flex flex-col items-center justify-center text-center p-6 space-y-3">
-          <div className="h-16 w-16 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-600 shadow-lg">
-            <User className="h-8 w-8" />
-          </div>
-          <p className="text-sm font-medium text-neutral-400 max-w-sm">
-            O palco está vazio. Adicione participantes do backstage abaixo para ir ao ar.
-          </p>
-        </div>
-      );
-    }
+    // Palco vazio é um estado válido pra ir ao ar (ex: só o fundo, antes de
+    // alguém entrar) — nunca mostra aviso nenhum aqui, isso vaza direto pro
+    // Output/Egress e apareceria pro público de verdade.
+    if (stageEmpty) return null;
 
     switch (layout) {
       case "grid": {

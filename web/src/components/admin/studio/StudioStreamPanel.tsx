@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Radio, Plus, Trash2, Eye, EyeOff, Pencil, X, Check, Copy } from "lucide-react";
+import { Radio, Plus, Trash2, Eye, EyeOff, Pencil, X, Check, Copy, Volume2, VolumeX } from "lucide-react";
 import type { StudioRoom, StudioStreamDestination } from "@/lib/types";
 
 interface StudioStreamPanelProps {
@@ -43,6 +43,9 @@ export function StudioStreamPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState(emptyForm());
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  // Mudo por padrão — senão o áudio do preview toca em cima do que o
+  // Diretor já ouve direto da sala.
+  const [previewMuted, setPreviewMuted] = useState(true);
 
   const enabledCount = destinations.filter((d) => d.enabled).length;
   const status = roomState.egress_status;
@@ -144,14 +147,26 @@ export function StudioStreamPanel({
       </div>
 
       {/* Pré-visualização do que está sendo transmitido — a mesma URL que
-          o OBS/vMix e o Egress capturam, embutida aqui só como preview. */}
+          o OBS/vMix e o Egress capturam, embutida aqui só como preview.
+          Áudio mudo por padrão (?muted=1) — senão toca em cima do que o
+          Diretor já ouve direto da sala. */}
       <div>
-        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
-          Pré-visualização do Output
-        </span>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+            Pré-visualização do Output
+          </span>
+          <button
+            onClick={() => setPreviewMuted((v) => !v)}
+            className="flex items-center gap-1 text-[11px] font-semibold text-neutral-400 hover:text-neutral-200"
+            title={previewMuted ? "Ativar áudio do preview" : "Silenciar preview"}
+          >
+            {previewMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+            {previewMuted ? "Mudo" : "Com áudio"}
+          </button>
+        </div>
         <div className="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black" style={{ aspectRatio: "16/9" }}>
           <iframe
-            src={`/estudio/${eventId}/output`}
+            src={`/estudio/${eventId}/output${previewMuted ? "?muted=1" : ""}`}
             className="absolute inset-0 h-full w-full"
             title="Pré-visualização do Output"
           />

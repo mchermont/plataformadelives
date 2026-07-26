@@ -11,6 +11,8 @@ interface StudioAudioRendererProps {
   volumes?: StudioVolumeMap;
   /** Deixa o mic dos intérpretes (identity `interprete-*`) audível — só usado no Diretor, pra ele conseguir conversar com eles a qualquer momento. Nunca no Output/convidado. */
   includeInterpreters?: boolean;
+  /** Silencia tudo sem desmontar as tracks (evita re-assinar áudio ao alternar) — usado no preview do Output embutido no painel do Diretor, que senão toca em cima do áudio que ele já ouve na sala. */
+  muted?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ interface StudioAudioRendererProps {
  * origem ainda não ter chegado via Realtime. Intérpretes de Libras nunca
  * entram nesse cálculo de palco — são audíveis só se `includeInterpreters`.
  */
-export function StudioAudioRenderer({ volumes = {}, includeInterpreters = false }: StudioAudioRendererProps) {
+export function StudioAudioRenderer({ volumes = {}, includeInterpreters = false, muted = false }: StudioAudioRendererProps) {
   const participants = useParticipants();
 
   const audibleParticipants = useMemo(() => {
@@ -46,7 +48,7 @@ export function StudioAudioRenderer({ volumes = {}, includeInterpreters = false 
           <AudioTrack
             key={p.sid}
             trackRef={{ participant: p, source: Track.Source.Microphone, publication: pub }}
-            volume={volumes[p.identity] ?? 1}
+            volume={muted ? 0 : (volumes[p.identity] ?? 1)}
           />
         );
       })}
