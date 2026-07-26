@@ -76,10 +76,15 @@ function packWordCloud(
       // Nenhuma palavra pode ser fisicamente maior que o container — sem
       // isso, uma palavra comprida numa camada de fonte muito grande nunca
       // encontra posição válida (o cálculo de espaço livre nunca fecha) e
-      // o resultado empilhava tudo por cima uma da outra no centro.
+      // o resultado empilhava tudo por cima uma da outra no centro. Importante:
+      // o limite tem que valer pra CAIXA com padding/rotação, não só o texto
+      // cru — clampar só o texto ainda deixava a caixa final estourar o
+      // container (o `Math.min(width, ...)` do cálculo da caixa então forçava
+      // várias palavras grandes pro mesmo canto (0,0), empilhadas de novo).
       const rawWidth = measureWidth(w.word, wordSize);
-      const limit = width * 0.86;
-      if (rawWidth > limit) wordSize *= limit / rawWidth;
+      const paddedWidth = rawWidth + wordSize * 0.72; // reserva o padding/rotação mais generosos (ver cálculo de boxW abaixo)
+      const limit = width * 0.82;
+      if (paddedWidth > limit) wordSize *= limit / paddedWidth;
       return { ...w, size: wordSize };
     });
 
