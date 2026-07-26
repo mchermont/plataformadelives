@@ -88,7 +88,9 @@ function StudioControlRoomInner({
 }) {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const { setDesiredMicOn } = useStudioSelfStage();
-  const participants = useParticipants();
+  // "output-*" é o bot do Egress/preview do OBS-vMix — não é gente
+  // gerenciável (palco, intercom, volume), nunca deve entrar nessas listas.
+  const participants = useParticipants().filter((p) => !p.identity.startsWith("output-"));
   const { startTalking, stopTalking, isTalking } = useIntercomPTT();
   useStudioEgressStatus(event.id, roomState.egress_status);
 

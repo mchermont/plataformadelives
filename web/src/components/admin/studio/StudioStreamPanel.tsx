@@ -5,6 +5,7 @@ import { Radio, Plus, Trash2, Eye, EyeOff, Pencil, X, Check, Copy } from "lucide
 import type { StudioRoom, StudioStreamDestination } from "@/lib/types";
 
 interface StudioStreamPanelProps {
+  eventId: string;
   roomState: StudioRoom;
   destinations: StudioStreamDestination[];
   onCreateDestination: (data: Partial<StudioStreamDestination>) => void;
@@ -27,6 +28,7 @@ function emptyForm() {
 }
 
 export function StudioStreamPanel({
+  eventId,
   roomState,
   destinations,
   onCreateDestination,
@@ -133,6 +135,21 @@ export function StudioStreamPanel({
         >
           <Copy className="h-3 w-3 text-amber-400" /> Copiar link de Output (OBS/vMix)
         </button>
+      </div>
+
+      {/* Pré-visualização do que está sendo transmitido — a mesma URL que
+          o OBS/vMix e o Egress capturam, embutida aqui só como preview. */}
+      <div>
+        <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 block mb-2">
+          Pré-visualização do Output
+        </span>
+        <div className="relative w-full overflow-hidden rounded-xl border border-neutral-800 bg-black" style={{ aspectRatio: "16/9" }}>
+          <iframe
+            src={`/estudio/${eventId}/output`}
+            className="absolute inset-0 h-full w-full"
+            title="Pré-visualização do Output"
+          />
+        </div>
       </div>
 
       {/* Lista de destinos */}

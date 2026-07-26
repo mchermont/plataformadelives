@@ -390,6 +390,7 @@ export function StudioGraphicsPanel({
 
         {activeTab === "streaming" && (
           <StudioStreamPanel
+            eventId={eventId}
             roomState={roomState}
             destinations={destinations}
             onCreateDestination={onCreateDestination}

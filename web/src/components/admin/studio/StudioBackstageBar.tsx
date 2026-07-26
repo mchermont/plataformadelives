@@ -40,7 +40,10 @@ export function StudioBackstageBar({
   intercomTargetId,
   isIntercomTalking,
 }: StudioBackstageBarProps) {
-  const allParticipants = useParticipants();
+  // "output-*" é o bot do Egress (ou uma aba de preview do OBS/vMix) — só
+  // assina a sala pra renderizar a composição, não é gente pra gerenciar
+  // palco/backstage, então nunca deve aparecer nessa lista.
+  const allParticipants = useParticipants().filter((p) => !p.identity.startsWith("output-"));
   const participants = allParticipants.filter((p) => !p.identity.startsWith("interprete-"));
   const interpreters = allParticipants.filter((p) => p.identity.startsWith("interprete-"));
 
