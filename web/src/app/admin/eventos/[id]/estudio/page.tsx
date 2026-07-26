@@ -26,6 +26,7 @@ export default async function StudioAdminPage({
   if (!chain || !chain.event) notFound();
 
   const event = chain.event;
+  if (!event.studio_enabled) notFound();
 
   // Busca ou cria o estado da sala do estúdio
   let studioRoom: StudioRoom | null = null;

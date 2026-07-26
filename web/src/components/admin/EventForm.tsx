@@ -124,6 +124,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
     gallery_enabled: event?.gallery_enabled ?? false,
     presence_enabled: event?.presence_enabled ?? true,
     reactions_enabled: event?.reactions_enabled ?? true,
+    studio_enabled: event?.studio_enabled ?? false,
     qa_allow_anonymous: event?.qa_allow_anonymous ?? true,
     qa_upvote_enabled: event?.qa_upvote_enabled ?? true,
     brand_color: event?.brand_color ?? "#0284c7",
@@ -222,6 +223,7 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
       gallery_enabled: form.gallery_enabled,
       presence_enabled: form.presence_enabled,
       reactions_enabled: form.reactions_enabled,
+      studio_enabled: form.studio_enabled,
       qa_allow_anonymous: form.qa_allow_anonymous,
       qa_upvote_enabled: form.qa_upvote_enabled,
       brand_color: form.brand_color,
@@ -474,11 +476,13 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
               onChange={(e) => set("stream_provider", e.target.value as StreamProvider)}
               className={inputClass}
             >
-              {Object.entries(PROVIDER_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {Object.entries(PROVIDER_LABELS)
+                .filter(([value]) => value !== "studio")
+                .map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
             </select>
           </div>
           <div>
@@ -492,6 +496,21 @@ export function EventForm({ event, fields, allowlist, userId, clientId, extraTab
             />
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.studio_enabled}
+            onChange={(e) => set("studio_enabled", e.target.checked)}
+            className="h-4 w-4 accent-sky-500"
+          />
+          Habilitar Estúdio GoLive (produção WebRTC)
+        </label>
+        <p className="text-xs text-neutral-500">
+          Libera a aba "Estúdio" pra esse evento — o painel de câmeras/mixer
+          que alimenta a transmissão. A Fonte acima continua sendo de onde o
+          público assiste (ex.: cole aqui o link do YouTube pra onde o
+          Estúdio está mandando).
+        </p>
       </section>
 
       <section className={tab === "interacoes" ? cardTab : "hidden"}>

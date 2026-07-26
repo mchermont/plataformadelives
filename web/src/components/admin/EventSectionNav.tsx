@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-function tabsFor(eventId: string) {
+function tabsFor(eventId: string, studioEnabled: boolean) {
   return [
     { label: "Configuração", href: `/admin/eventos/${eventId}` },
-    { label: "Estúdio", href: `/admin/eventos/${eventId}/estudio` },
+    ...(studioEnabled ? [{ label: "Estúdio", href: `/admin/eventos/${eventId}/estudio` }] : []),
     { label: "Sala de produção", href: `/admin/eventos/${eventId}/live` },
     { label: "Inscrições", href: `/admin/eventos/${eventId}/inscricoes` },
     { label: "Relatório", href: `/admin/eventos/${eventId}/relatorio` },
@@ -14,9 +14,9 @@ function tabsFor(eventId: string) {
 }
 
 /** Abas de seção do evento — mesma navegação em qualquer subpágina. */
-export function EventSectionNav({ eventId }: { eventId: string }) {
+export function EventSectionNav({ eventId, studioEnabled }: { eventId: string; studioEnabled: boolean }) {
   const pathname = usePathname();
-  const tabs = tabsFor(eventId);
+  const tabs = tabsFor(eventId, studioEnabled);
 
   return (
     <nav className="mb-6 flex gap-1 rounded-xl border border-border-c bg-surface/40 p-1">

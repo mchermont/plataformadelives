@@ -143,6 +143,8 @@ export interface LiveEvent {
   /** contador de "X online" e reações em emoji na sala (migração 0028) */
   presence_enabled: boolean;
   reactions_enabled: boolean;
+  /** libera o painel de produção do Estúdio WebRTC pro evento (migração 0038) */
+  studio_enabled: boolean;
 }
 
 // ===== Galeria de fotos (migração 0016, Fase G.2) =====

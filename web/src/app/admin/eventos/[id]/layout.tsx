@@ -25,7 +25,7 @@ export default async function EventoLayout({
           { label: event.title },
         ]}
       />
-      <EventSectionNav eventId={event.id} />
+      <EventSectionNav eventId={event.id} studioEnabled={event.studio_enabled} />
       {children}
     </div>
   );
