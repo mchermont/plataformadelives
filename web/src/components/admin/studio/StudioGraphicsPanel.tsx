@@ -19,6 +19,7 @@ interface StudioGraphicsPanelProps {
   onDeleteDestination: (id: string) => void;
   onStartStream: () => void;
   onStopStream: () => void;
+  onCopyOutputLink: () => void;
 }
 
 export function StudioGraphicsPanel({
@@ -33,6 +34,7 @@ export function StudioGraphicsPanel({
   onDeleteDestination,
   onStartStream,
   onStopStream,
+  onCopyOutputLink,
 }: StudioGraphicsPanelProps) {
   const [activeTab, setActiveTab] = useState<"graphics" | "captions" | "presentation" | "streaming">("graphics");
   const [newGcText, setNewGcText] = useState("");
@@ -395,6 +397,7 @@ export function StudioGraphicsPanel({
             onDeleteDestination={onDeleteDestination}
             onStartStream={onStartStream}
             onStopStream={onStopStream}
+            onCopyOutputLink={onCopyOutputLink}
           />
         )}
       </div>

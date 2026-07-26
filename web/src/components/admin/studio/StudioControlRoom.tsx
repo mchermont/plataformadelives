@@ -265,12 +265,6 @@ function StudioControlRoomInner({
           >
             <Hand className="h-3.5 w-3.5 text-sky-400" /> Convidar Intérprete
           </button>
-          <button
-            onClick={handleCopyOutputLink}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-neutral-900 border border-neutral-800 px-3 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-neutral-800"
-          >
-            <Radio className="h-3.5 w-3.5 text-amber-400" /> Copiar Output (OBS/vMix)
-          </button>
         </div>
 
         <div className="min-h-0 flex-1">
@@ -413,6 +407,7 @@ function StudioControlRoomInner({
           onDeleteDestination={handleDeleteDestination}
           onStartStream={handleStartStream}
           onStopStream={handleStopStream}
+          onCopyOutputLink={handleCopyOutputLink}
         />
         <div className="h-px w-full bg-neutral-800" />
         <StudioPrivateChat eventId={event.id} />

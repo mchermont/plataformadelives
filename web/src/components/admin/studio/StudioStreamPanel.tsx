@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Radio, Plus, Trash2, Eye, EyeOff, Pencil, X, Check } from "lucide-react";
+import { Radio, Plus, Trash2, Eye, EyeOff, Pencil, X, Check, Copy } from "lucide-react";
 import type { StudioRoom, StudioStreamDestination } from "@/lib/types";
 
 interface StudioStreamPanelProps {
@@ -12,6 +12,7 @@ interface StudioStreamPanelProps {
   onDeleteDestination: (id: string) => void;
   onStartStream: () => void;
   onStopStream: () => void;
+  onCopyOutputLink: () => void;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,6 +34,7 @@ export function StudioStreamPanel({
   onDeleteDestination,
   onStartStream,
   onStopStream,
+  onCopyOutputLink,
 }: StudioStreamPanelProps) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm());
@@ -124,6 +126,13 @@ export function StudioStreamPanel({
             ? "Cadastre um destino habilitado abaixo pra poder transmitir."
             : `${enabledCount} destino${enabledCount > 1 ? "s" : ""} habilitado${enabledCount > 1 ? "s" : ""}.`}
         </p>
+
+        <button
+          onClick={onCopyOutputLink}
+          className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-neutral-900 border border-neutral-800 py-1.5 text-[11px] font-semibold text-neutral-300 transition hover:bg-neutral-800"
+        >
+          <Copy className="h-3 w-3 text-amber-400" /> Copiar link de Output (OBS/vMix)
+        </button>
       </div>
 
       {/* Lista de destinos */}
