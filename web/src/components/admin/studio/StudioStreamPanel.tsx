@@ -46,8 +46,14 @@ export function StudioStreamPanel({
 
   const enabledCount = destinations.filter((d) => d.enabled).length;
   const status = roomState.egress_status;
-  const isBusy = status === "starting" || status === "stopping";
   const isLive = status === "active";
+  // O botão vira "Encerrar" em qualquer estado que não seja idle/erro —
+  // inclusive "starting", pra sempre dar um jeito de cancelar mesmo se a
+  // transmissão demorar (ou travar) pra sair de "Preparando…". Só trava
+  // duplo-clique durante "stopping" (já em andamento) e o botão de
+  // "Iniciar" sem nenhum destino habilitado.
+  const isStopAction = isLive || status === "starting";
+  const disabled = status === "stopping" || (!isStopAction && enabledCount === 0);
 
   const toggleReveal = (id: string) => {
     setRevealedIds((prev) => {
@@ -112,15 +118,15 @@ export function StudioStreamPanel({
         {roomState.egress_error && <p className="text-[11px] text-red-400">{roomState.egress_error}</p>}
 
         <button
-          onClick={isLive || status === "starting" ? onStopStream : onStartStream}
-          disabled={isBusy || (!isLive && enabledCount === 0)}
+          onClick={isStopAction ? onStopStream : onStartStream}
+          disabled={disabled}
           className={`w-full flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-            isLive || status === "starting"
+            isStopAction
               ? "bg-red-500 text-white hover:bg-red-400"
               : "bg-emerald-500 text-neutral-950 hover:bg-emerald-400"
           }`}
         >
-          {isLive || status === "starting" ? "Encerrar transmissão" : "Iniciar transmissão"}
+          {isStopAction ? "Encerrar transmissão" : "Iniciar transmissão"}
         </button>
 
         <p className="text-[11px] text-neutral-500">

@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   ),
   title: "Plataforma de Lives",
   description: "Transmissões ao vivo com acesso controlado, chat e quiz",
+  // O Chrome headless do Egress do LiveKit roda com locale próprio (en-US),
+  // diferente do pt-BR da página — sem isso ele oferece traduzir e a barra
+  // "Google Translate" fica gravada dentro do vídeo composto que vai pro ar.
+  other: { google: "notranslate" },
 };
 
 export default function RootLayout({
@@ -28,7 +32,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${archivo.variable} ${splineMono.variable} h-full antialiased`}
+      className={`notranslate ${archivo.variable} ${splineMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
         {children}
