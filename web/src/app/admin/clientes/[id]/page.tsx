@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MonitorPlay } from "lucide-react";
+import { MonitorPlay, Clapperboard } from "lucide-react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { LiveEvent } from "@/lib/types";
@@ -132,6 +132,11 @@ export default async function ClientDetailPage({
                         <Link href={`/admin/eventos/${event.id}/live`} className="flex items-center gap-1 font-semibold hover:underline">
                           <MonitorPlay className="size-3.5" /> Sala de produção
                         </Link>
+                        {event.studio_enabled && (
+                          <Link href={`/admin/eventos/${event.id}/estudio`} className="flex items-center gap-1 font-semibold hover:underline">
+                            <Clapperboard className="size-3.5" /> Estúdio
+                          </Link>
+                        )}
                         {isClientAdmin && (
                           <Link href={`/admin/eventos/${event.id}`} className="hover:underline">
                             Editar
