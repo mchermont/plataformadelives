@@ -42,11 +42,16 @@ interface CloudWord {
 let measureCanvas: HTMLCanvasElement | null = null;
 
 /**
- * Empacota as palavras tipo nuvem de verdade (Mentimeter-style): maiores
- * (mais votadas) primeiro, posicionadas por espiral a partir do centro até
- * achar um espaço livre — não é uma lista em `flex-wrap`, é colisão real
- * medida via Canvas 2D (`measureText`), por isso só roda no client depois
- * de medir o container (não dá pra fazer isso no SSR).
+ * Empacota as palavras tipo nuvem (maiores primeiro, tamanho por
+ * frequência, cores variadas) usando "prateleiras": cada palavra entra na
+ * linha atual se couber, senão abre uma linha nova embaixo — cada linha é
+ * centralizada e as linhas ficam centralizadas verticalmente no conjunto.
+ * Diferente de uma busca por espiral/tentativa-e-erro (que já se provou
+ * frágil aqui — várias rodadas ainda empilhavam palavra em cima de
+ * palavra em casos que pareciam simples), esse método NUNCA sobrepõe: é
+ * posicionamento sequencial, não uma heurística que pode falhar. Medição
+ * real via Canvas 2D (`measureText`), por isso só roda no client depois
+ * de medir o container.
  */
 function packWordCloud(
   words: { word: string; count: number }[],
@@ -69,75 +74,70 @@ function packWordCloud(
   };
 
   const max = Math.max(...words.map((w) => w.count), 1);
-  const sized = [...words]
+  const items = [...words]
     .sort((a, b) => b.count - a.count)
     .map((w) => {
-      let wordSize = minSize + (maxSize - minSize) * (w.count / max);
-      // Nenhuma palavra pode ser fisicamente maior que o container — sem
-      // isso, uma palavra comprida numa camada de fonte muito grande nunca
-      // encontra posição válida (o cálculo de espaço livre nunca fecha) e
-      // o resultado empilhava tudo por cima uma da outra no centro. Importante:
-      // o limite tem que valer pra CAIXA com padding/rotação, não só o texto
-      // cru — clampar só o texto ainda deixava a caixa final estourar o
-      // container (o `Math.min(width, ...)` do cálculo da caixa então forçava
-      // várias palavras grandes pro mesmo canto (0,0), empilhadas de novo).
-      const rawWidth = measureWidth(w.word, wordSize);
-      const paddedWidth = rawWidth + wordSize * 0.72; // reserva o padding/rotação mais generosos (ver cálculo de boxW abaixo)
-      const limit = width * 0.82;
-      if (paddedWidth > limit) wordSize *= limit / paddedWidth;
-      return { ...w, size: wordSize };
+      let size = minSize + (maxSize - minSize) * (w.count / max);
+      const limit = width * 0.85;
+      // Nenhuma palavra isolada pode ser mais larga que o container.
+      const raw = measureWidth(w.word, size);
+      if (raw + size * 0.4 > limit) size *= limit / (raw + size * 0.4);
+      const boxW = measureWidth(w.word, size) + size * 0.4;
+      const boxH = size * 1.35;
+      return { word: w.word, count: w.count, size, boxW, boxH };
     });
 
-  const placed: { x: number; y: number; w: number; h: number }[] = [];
-  const cx = width / 2;
-  const cy = height / 2;
-  const out: CloudWord[] = [];
+  interface Row {
+    items: typeof items;
+    gaps: number[];
+    height: number;
+    width: number;
+  }
+  const rows: Row[] = [];
+  let row: Row | null = null;
 
-  sized.forEach((w, i) => {
-    const textWidth = measureWidth(w.word, w.size);
-    // leve rotação em algumas palavras pra sensação orgânica, maioria
-    // horizontal (legibilidade continua sendo prioridade sobre estilo)
-    const rotate = i % 9 === 4 ? -18 : i % 13 === 7 ? 18 : 0;
-    const rotated = rotate !== 0;
-    const boxW = Math.min(width, (rotated ? textWidth * 0.94 + w.size * 0.4 : textWidth) + w.size * 0.32);
-    const boxH = Math.min(height, (rotated ? textWidth * 0.5 : w.size * 1.15) + w.size * 0.24);
-
-    // Busca por espiral a posição de MENOR sobreposição — a posição
-    // candidata é sempre clampada pra dentro do container (nunca fica
-    // "fora dos limites" indefinidamente), então sempre existe um
-    // resultado válido mesmo se a nuvem estiver muito cheia (degrada pra
-    // sobreposição mínima em vez de empilhar tudo no centro).
-    let best = { x: Math.min(Math.max(cx - boxW / 2, 0), width - boxW), y: Math.min(Math.max(cy - boxH / 2, 0), height - boxH), overlap: Infinity };
-    let angle = (i * 137.5 * Math.PI) / 180; // ângulo dourado — evita padrão repetitivo entre palavras
-    let radius = 0;
-    let attempts = 0;
-    const maxAttempts = 2500;
-
-    while (attempts < maxAttempts) {
-      const candidateX = Math.min(Math.max(cx + radius * Math.cos(angle) * 1.15 - boxW / 2, 0), Math.max(width - boxW, 0));
-      const candidateY = Math.min(Math.max(cy + radius * Math.sin(angle) * 0.75 - boxH / 2, 0), Math.max(height - boxH, 0));
-      const overlapArea = placed.reduce((sum, p) => {
-        const ox = Math.max(0, Math.min(candidateX + boxW, p.x + p.w) - Math.max(candidateX, p.x));
-        const oy = Math.max(0, Math.min(candidateY + boxH, p.y + p.h) - Math.max(candidateY, p.y));
-        return sum + ox * oy;
-      }, 0);
-      if (overlapArea < best.overlap) best = { x: candidateX, y: candidateY, overlap: overlapArea };
-      if (overlapArea === 0) break;
-      angle += 0.3;
-      radius += Math.max(2.4, w.size * 0.12);
-      attempts++;
+  items.forEach((item) => {
+    const gap = item.size * 0.4;
+    const extra = row && row.items.length > 0 ? gap : 0;
+    if (!row || row.width + extra + item.boxW > width) {
+      row = { items: [], gaps: [], height: 0, width: 0 };
+      rows.push(row);
     }
+    if (row.items.length > 0) {
+      row.gaps.push(gap);
+      row.width += gap;
+    }
+    row.items.push(item);
+    row.width += item.boxW;
+    row.height = Math.max(row.height, item.boxH);
+  });
 
-    placed.push({ x: best.x, y: best.y, w: boxW, h: boxH });
-    out.push({
-      word: w.word,
-      count: w.count,
-      size: w.size,
-      x: best.x + boxW / 2,
-      y: best.y + boxH / 2,
-      rotate,
-      color: VIVID_PALETTE[i % VIVID_PALETTE.length],
+  const rowGap = Math.min(height * 0.03, 14);
+  const totalHeight = rows.reduce((sum, r) => sum + r.height, 0) + rowGap * Math.max(0, rows.length - 1);
+  // se as linhas juntas ficarem mais altas que o container, encolhe tudo
+  // proporcionalmente — nunca deixa vazar pra fora, nunca sobrepõe.
+  const scale = totalHeight > height ? height / totalHeight : 1;
+
+  const out: CloudWord[] = [];
+  let y = (height - totalHeight * scale) / 2;
+  rows.forEach((r) => {
+    const rowHeight = r.height * scale;
+    let x = (width - r.width * scale) / 2;
+    r.items.forEach((item, i) => {
+      if (i > 0) x += r.gaps[i - 1] * scale;
+      const w = item.boxW * scale;
+      out.push({
+        word: item.word,
+        count: item.count,
+        size: item.size * scale,
+        x: x + w / 2,
+        y: y + rowHeight / 2,
+        rotate: 0,
+        color: VIVID_PALETTE[out.length % VIVID_PALETTE.length],
+      });
+      x += w;
     });
+    y += rowHeight + rowGap * scale;
   });
 
   return out;
