@@ -35,28 +35,54 @@ interface CloudWord {
   size: number;
   x: number;
   y: number;
-  rotate: number;
+  vertical: boolean;
   color: string;
 }
 
 let measureCanvas: HTMLCanvasElement | null = null;
 
 /**
- * Empacota as palavras tipo nuvem (maiores primeiro, tamanho por
- * frequência, cores variadas) usando "prateleiras": cada palavra entra na
- * linha atual se couber, senão abre uma linha nova embaixo — cada linha é
- * centralizada e as linhas ficam centralizadas verticalmente no conjunto.
- * Diferente de uma busca por espiral/tentativa-e-erro (que já se provou
- * frágil aqui — várias rodadas ainda empilhavam palavra em cima de
- * palavra em casos que pareciam simples), esse método NUNCA sobrepõe: é
- * posicionamento sequencial, não uma heurística que pode falhar. Medição
- * real via Canvas 2D (`measureText`), por isso só roda no client depois
- * de medir o container.
+ * Denominador do tamanho: usar só a maior contagem ATUAL faz a 1ª palavra
+ * nascer gigante (ela é 100% do "máximo" quando é a única resposta ainda).
+ * Cresce aos poucos junto com o total de respostas — as primeiras palavras
+ * entram parecidas em tamanho, só se destacam de verdade conforme a
+ * diferença de votos fica real.
+ */
+function sizeDenominator(maxCount: number, total: number) {
+  return Math.max(maxCount, 1 + total * 0.35);
+}
+
+function computeSizes(
+  words: { word: string; count: number }[],
+  height: number,
+  total: number,
+  minSize: number,
+  maxSize: number
+) {
+  const maxCount = Math.max(...words.map((w) => w.count), 1);
+  const denom = sizeDenominator(maxCount, total);
+  return words.map((w) => ({ ...w, size: minSize + (maxSize - minSize) * (w.count / denom) }));
+}
+
+/**
+ * Empacota as palavras tipo nuvem de verdade: espiral bem fina (testa
+ * posições próximas antes de se afastar, sem "pular" espaço livre — foi
+ * essa mesma busca que, com espaçamento generoso, já se provou correta;
+ * agora com padding mínimo pra ficar densa igual a referência do
+ * Mentimeter) e sempre escolhe a posição de MENOR sobreposição (nunca cai
+ * num fallback sem checar colisão — foi exatamente isso que causava
+ * sobreposição de verdade numa rodada anterior). Palavras maiores ficam
+ * sempre na horizontal (legibilidade dos termos principais); entre as
+ * menores, uma a cada três vai na vertical pra encaixar nos vãos
+ * apertados, igual à referência. Medição real via Canvas 2D
+ * (`measureText`), convertendo rem→px (é o bug raiz que já mordeu essa
+ * função antes: `ctx.font` só entende px).
  */
 function packWordCloud(
   words: { word: string; count: number }[],
   width: number,
   height: number,
+  total: number,
   minSize: number,
   maxSize: number
 ): CloudWord[] {
@@ -68,95 +94,109 @@ function packWordCloud(
 
   const fontFamily =
     getComputedStyle(document.documentElement).getPropertyValue("--font-archivo").trim() || "sans-serif";
-  // `minSize`/`maxSize` (e o `size` de cada palavra) são em REM, porque é
-  // isso que vai pro CSS (`fontSize: ${size}rem`) — mas o Canvas 2D só
-  // entende `ctx.font` em px. Sem essa conversão, media-se o texto num
-  // font-size ~16x menor que o real (ex.: "5.5" virava literalmente
-  // "5.5px"), toda largura saía minúscula, e várias palavras grandes
-  // ficavam com caixas de colisão de poucos pixels — perto o bastante pra
-  // se sobreporem de verdade mesmo com posições "diferentes".
   const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   const measureWidthPx = (word: string, sizeRem: number) => {
     ctx.font = `800 ${sizeRem * remPx}px ${fontFamily}`;
     return ctx.measureText(word).width;
   };
 
-  const max = Math.max(...words.map((w) => w.count), 1);
-  const items = [...words]
-    .sort((a, b) => b.count - a.count)
-    .map((w) => {
-      let size = minSize + (maxSize - minSize) * (w.count / max); // rem
-      const limit = width * 0.85; // px
-      // Nenhuma palavra isolada pode ser mais larga que o container.
-      const rawPx = measureWidthPx(w.word, size);
-      const gapPx = size * remPx * 0.4;
-      if (rawPx + gapPx > limit) size *= limit / (rawPx + gapPx);
-      const boxW = measureWidthPx(w.word, size) + size * remPx * 0.4; // px
-      const boxH = size * remPx * 1.35; // px
-      return { word: w.word, count: w.count, size, boxW, boxH };
-    });
-
-  interface Row {
-    items: typeof items;
-    gaps: number[];
-    height: number;
-    width: number;
-  }
-  const rows: Row[] = [];
-  let row: Row | null = null;
-
-  items.forEach((item) => {
-    const gap = item.size * remPx * 0.4; // px
-    const extra = row && row.items.length > 0 ? gap : 0;
-    if (!row || row.width + extra + item.boxW > width) {
-      row = { items: [], gaps: [], height: 0, width: 0 };
-      rows.push(row);
-    }
-    if (row.items.length > 0) {
-      row.gaps.push(gap);
-      row.width += gap;
-    }
-    row.items.push(item);
-    row.width += item.boxW;
-    row.height = Math.max(row.height, item.boxH);
+  const sized = computeSizes(
+    [...words].sort((a, b) => b.count - a.count),
+    height,
+    total,
+    minSize,
+    maxSize
+  ).map((w) => {
+    let size = w.size; // rem
+    const rawPx = measureWidthPx(w.word, size);
+    const limitPx = width * 0.96;
+    if (rawPx > limitPx) size *= limitPx / rawPx;
+    return { ...w, size };
   });
 
-  const rowGap = Math.min(height * 0.03, 14);
-  const totalHeight = rows.reduce((sum, r) => sum + r.height, 0) + rowGap * Math.max(0, rows.length - 1);
-  // se as linhas juntas ficarem mais altas que o container, encolhe tudo
-  // proporcionalmente — nunca deixa vazar pra fora, nunca sobrepõe.
-  const scale = totalHeight > height ? height / totalHeight : 1;
-
+  const placed: { x: number; y: number; w: number; h: number }[] = [];
+  // A busca sempre testa raio zero primeiro, e com ninguém posicionado
+  // ainda esse ponto está sempre livre — sem isso, a palavra líder (sempre
+  // a maior/mais votada) trava sempre no mesmíssimo pixel do centro em
+  // toda rodada. Faz o centro oscilar um pouco junto com o total de
+  // respostas pra até ela respirar.
+  const wobbleX = Math.sin(total * 0.23) * width * 0.015;
+  const wobbleY = Math.cos(total * 0.19) * height * 0.02;
+  const cx = width / 2 + wobbleX;
+  const cy = height / 2 + wobbleY;
+  const padPx = 1.5;
+  const aspectX = Math.max(1, (width / height) * 0.6);
+  const aspectY = Math.max(1, (height / width) * 1.1);
   const out: CloudWord[] = [];
-  let y = (height - totalHeight * scale) / 2;
-  rows.forEach((r) => {
-    const rowHeight = r.height * scale;
-    let x = (width - r.width * scale) / 2;
-    r.items.forEach((item, i) => {
-      if (i > 0) x += r.gaps[i - 1] * scale;
-      const w = item.boxW * scale;
-      out.push({
-        word: item.word,
-        count: item.count,
-        size: item.size * scale,
-        x: x + w / 2,
-        y: y + rowHeight / 2,
-        rotate: 0,
-        color: VIVID_PALETTE[out.length % VIVID_PALETTE.length],
-      });
-      x += w;
+
+  sized.forEach((w, i) => {
+    const vertical = i > 2 && i % 3 === 2;
+    const textWidthPx = measureWidthPx(w.word, w.size);
+    const sizePx = w.size * remPx;
+    const boxW = Math.min(width, (vertical ? sizePx * 1.02 : textWidthPx) + padPx * 2);
+    const boxH = Math.min(height, (vertical ? textWidthPx : sizePx * 1.02) + padPx * 2);
+
+    let best = {
+      x: Math.min(Math.max(cx - boxW / 2, 0), Math.max(width - boxW, 0)),
+      y: Math.min(Math.max(cy - boxH / 2, 0), Math.max(height - boxH, 0)),
+      overlap: Infinity,
+    };
+    let t = 0;
+    const dt = 0.28;
+    const growth = 0.95;
+    let attempts = 0;
+    while (attempts < 12000) {
+      const radius = growth * t;
+      const dx = radius * Math.cos(t) * aspectX;
+      const dy = radius * Math.sin(t) * aspectY;
+      const x = Math.min(Math.max(cx + dx - boxW / 2, 0), Math.max(width - boxW, 0));
+      const y = Math.min(Math.max(cy + dy - boxH / 2, 0), Math.max(height - boxH, 0));
+      const overlapArea = placed.reduce((sum, p) => {
+        const ox = Math.max(0, Math.min(x + boxW, p.x + p.w) - Math.max(x, p.x));
+        const oy = Math.max(0, Math.min(y + boxH, p.y + p.h) - Math.max(y, p.y));
+        return sum + ox * oy;
+      }, 0);
+      if (overlapArea < best.overlap) best = { x, y, overlap: overlapArea };
+      if (overlapArea === 0) break;
+      t += dt;
+      attempts++;
+    }
+    placed.push({ x: best.x, y: best.y, w: boxW, h: boxH });
+    out.push({
+      word: w.word,
+      count: w.count,
+      size: w.size,
+      x: best.x + boxW / 2,
+      y: best.y + boxH / 2,
+      vertical,
+      color: VIVID_PALETTE[i % VIVID_PALETTE.length],
     });
-    y += rowHeight + rowGap * scale;
   });
 
   return out;
 }
 
-/** Nuvem de palavras com layout real (posições/tamanhos/cores variadas), medida via ResizeObserver no container. */
-function WordCloud({ words, screen }: { words: { word: string; count: number }[]; screen: boolean }) {
+/**
+ * Nuvem de palavras com layout real, medida via ResizeObserver no
+ * container. Cada resposta nova faz as palavras crescerem/encolherem no
+ * lugar (transição suave) — reposicionar tudo de novo (`packWordCloud`)
+ * só acontece quando aparece uma palavra nova ou a cada 5 respostas
+ * novas, senão a nuvem inteira treme a cada resposta.
+ */
+function WordCloud({
+  words,
+  total,
+  screen,
+}: {
+  words: { word: string; count: number }[];
+  total: number;
+  screen: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [layout, setLayout] = useState<CloudWord[]>([]);
+  const lastLayoutTotalRef = useRef(0);
+  const knownWordsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const el = containerRef.current;
@@ -170,17 +210,33 @@ function WordCloud({ words, screen }: { words: { word: string; count: number }[]
   }, []);
 
   useEffect(() => {
+    if (!size.width || !size.height || words.length === 0) return;
     const minSize = screen ? 1.5 : 0.85;
     const maxSize = screen ? 5.5 : 2.1;
-    setLayout(packWordCloud(words, size.width, size.height, minSize, maxSize));
+    const hasNewWord = words.some((w) => !knownWordsRef.current.has(w.word));
+    const shouldReposition = hasNewWord || total - lastLayoutTotalRef.current >= 5;
+
+    if (shouldReposition) {
+      lastLayoutTotalRef.current = total;
+      words.forEach((w) => knownWordsRef.current.add(w.word));
+      setLayout(packWordCloud(words, size.width, size.height, total, minSize, maxSize));
+    } else {
+      const sized = computeSizes(words, size.height, total, minSize, maxSize);
+      const sizeByWord = new Map(sized.map((w) => [w.word, w.size]));
+      const countByWord = new Map(words.map((w) => [w.word, w.count]));
+      setLayout((prev) =>
+        prev.map((p) =>
+          sizeByWord.has(p.word)
+            ? { ...p, size: sizeByWord.get(p.word)!, count: countByWord.get(p.word) ?? p.count }
+            : p
+        )
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [words, size.width, size.height, screen]);
+  }, [words, size.width, size.height, total, screen]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full ${screen ? "h-[62vh] min-h-[420px]" : "h-56 sm:h-64"}`}
-    >
+    <div ref={containerRef} className={`relative w-full ${screen ? "h-[62vh] min-h-[420px]" : "h-56 sm:h-64"}`}>
       {layout.map((w) => (
         <span
           key={w.word}
@@ -188,7 +244,7 @@ function WordCloud({ words, screen }: { words: { word: string; count: number }[]
           style={{
             left: w.x,
             top: w.y,
-            transform: `translate(-50%, -50%) rotate(${w.rotate}deg)`,
+            transform: `translate(-50%, -50%)${w.vertical ? " rotate(-90deg)" : ""}`,
             fontSize: `${w.size}rem`,
             color: w.color,
           }}
@@ -283,7 +339,7 @@ export function ActivityResultsView({ activity, results, size = "panel" }: Activ
   if (activity.type === "word_cloud") {
     // no painel a nuvem é compacta (o telão mostra a versão completa)
     const words = (results.words ?? []).slice(0, screen ? 80 : 30);
-    return <WordCloud words={words} screen={screen} />;
+    return <WordCloud words={words} total={results.total} screen={screen} />;
   }
 
   if (activity.type === "quiz") {
