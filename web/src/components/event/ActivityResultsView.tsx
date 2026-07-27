@@ -68,8 +68,16 @@ function packWordCloud(
 
   const fontFamily =
     getComputedStyle(document.documentElement).getPropertyValue("--font-archivo").trim() || "sans-serif";
-  const measureWidth = (word: string, size: number) => {
-    ctx.font = `800 ${size}px ${fontFamily}`;
+  // `minSize`/`maxSize` (e o `size` de cada palavra) são em REM, porque é
+  // isso que vai pro CSS (`fontSize: ${size}rem`) — mas o Canvas 2D só
+  // entende `ctx.font` em px. Sem essa conversão, media-se o texto num
+  // font-size ~16x menor que o real (ex.: "5.5" virava literalmente
+  // "5.5px"), toda largura saía minúscula, e várias palavras grandes
+  // ficavam com caixas de colisão de poucos pixels — perto o bastante pra
+  // se sobreporem de verdade mesmo com posições "diferentes".
+  const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const measureWidthPx = (word: string, sizeRem: number) => {
+    ctx.font = `800 ${sizeRem * remPx}px ${fontFamily}`;
     return ctx.measureText(word).width;
   };
 
@@ -77,13 +85,14 @@ function packWordCloud(
   const items = [...words]
     .sort((a, b) => b.count - a.count)
     .map((w) => {
-      let size = minSize + (maxSize - minSize) * (w.count / max);
-      const limit = width * 0.85;
+      let size = minSize + (maxSize - minSize) * (w.count / max); // rem
+      const limit = width * 0.85; // px
       // Nenhuma palavra isolada pode ser mais larga que o container.
-      const raw = measureWidth(w.word, size);
-      if (raw + size * 0.4 > limit) size *= limit / (raw + size * 0.4);
-      const boxW = measureWidth(w.word, size) + size * 0.4;
-      const boxH = size * 1.35;
+      const rawPx = measureWidthPx(w.word, size);
+      const gapPx = size * remPx * 0.4;
+      if (rawPx + gapPx > limit) size *= limit / (rawPx + gapPx);
+      const boxW = measureWidthPx(w.word, size) + size * remPx * 0.4; // px
+      const boxH = size * remPx * 1.35; // px
       return { word: w.word, count: w.count, size, boxW, boxH };
     });
 
@@ -97,7 +106,7 @@ function packWordCloud(
   let row: Row | null = null;
 
   items.forEach((item) => {
-    const gap = item.size * 0.4;
+    const gap = item.size * remPx * 0.4; // px
     const extra = row && row.items.length > 0 ? gap : 0;
     if (!row || row.width + extra + item.boxW > width) {
       row = { items: [], gaps: [], height: 0, width: 0 };
