@@ -307,15 +307,20 @@ export function StudioCanvas({
         </div>
       )}
 
-      {/* 2.7 Intérprete de Libras — PIP fixo, sempre por cima, em 4:3.
-          Tamanho/posição em % do player (não px fixo): o player renderiza
-          em tamanhos de tela bem diferentes pro Diretor/convidado/output,
-          então px fixo faz o PIP parecer proporcionalmente maior ou menor
-          dependendo de quem está vendo — em % ele fica idêntico pra todo
-          mundo, exatamente como o Diretor está vendo. */}
+      {/* 2.7 Intérprete de Libras — PIP fixo, sempre por cima, em 4:3 por
+          padrão. Tamanho/posição em % do player (não px fixo): o player
+          renderiza em tamanhos de tela bem diferentes pro Diretor/
+          convidado/output, então px fixo faz o PIP parecer
+          proporcionalmente maior ou menor dependendo de quem está vendo —
+          em % ele fica idêntico pra todo mundo, exatamente como o Diretor
+          está vendo. Quando o intérprete usa o celular em pé (retrato), o
+          LiveKit marca a track com `data-lk-orientation="portrait"` — a
+          classe `studio-interpreter-pip` (globals.css) usa isso pra deixar
+          a caixa mais alta em vez de esmagar um vídeo vertical estreito
+          dentro de uma caixa 4:3 larga e baixa (cortava quase tudo). */}
       {activeInterpreter && (
         <div
-          className="absolute z-40"
+          className="studio-interpreter-pip absolute z-40"
           style={{
             height: "22%",
             aspectRatio: "4 / 3",

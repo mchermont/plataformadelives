@@ -41,7 +41,6 @@ export function OrgTeam({
   const idColumn = `${kind}_id`;
   const membersTable = `${kind}_members`;
   const invitesTable = `${kind}_invites`;
-  const inviteRpc = `invite_to_${kind}`;
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
@@ -78,13 +77,14 @@ export function OrgTeam({
     }
     setBusy(true);
     setError(null);
-    const { error: rpcErr } = await supabase.rpc(inviteRpc, {
-      [`p_${kind}_id`]: orgId,
-      p_email: clean,
-      p_role: role,
+    const res = await fetch("/api/admin/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orgKind: kind, orgId, email: clean, role }),
     });
-    if (rpcErr) {
-      setError("Não foi possível convidar. Tente novamente.");
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "Não foi possível convidar. Tente novamente.");
       setBusy(false);
       return;
     }

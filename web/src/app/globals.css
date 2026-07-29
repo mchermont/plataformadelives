@@ -270,3 +270,11 @@ body {
 .thin-scroll::-webkit-scrollbar-thumb:hover {
   background-color: oklch(0.42 0.01 260 / 0.9);
 }
+
+/* PIP do intérprete de Libras (StudioCanvas): quando o celular está em pé,
+   o LiveKit marca a track com data-lk-orientation="portrait" — deixa a
+   caixa mais alta em vez de esmagar um vídeo vertical estreito dentro de
+   uma caixa 4:3 larga e baixa (cortava quase tudo do enquadramento). */
+.studio-interpreter-pip:has(video[data-lk-orientation="portrait"]) {
+  aspect-ratio: 3 / 4;
+}

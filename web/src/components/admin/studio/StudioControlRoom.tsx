@@ -463,13 +463,20 @@ export function StudioControlRoom({
   const [token, setToken] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [mounted, setMounted] = useState(false);
+  // Identity precisa ser única por SESSÃO, não só por evento — antes era
+  // sempre "diretor-<eventId>" pra qualquer admin, e o LiveKit não deixa
+  // duas conexões com o mesmo identity: a segunda pessoa a abrir o
+  // Estúdio derrubava quem já estava. O sufixo aleatório resolve, e
+  // continua começando com "diretor-" (é só isso que o resto do código
+  // checa, nunca o valor exato).
+  const directorSuffix = useRef(Math.random().toString(36).slice(2, 8)).current;
 
   useEffect(() => {
     setMounted(true);
     async function fetchToken() {
       try {
         const res = await fetch(
-          `/api/studio/token?eventId=${event.id}&identity=diretor-${event.id}&name=Diretor&isDirector=true`
+          `/api/studio/token?eventId=${event.id}&identity=diretor-${event.id}-${directorSuffix}&name=Diretor&isDirector=true`
         );
         const data = await res.json();
         if (data.token && data.serverUrl) {
@@ -481,7 +488,7 @@ export function StudioControlRoom({
       }
     }
     fetchToken();
-  }, [event.id]);
+  }, [event.id, directorSuffix]);
 
   useEffect(() => {
     const supabase = createClient();
