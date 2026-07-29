@@ -31,11 +31,20 @@ export function QAManager({ eventId }: { eventId: string }) {
   const [sort, setSort] = useState<Sort>("votes");
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("questions")
-      .select("*, profiles(full_name, email)")
+      // relação explícita: desde a migração 0014 (question_votes), o
+      // PostgREST enxerga DOIS caminhos até profiles (autor da pergunta e
+      // votantes) e recusa o embed ambíguo — sem isso a consulta inteira
+      // falhava (data: null) silenciosamente, esvaziando a fila de
+      // moderação mesmo com perguntas reais pendentes.
+      .select("*, profiles!questions_author_id_fkey(full_name, email)")
       .eq("event_id", eventId)
       .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Erro ao carregar perguntas:", error.message);
+      return;
+    }
     setQuestions((data as QuestionRow[]) ?? []);
   }, [supabase, eventId]);
 
