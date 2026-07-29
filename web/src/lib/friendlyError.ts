@@ -8,6 +8,10 @@ const PATTERNS: [RegExp, string][] = [
   [/violates .*constraint/i, "Os dados informados não são válidos."],
   [/JWT|expired/i, "Sua sessão expirou. Atualize a página e entre novamente."],
   [/network|fetch failed|failed to fetch/i, "Falha de conexão. Verifique sua internet e tente de novo."],
+  [
+    /egress minutes exceeded|egress.*quota|egress.*limit/i,
+    "Cota de minutos de transmissão (Egress) do LiveKit Cloud esgotada neste plano. Verifique o Billing do projeto no painel do LiveKit Cloud.",
+  ],
 ];
 
 /**
