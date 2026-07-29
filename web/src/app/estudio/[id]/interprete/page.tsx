@@ -7,7 +7,6 @@ import dynamic from "next/dynamic";
 import { useLocalParticipant, useParticipants, useRoomContext, AudioTrack } from "@livekit/components-react";
 import { createClient } from "@/lib/supabase/client";
 import { StudioAsset, StudioRoom } from "@/lib/types";
-import { StudioCanvas } from "@/components/admin/studio/StudioCanvas";
 import { StudioParticipantTile } from "@/components/admin/studio/StudioParticipantTile";
 import { StudioAudioRenderer, type StudioVolumeMap } from "@/components/admin/studio/StudioAudioRenderer";
 import { StudioMediaSettings } from "@/components/admin/studio/StudioMediaSettings";
@@ -42,7 +41,6 @@ function InterpreterStudioInner({
 
   const [roomState, setRoomState] = useState<StudioRoom>(initialRoom);
   const { isSpeaking: isDirectorSpeaking, trackRef: intercomTrackRef } = useIntercomListener(roomState);
-  const [assets, setAssets] = useState<StudioAsset[]>(initialAssets);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [noiseSuppression, setNoiseSuppression] = useState(true);
   const [volumes, setVolumes] = useState<StudioVolumeMap>({});
@@ -76,14 +74,6 @@ function InterpreterStudioInner({
         { event: "*", schema: "public", table: "studio_rooms", filter: `event_id=eq.${eventId}` },
         (payload) => {
           if (payload.new) setRoomState(payload.new as StudioRoom);
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "studio_assets", filter: `event_id=eq.${eventId}` },
-        async () => {
-          const { data } = await supabase.from("studio_assets").select("*").eq("event_id", eventId);
-          if (data) setAssets(data as StudioAsset[]);
         }
       )
       .subscribe();
@@ -157,13 +147,21 @@ function InterpreterStudioInner({
           <span className="text-[10px] text-neutral-500">Você está assistindo ao palco principal</span>
         </div>
 
+        {/* Player Rígido 16:9 — embute a MESMA URL que o Egress captura pro
+            YouTube (`/output`), com baixa latência via LiveKit em vez do
+            delay do YouTube. Mudo por padrão — já está ouvindo todo mundo
+            ao vivo pela própria sala. */}
         <div ref={playerFit.ref} className="w-full max-w-5xl">
           {playerFit.itemWidth > 0 && (
             <div
               className="relative mx-auto overflow-hidden rounded-2xl border border-neutral-800 bg-black shadow-2xl"
               style={{ width: playerFit.itemWidth, height: playerFit.itemHeight }}
             >
-              <StudioCanvas roomState={roomState} assets={assets} showLiveBadge />
+              <iframe
+                src={`/estudio/${eventId}/output?muted=1`}
+                className="absolute inset-0 h-full w-full border-0"
+                title="Palco da transmissão"
+              />
             </div>
           )}
         </div>
