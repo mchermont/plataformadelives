@@ -20,6 +20,16 @@ export const STUDIO_LIVEKIT_OPTIONS: RoomOptions = {
   videoCaptureDefaults: {
     resolution: VideoPresets.h720.resolution,
   },
+  // Sem isso, o cancelador de eco só entrava quando alguém abria as
+  // Configurações e mexia manualmente no toggle de ruído — quem entra e
+  // nunca abre esse painel (a maioria) ficava sem eco cancelado desde o
+  // primeiro segundo, e quem está sem fone realimenta o próprio mic pela
+  // caixa de som. Agora já vem ligado na primeira captura.
+  audioCaptureDefaults: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
   publishDefaults: {
     videoSimulcastLayers: [VideoPresets.h720, VideoPresets.h360, VideoPresets.h180],
   },

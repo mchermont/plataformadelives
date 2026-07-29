@@ -1,7 +1,7 @@
 "use client";
 
 import { useParticipants } from "@livekit/components-react";
-import { Mic, MicOff, Video, VideoOff, Star, Hand, Radio } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Star, Hand, Radio, X } from "lucide-react";
 import { StudioParticipantTile } from "./StudioParticipantTile";
 import { useFitTiles, useFitWidth } from "./useFitTiles";
 import { INTERCOM_ALL } from "./useIntercomListener";
@@ -288,6 +288,19 @@ export function StudioBackstageBar({
                             <Radio className="h-2.5 w-2.5" /> Diretor falando
                           </span>
                         </div>
+                      )}
+                      {isActive && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSetActiveInterpreter?.(p.identity);
+                          }}
+                          title="Tirar intérprete do ar"
+                          className="absolute right-1.5 top-1.5 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-neutral-950/90 text-neutral-300 hover:bg-red-500 hover:text-white"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
                       )}
                       <StudioParticipantTile participant={p} variant="thumbnail" showName={false} className="border-0" />
                       <div className="pointer-events-none absolute left-1.5 top-1.5 flex max-w-[80%] items-center gap-1 rounded-lg border border-neutral-800/80 bg-neutral-950/80 px-1.5 py-0.5 backdrop-blur-md">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mic, MicOff, Video, VideoOff, Users, ArrowRight, Settings, Radio } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, Users, ArrowRight, Settings, Radio, LogOut } from "lucide-react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useLocalParticipant, useParticipants, useRoomContext, AudioTrack } from "@livekit/components-react";
@@ -243,6 +243,16 @@ function GuestStudioInner({
             >
               <Settings className="h-4 w-4" />
             </button>
+
+            <button
+              onClick={() => {
+                if (confirm("Sair do Estúdio?")) room.disconnect();
+              }}
+              title="Sair do Estúdio"
+              className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-neutral-800 text-rose-400 transition hover:bg-rose-950 hover:text-rose-300"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -389,6 +399,10 @@ export default function GuestRoomPage() {
         audio={true}
         options={STUDIO_LIVEKIT_OPTIONS}
         onError={(err) => console.error("Guest LiveKit error:", err)}
+        onDisconnected={() => {
+          setJoined(false);
+          setToken(null);
+        }}
         className="h-screen w-full"
       >
         <GuestStudioInner
